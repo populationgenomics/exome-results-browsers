@@ -1,0 +1,21 @@
+name: tob-wgs-browser
+channels:
+  - cpg
+  - bioconda
+  - conda-forge
+dependencies:
+  - python
+  - pip
+  - black
+  - pylint
+  - mypy
+  - pandas
+  - jupyterlab
+  - pre-commit
+  - google-auth
+  - google-api-python-client
+  - google-cloud-secret-manager
+  - google-cloud-storage
+  - hail
+  - nodejs
+  - yarn
