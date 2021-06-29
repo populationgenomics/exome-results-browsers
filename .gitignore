@@ -20,3 +20,6 @@ hail-*.log
 
 # Mypy cache
 **/.mypy_cache/**
+
+# Ignore TOB dev data
+/src/data/**
