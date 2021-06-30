@@ -10,6 +10,8 @@ dependencies:
   - pylint
   - mypy
   - pandas
+  - numpy
+  - scikit-learn
   - jupyterlab
   - pre-commit
   - google-auth
@@ -19,3 +21,7 @@ dependencies:
   - hail
   - nodejs
   - yarn
+  - pip:
+     - umap-learn
+     - bokeh
+     - seaborn
