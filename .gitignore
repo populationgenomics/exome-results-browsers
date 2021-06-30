@@ -21,5 +21,8 @@ hail-*.log
 # Mypy cache
 **/.mypy_cache/**
 
+# Jupyter checkpoints
+**/.ipynb_checkpoints/**
+
 # Ignore TOB dev data
 /src/data/**
