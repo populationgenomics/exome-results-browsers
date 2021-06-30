@@ -40,7 +40,7 @@ export default () => (
       samples. Our primary focus will be the analysis of the WGS and SNPchip data.
     </p>
 
-    <p>
+    <div>
       The project is a collaboration with the following groups:
       <ul>
         <li>
@@ -57,7 +57,7 @@ export default () => (
           Responsible for the generation of WGS data.
         </li>
       </ul>
-    </p>
+    </div>
 
     <h2>Sample characteristics</h2>
     <ul>
