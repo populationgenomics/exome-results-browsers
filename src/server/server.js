@@ -102,7 +102,13 @@ app.use('/api/search', (req, res) => {
     return res.status(400).json({ error: 'One query required' })
   }
 
-  const query = req.query.q.toUpperCase()
+  let query = req.query.q
+  // Upper case queries matching HGNC names or Ensembl identifiers
+  if (req.query.q.match(/^[A-Z0-9-]+$|^C[0-9XY]+orf[0-9]+$/)) {
+    query = req.query.q.toUpperCase()
+  } else if (req.query.q.match(/^ENSG\d{11}$/)) {
+    query = req.query.q.toUpperCase()
+  }
 
   let results
   if (query.match(/^ENSG\d{11}$/)) {
