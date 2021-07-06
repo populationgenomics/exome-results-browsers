@@ -9,6 +9,7 @@
     "@gnomad/track-regions": "^1.0.0",
     "@gnomad/track-variants": "^1.0.0",
     "@gnomad/ui": "^1.0.0",
+    "chart.js": "^3.4.0",
     "core-js": "^3.0.1",
     "lodash": "^4.17.21",
     "normalize.css": "^8.0.1",
