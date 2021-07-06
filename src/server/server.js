@@ -7,6 +7,9 @@ const compression = require('compression')
 const express = require('express')
 const morgan = require('morgan')
 
+const { UMAP } = require('umap-js')
+const dfd = require('danfojs-node')
+
 const { PrefixTrie } = require('./search')
 
 // ================================================================================================
@@ -284,6 +287,47 @@ app.get('/api/gene/:geneIdOrName/variants', (req, res) => {
       res.status(404).json({ error: 'Gene not found' })
     }
   })
+})
+
+// ================================================================================================
+// UMAP computation
+// ================================================================================================
+
+app.get('/api/umap', (req, res) => {
+  const { nNeighbors = 20, minDistance = 0.1, genes = 'all', nEpochs = 200 } = req.params
+
+  const expressionPath = path.join(config.dataDirectory, 'results', 'cell_label_expression.csv')
+
+  dfd
+    .read_csv(expressionPath)
+    .then((df) => {
+      const umap = new UMAP({
+        nComponents: 2,
+        nEpochs,
+        nNeighbors,
+        minDist: minDistance,
+      })
+
+      const data = df.drop({ columns: ['cell_label'] }).values
+      const labels = df.loc({ columns: ['cell_label'] }).values.flat()
+      const uniqueLabels = new Set(labels)
+
+      try {
+        const embedding = umap.fit(data)
+        res.status(200).json({
+          results: {
+            embedding,
+            labels,
+            nLabels: uniqueLabels.size,
+          },
+        })
+      } catch (e) {
+        res.status(500).json({ error: e.toString() })
+      }
+    })
+    .catch((e) => {
+      res.status(500).json({ error: e.toString() })
+    })
 })
 
 // ================================================================================================
