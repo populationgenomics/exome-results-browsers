@@ -1,6 +1,9 @@
 import React from 'react'
 
 import Browser from '../base/Browser'
+import Fetch from '../base/Fetch'
+import AutosizedGeneResultsUmapPlot from '../base/GeneResultsPage/GeneResultsUmapPlot'
+import StatusMessage from '../base/StatusMessage'
 import { renderCount } from '../base/tableCells'
 import datasetConfig from '../datasetConfig'
 
@@ -24,6 +27,33 @@ const TOBBrowser = () => (
         render: renderCount,
       }
     })}
+    geneResultTabs={[
+      {
+        id: 'umap-plot',
+        label: 'UMAP Plot',
+        render: () => (
+          <Fetch path="/umap">
+            {({ data, error, loading }) => {
+              if (loading) {
+                return <StatusMessage>Loading results...</StatusMessage>
+              }
+
+              if (error || !(data || {}).results) {
+                return <StatusMessage>Unable to load results</StatusMessage>
+              }
+
+              return (
+                <AutosizedGeneResultsUmapPlot
+                  id="gene-results-umap-plot"
+                  embedding={data.results.embedding}
+                  labels={data.results.labels}
+                />
+              )
+            }}
+          </Fetch>
+        ),
+      },
+    ]}
   />
 )
 
