@@ -25,7 +25,16 @@ hail-*.log
 **/.ipynb_checkpoints/**
 
 # Ignore TOB dev data
-/src/data/tob/*
-!/src/data/tob/notebooks/
+/src/data/tob/*.json
+/src/data/tob/*.txt
+
+/src/data/tob/association/*
 !/src/data/tob/association/.gitkeep
+
+/src/data/tob/genes/*
+!/src/data/tob/genes/.gitkeep
+
+/src/data/tob/results/*
 !/src/data/tob/results/.gitkeep
+
+!/src/data/tob/notebooks/
