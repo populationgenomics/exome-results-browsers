@@ -294,7 +294,7 @@ app.get('/api/gene/:geneIdOrName/variants', (req, res) => {
 // ================================================================================================
 
 app.get('/api/umap', (req, res) => {
-  const { nNeighbors = 20, minDistance = 0.1, genes = 'all', nEpochs = 200 } = req.params
+  const { nNeighbors = 15, minDistance = 0.1, genes = 'all', nEpochs = 100 } = req.params
 
   const expressionPath = path.join(config.dataDirectory, 'results', 'cell_label_expression.csv')
 
@@ -306,6 +306,7 @@ app.get('/api/umap', (req, res) => {
         nEpochs,
         nNeighbors,
         minDist: minDistance,
+        random: Math.random,
       })
 
       const data = df.drop({ columns: ['cell_label'] }).values

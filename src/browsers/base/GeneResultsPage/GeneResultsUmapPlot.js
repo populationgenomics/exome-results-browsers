@@ -46,8 +46,6 @@ const GeneResultsUmapPlot = ({ id, embedding, labels, labelColors, ...otherProps
       }
     })
 
-    console.log(chartData)
-
     const newChart = new Chart(ctx, {
       type: 'scatter',
       data: {
