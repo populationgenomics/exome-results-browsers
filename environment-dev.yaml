@@ -22,6 +22,7 @@ dependencies:
   - nodejs
   - yarn
   - pip:
-     - umap-learn
-     - bokeh
-     - seaborn
+      - umap-learn
+      - bokeh
+      - seaborn
+      - requests
