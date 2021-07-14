@@ -294,9 +294,69 @@ app.get('/api/gene/:geneIdOrName/variants', (req, res) => {
 // ================================================================================================
 
 app.get('/api/umap', (req, res) => {
-  const { nNeighbors = 15, minDistance = 0.1, genes = 'all', nEpochs = 100 } = req.params
+  const {
+    nNeighbors = 15,
+    minDistance = 0.1,
+    geneSymbols = null,
+    cellLabels = null,
+    nEpochs = 200,
+  } = req.query
 
   const expressionPath = path.join(config.dataDirectory, 'results', 'cell_label_expression.csv')
+
+  // TODO: get these from config
+  const GENES = [
+    'AC000068.5',
+    'AC002472.13',
+    'AC007308.6',
+    'ADORA2A-AS1',
+    'ADRBK2',
+    'APOBEC3A',
+    'APOBEC3B',
+    'APOBEC3C',
+    'APOBEC3G',
+    'APOBEC3H',
+    'APOL2',
+    'APOL6',
+    'ARFGAP3',
+    'ARSA',
+    'ARVCF',
+    'ASPHD2',
+    'BCR',
+    'BIK',
+    'C22orf34',
+    'CBX6',
+    'CDC42EP1',
+    'CHCHD10',
+    'CRYBB2',
+    'CTA-29F11.1',
+    'DDT',
+    'FAM118A',
+    'GGT1',
+    'IGLL1',
+    'LGALS2',
+    'MIF',
+    'NDUFA6',
+    'SELM',
+  ]
+
+  const LABELS = [
+    'BimmNaive',
+    'Bmem',
+    'CD4all',
+    'CD8all',
+    'CD8eff',
+    'CD8unknown',
+    'DC',
+    'MonoC',
+    'MonoNC',
+    'NKact',
+    'NKmat',
+    'Plasma',
+  ]
+
+  const removeGeneSymbols = GENES.filter((g) => !geneSymbols.includes(g))
+  const removeCellLabels = new Set(LABELS.filter((l) => !cellLabels.includes(l)))
 
   dfd
     .read_csv(expressionPath)
@@ -309,8 +369,15 @@ app.get('/api/umap', (req, res) => {
         random: Math.random,
       })
 
-      const data = df.drop({ columns: ['cell_label'] }).values
-      const labels = df.loc({ columns: ['cell_label'] }).values.flat()
+      let labels = df.loc({ columns: ['cell_label'] }).values.flat()
+
+      // Filter data points related to cell labels that were requested
+      const data = df
+        .drop({ columns: ['cell_label', ...removeGeneSymbols] })
+        .values.filter((_, idx) => !removeCellLabels.has(labels[idx]))
+
+      // Filter labels to those that were requested
+      labels = labels.filter((l) => !removeCellLabels.has(l))
       const uniqueLabels = new Set(labels)
 
       try {
