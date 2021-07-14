@@ -35,11 +35,13 @@ const GeneResultsUmapPlot = ({ id, embedding, labels, labelColors, ...otherProps
     }
 
     const datasets = lodash.groupBy(lodash.zip(labels, embedding), (tuple) => tuple[0])
+    console.log(datasets)
     const chartData = lodash.keys(datasets).map((key, idx) => {
       return {
         label: key,
-        data: datasets[key].map(([x, y]) => {
-          return { x: y[0], y: y[1] }
+        data: datasets[key].map((data) => {
+          // Lodash keeps key in grouped value, so the data point is found at index 1
+          return { x: data[1][0], y: data[1][1] }
         }),
         borderColor: labelColors[idx],
         backgroundColor: labelColors[idx],
