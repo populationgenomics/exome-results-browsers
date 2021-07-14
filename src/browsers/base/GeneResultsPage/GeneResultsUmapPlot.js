@@ -35,7 +35,6 @@ const GeneResultsUmapPlot = ({ id, embedding, labels, labelColors, ...otherProps
     }
 
     const datasets = lodash.groupBy(lodash.zip(labels, embedding), (tuple) => tuple[0])
-    console.log(datasets)
     const chartData = lodash.keys(datasets).map((key, idx) => {
       return {
         label: key,
