@@ -83,7 +83,7 @@ const geneSearch = new PrefixTrie()
 const indexGenes = () => {
   return new Promise((resolve) => {
     dataStore
-      .resolveFile('gene_search_terms.json.txt')
+      .resolveGeneSearchTermsFile()
       .then((filePath) => {
         const rl = readline.createInterface({
           input: fs.createReadStream(filePath),
@@ -153,7 +153,7 @@ app.use('/api/search', (req, res) => {
 
 let getDatasetForRequest = () => null
 let metadata = {}
-dataStore.resolveFile('metadata.json').then((filePath) => {
+dataStore.resolveMetadataFile().then((filePath) => {
   metadata = JSON.parse(fs.readFileSync(filePath, { encoding: 'utf8' }))
 
   // In development, serve the browser specified by the BROWSER environment variable.
@@ -208,23 +208,12 @@ app.use('/config.js', (req, res) => {
 })
 
 // ================================================================================================
-// File paths
-// ================================================================================================
-
-const geneDataDirectory = (geneId) => {
-  const n = Number(geneId.replace(/^ENSGR?/, ''))
-  const geneDataPath = path.join('genes', String(n % 1000).padStart(3, '0'))
-
-  return geneDataPath
-}
-
-// ================================================================================================
 // Gene results
 // ================================================================================================
 
 app.get('/api/results', (req, res) => {
   dataStore
-    .resolveFile(`${req.dataset.toLowerCase()}.json`, 'results')
+    .resolveDatasetFile(req.dataset)
     .then((filePath) => {
       return res.sendFile(filePath, (err) => {
         if (err) {
@@ -260,10 +249,8 @@ app.get('/api/gene/:geneIdOrName', (req, res) => {
   }
 
   const referenceGenome = metadata.datasets[req.dataset].reference_genome
-  const genePath = path.join(geneDataDirectory(geneId), `${geneId}_${referenceGenome}.json`)
-
   dataStore
-    .resolveFile(genePath)
+    .resolveGeneFile(geneId, referenceGenome)
     .then((filePath) => {
       return res.sendFile(filePath, (err) => {
         if (err) {
@@ -298,13 +285,8 @@ app.get('/api/gene/:geneIdOrName/variants', (req, res) => {
     }
   }
 
-  const variantsPath = path.join(
-    geneDataDirectory(geneId),
-    `${geneId}_${req.dataset.toLowerCase()}_variants.json`
-  )
-
   dataStore
-    .resolveFile(variantsPath)
+    .resolveGeneVariantsFile(geneId, req.dataset)
     .then((filePath) => {
       return res.sendFile(filePath, (err) => {
         if (err) {
@@ -386,7 +368,7 @@ app.get('/api/umap', (req, res) => {
   const removeCellLabels = new Set(LABELS.filter((l) => !cellLabels.includes(l)))
 
   dataStore
-    .resolveFile('cell_label_expression.csv', 'results')
+    .resolveUmapDataFile()
     .then((filePath) => {
       dfd
         .read_csv(filePath)
