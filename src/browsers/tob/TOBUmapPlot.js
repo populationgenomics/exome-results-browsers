@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 
 import { Button, TooltipAnchor, TooltipHint } from '@gnomad/ui'
 import Select from 'react-select'
+import styled from 'styled-components'
 
 import Fetch from '../base/Fetch'
 import AutosizedGeneResultsUmapPlot from '../base/GeneResultsPage/GeneResultsUmapPlot'
@@ -15,6 +16,14 @@ const geneSelectionOptions = datasetConfig.gene_symbols.map((n) => {
 const cellLabelOptions = datasetConfig.gene_group_result_field_names.map((n) => {
   return { value: n, label: n }
 })
+
+const UmapTooltipWrapper = styled.div`
+  margin: 1em 0;
+`
+
+const UmapPlotWrapper = styled.div`
+  margin: 1em 0;
+`
 
 const TOBUmapPlot = () => {
   const [apiPath, setApiPath] = useState(null)
@@ -54,9 +63,11 @@ const TOBUmapPlot = () => {
 
         return (
           <>
-            <TooltipAnchor tooltip="Genes" style={{ margin: '1em' }}>
-              <TooltipHint>Add genes to include in UMAP embedding computation</TooltipHint>
-            </TooltipAnchor>
+            <UmapTooltipWrapper>
+              <TooltipAnchor tooltip="Add genes to include in UMAP embedding computation">
+                <TooltipHint>Genes</TooltipHint>
+              </TooltipAnchor>
+            </UmapTooltipWrapper>
             <Select
               id="umap-genes"
               isMulti
@@ -67,9 +78,11 @@ const TOBUmapPlot = () => {
                 setSelectedGenes([...selection] || [])
               }}
             />
-            <TooltipAnchor tooltip="Cell labels" style={{ margin: '1em' }}>
-              <TooltipHint>Add cell labels to include in UMAP embedding computation</TooltipHint>
-            </TooltipAnchor>
+            <UmapTooltipWrapper>
+              <TooltipAnchor tooltip="Add cell labels to include in UMAP embedding computation">
+                <TooltipHint>Cell labels</TooltipHint>
+              </TooltipAnchor>
+            </UmapTooltipWrapper>
             <Select
               id="umap-cell-labels"
               isMulti
@@ -80,11 +93,13 @@ const TOBUmapPlot = () => {
                 setSelectedCellLabels([...selection] || [])
               }}
             />
-            <AutosizedGeneResultsUmapPlot
-              id="gene-results-umap-plot"
-              embedding={data.results.embedding}
-              labels={data.results.labels}
-            />
+            <UmapPlotWrapper>
+              <AutosizedGeneResultsUmapPlot
+                id="gene-results-umap-plot"
+                embedding={data.results.embedding}
+                labels={data.results.labels}
+              />
+            </UmapPlotWrapper>
             <Button
               style={{ margin: '1em', float: 'right' }}
               onClick={() =>
