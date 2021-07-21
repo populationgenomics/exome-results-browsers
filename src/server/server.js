@@ -11,6 +11,7 @@ const { UMAP } = require('umap-js')
 const dfd = require('danfojs-node')
 
 const { PrefixTrie } = require('./search')
+const { createDataStore } = require('./storage')
 
 // ================================================================================================
 // Configuration
@@ -28,11 +29,12 @@ if (missingConfig.length) {
 }
 
 const config = {
-  dataDirectory: path.resolve(process.env.RESULTS_DATA_DIRECTORY),
   enableHttpsRedirect: JSON.parse(process.env.ENABLE_HTTPS_REDIRECT || 'false'),
   port: process.env.PORT || 8000,
   trustProxy: JSON.parse(process.env.TRUST_PROXY || 'false'),
 }
+
+const dataStore = createDataStore({ rootDirectory: process.env.RESULTS_DATA_DIRECTORY })
 
 // ================================================================================================
 // Express app
@@ -80,19 +82,24 @@ const geneSearch = new PrefixTrie()
 
 const indexGenes = () => {
   return new Promise((resolve) => {
-    const rl = readline.createInterface({
-      input: fs.createReadStream(path.join(config.dataDirectory, 'gene_search_terms.json.txt')),
-      crlfDelay: Infinity,
-    })
+    dataStore
+      .resolveFile('gene_search_terms.json.txt')
+      .then((filePath) => {
+        const rl = readline.createInterface({
+          input: fs.createReadStream(filePath),
+          crlfDelay: Infinity,
+        })
 
-    rl.on('line', (line) => {
-      const [geneId, searchTerms] = JSON.parse(line)
-      for (const searchTerm of searchTerms) {
-        geneSearch.add(searchTerm, geneId)
-      }
-    })
+        rl.on('line', (line) => {
+          const [geneId, searchTerms] = JSON.parse(line)
+          for (const searchTerm of searchTerms) {
+            geneSearch.add(searchTerm, geneId)
+          }
+        })
 
-    rl.on('close', resolve)
+        rl.on('close', resolve)
+      })
+      .catch((error) => resolve(error))
   })
 }
 
@@ -144,29 +151,29 @@ app.use('/api/search', (req, res) => {
 // Dataset
 // ================================================================================================
 
-const metadata = JSON.parse(
-  fs.readFileSync(path.join(config.dataDirectory, 'metadata.json'), { encoding: 'utf8' })
-)
+let getDatasetForRequest = () => null
+let metadata = {}
+dataStore.resolveFile('metadata.json').then((filePath) => {
+  metadata = JSON.parse(fs.readFileSync(filePath, { encoding: 'utf8' }))
 
-// In development, serve the browser specified by the BROWSER environment variable.
-// In production, determine the browser/dataset to show based on the subdomain.
-let getDatasetForRequest
-
-if (isDevelopment) {
-  const devDataset = Object.keys(metadata.datasets).find(
-    (dataset) => dataset.toLowerCase() === process.env.BROWSER.toLowerCase()
-  )
-  getDatasetForRequest = () => devDataset
-} else {
-  const datasetBySubdomain = Object.keys(metadata.datasets).reduce(
-    (acc, dataset) => ({
-      ...acc,
-      [dataset.toLowerCase()]: dataset,
-    }),
-    {}
-  )
-  getDatasetForRequest = (req) => datasetBySubdomain[req.subdomains[0]]
-}
+  // In development, serve the browser specified by the BROWSER environment variable.
+  // In production, determine the browser/dataset to show based on the subdomain.
+  if (isDevelopment) {
+    const devDataset = Object.keys(metadata.datasets).find(
+      (dataset) => dataset.toLowerCase() === process.env.BROWSER.toLowerCase()
+    )
+    getDatasetForRequest = () => devDataset
+  } else {
+    const datasetBySubdomain = Object.keys(metadata.datasets).reduce(
+      (acc, dataset) => ({
+        ...acc,
+        [dataset.toLowerCase()]: dataset,
+      }),
+      {}
+    )
+    getDatasetForRequest = (req) => datasetBySubdomain[req.subdomains[0]]
+  }
+})
 
 // Store dataset on request object so other route handlers can use it.
 app.use('/', (req, res, next) => {
@@ -216,13 +223,19 @@ const geneDataDirectory = (geneId) => {
 // ================================================================================================
 
 app.get('/api/results', (req, res) => {
-  const resultsPath = path.join('results', `${req.dataset.toLowerCase()}.json`)
-
-  return res.sendFile(resultsPath, { root: config.dataDirectory }, (err) => {
-    if (err) {
-      res.status(404).json({ error: 'Results not found' })
-    }
-  })
+  dataStore
+    .resolveFile(`${req.dataset.toLowerCase()}.json`, 'results')
+    .then((filePath) => {
+      return res.sendFile(filePath, (err) => {
+        if (err) {
+          res.status(404).json({ error: 'Results not found' })
+        }
+      })
+    })
+    .catch((error) => {
+      const code = error?.code || 500
+      res.status(code).json({ error: error.toString() })
+    })
 })
 
 // ================================================================================================
@@ -249,11 +262,19 @@ app.get('/api/gene/:geneIdOrName', (req, res) => {
   const referenceGenome = metadata.datasets[req.dataset].reference_genome
   const genePath = path.join(geneDataDirectory(geneId), `${geneId}_${referenceGenome}.json`)
 
-  return res.sendFile(genePath, { root: config.dataDirectory }, (err) => {
-    if (err) {
-      res.status(404).json({ error: 'Gene not found' })
-    }
-  })
+  dataStore
+    .resolveFile(genePath)
+    .then((filePath) => {
+      return res.sendFile(filePath, (err) => {
+        if (err) {
+          res.status(404).json({ error: 'Gene not found' })
+        }
+      })
+    })
+    .catch((error) => {
+      const code = error?.code || 500
+      res.status(code).json({ error: error.toString() })
+    })
 })
 
 // ================================================================================================
@@ -282,11 +303,19 @@ app.get('/api/gene/:geneIdOrName/variants', (req, res) => {
     `${geneId}_${req.dataset.toLowerCase()}_variants.json`
   )
 
-  return res.sendFile(variantsPath, { root: config.dataDirectory }, (err) => {
-    if (err) {
-      res.status(404).json({ error: 'Gene not found' })
-    }
-  })
+  dataStore
+    .resolveFile(variantsPath)
+    .then((filePath) => {
+      return res.sendFile(filePath, (err) => {
+        if (err) {
+          res.status(404).json({ error: 'Gene not found' })
+        }
+      })
+    })
+    .catch((error) => {
+      const code = error?.code || 500
+      res.status(code).json({ error: error.toString() })
+    })
 })
 
 // ================================================================================================
@@ -301,8 +330,6 @@ app.get('/api/umap', (req, res) => {
     cellLabels = null,
     nEpochs = 200,
   } = req.query
-
-  const expressionPath = path.join(config.dataDirectory, 'results', 'cell_label_expression.csv')
 
   // TODO: get these from config
   const GENES = [
@@ -358,43 +385,51 @@ app.get('/api/umap', (req, res) => {
   const removeGeneSymbols = GENES.filter((g) => !geneSymbols.includes(g))
   const removeCellLabels = new Set(LABELS.filter((l) => !cellLabels.includes(l)))
 
-  dfd
-    .read_csv(expressionPath)
-    .then((df) => {
-      const umap = new UMAP({
-        nComponents: 2,
-        nEpochs,
-        nNeighbors,
-        minDist: minDistance,
-        random: Math.random,
-      })
+  dataStore
+    .resolveFile('cell_label_expression.csv', 'results')
+    .then((filePath) => {
+      dfd
+        .read_csv(filePath)
+        .then((df) => {
+          const umap = new UMAP({
+            nComponents: 2,
+            nEpochs,
+            nNeighbors,
+            minDist: minDistance,
+            random: Math.random,
+          })
 
-      let labels = df.loc({ columns: ['cell_label'] }).values.flat()
+          let labels = df.loc({ columns: ['cell_label'] }).values.flat()
 
-      // Filter data points related to cell labels that were requested
-      const data = df
-        .drop({ columns: ['cell_label', ...removeGeneSymbols] })
-        .values.filter((_, idx) => !removeCellLabels.has(labels[idx]))
+          // Filter data points related to cell labels that were requested
+          const data = df
+            .drop({ columns: ['cell_label', ...removeGeneSymbols] })
+            .values.filter((_, idx) => !removeCellLabels.has(labels[idx]))
 
-      // Filter labels to those that were requested
-      labels = labels.filter((l) => !removeCellLabels.has(l))
-      const uniqueLabels = new Set(labels)
+          // Filter labels to those that were requested
+          labels = labels.filter((l) => !removeCellLabels.has(l))
+          const uniqueLabels = new Set(labels)
 
-      try {
-        const embedding = umap.fit(data)
-        res.status(200).json({
-          results: {
-            embedding,
-            labels,
-            nLabels: uniqueLabels.size,
-          },
+          try {
+            const embedding = umap.fit(data)
+            res.status(200).json({
+              results: {
+                embedding,
+                labels,
+                nLabels: uniqueLabels.size,
+              },
+            })
+          } catch (e) {
+            res.status(500).json({ error: e.toString() })
+          }
         })
-      } catch (e) {
-        res.status(500).json({ error: e.toString() })
-      }
+        .catch((e) => {
+          res.status(500).json({ error: e.toString() })
+        })
     })
-    .catch((e) => {
-      res.status(500).json({ error: e.toString() })
+    .catch((error) => {
+      const code = error?.code || 500
+      res.status(code).json({ error: error.toString() })
     })
 })
 
