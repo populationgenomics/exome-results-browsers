@@ -5,9 +5,9 @@ const path = require('path')
 
 const { Storage } = require('@google-cloud/storage')
 
-const { IDataStore } = require('./IDataStore')
+const { DataStore } = require('./DataStore')
 
-class GoogleBucketDataStore extends IDataStore {
+class GoogleBucketDataStore extends DataStore {
   constructor(rootDirectory) {
     super(rootDirectory)
     this.tempDir = fs.mkdtempSync('/tmp/tob_wgs_cache_')
@@ -20,7 +20,7 @@ class GoogleBucketDataStore extends IDataStore {
     this.browserDataPath = path.join(...this.rootDirectory.replace('gs://', '').split('/').slice(1))
   }
 
-  resolveFile(fileName, subdirectory = null) {
+  resolveFile(fileName, options = { subdirectories: [] }) {
     if (this.fileCache.has(fileName)) {
       return new Promise((resolve) => {
         resolve(this.fileCache.get(fileName))
@@ -29,7 +29,7 @@ class GoogleBucketDataStore extends IDataStore {
 
     const tempPath = path.resolve(path.join(this.tempDir, fileName))
     return this.bucket
-      .file(path.join(this.browserDataPath, subdirectory != null ? subdirectory : '', fileName))
+      .file(path.join(this.browserDataPath, ...options.subdirectories, fileName))
       .download({ destination: tempPath })
       .then(() => {
         this.fileCache.set(fileName, tempPath)

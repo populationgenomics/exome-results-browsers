@@ -1,18 +1,11 @@
 const path = require('path')
 
-const { IDataStore } = require('./IDataStore')
+const { DataStore } = require('./DataStore')
 
-class LocalDiskDataStore extends IDataStore {
-  fullPath(fileName, subdirectory = null) {
-    if (subdirectory) {
-      return path.join(this.rootDirectory, subdirectory, fileName)
-    }
-    return path.join(this.rootDirectory, fileName)
-  }
-
-  resolveFile(fileName, subdirectory = null) {
+class LocalDiskDataStore extends DataStore {
+  resolveFile(fileName, options = { subdirectories: [] }) {
     return new Promise((resolve) => {
-      resolve(path.resolve(this.getPath(fileName, subdirectory)))
+      resolve(path.resolve(path.join(this.rootDirectory, ...options.subdirectories, fileName)))
     })
   }
 }
