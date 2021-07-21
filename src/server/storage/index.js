@@ -3,11 +3,12 @@ const path = require('path')
 const { GoogleBucketDataStore } = require('./GoogleBucketDataStore')
 const { LocalDiskDataStore } = require('./LocalDiskDataStore')
 // eslint-disable-next-line no-unused-vars
-const { IDataStore } = require('./IDataStore')
+const { DataStore } = require('./DataStore')
 
 /**
  * @param {{rootDirectory: string}} config
- * @returns {IDataStore}
+ *
+ * @returns {DataStore}
  */
 const createDataStore = ({ rootDirectory }) => {
   if (rootDirectory.includes('gs://')) {
