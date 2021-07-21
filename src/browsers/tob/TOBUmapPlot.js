@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 
-import { Button } from '@gnomad/ui'
+import { Button, TooltipAnchor, TooltipHint } from '@gnomad/ui'
 import Select from 'react-select'
 
 import Fetch from '../base/Fetch'
@@ -54,8 +54,9 @@ const TOBUmapPlot = () => {
 
         return (
           <>
-            <div style={{ margin: '1em' }} />
-            <p>Compute UMAP embedding across genes:</p>
+            <TooltipAnchor tooltip="Genes" style={{ margin: '1em' }}>
+              <TooltipHint>Add genes to include in UMAP embedding computation</TooltipHint>
+            </TooltipAnchor>
             <Select
               id="umap-genes"
               isMulti
@@ -66,8 +67,9 @@ const TOBUmapPlot = () => {
                 setSelectedGenes([...selection] || [])
               }}
             />
-            <div style={{ margin: '1em' }} />
-            <p>Include the following cell labels in UMAP embedding computation:</p>
+            <TooltipAnchor tooltip="Cell labels" style={{ margin: '1em' }}>
+              <TooltipHint>Add cell labels to include in UMAP embedding computation</TooltipHint>
+            </TooltipAnchor>
             <Select
               id="umap-cell-labels"
               isMulti
@@ -83,15 +85,14 @@ const TOBUmapPlot = () => {
               embedding={data.results.embedding}
               labels={data.results.labels}
             />
-            <div style={{ margin: '1em', float: 'right' }}>
-              <Button
-                onClick={() =>
-                  setRequestParams({ geneSymbols: selectedGenes, cellLabels: selectedCellLabels })
-                }
-              >
-                Run UMAP embeddding
-              </Button>
-            </div>
+            <Button
+              style={{ margin: '1em', float: 'right' }}
+              onClick={() =>
+                setRequestParams({ geneSymbols: selectedGenes, cellLabels: selectedCellLabels })
+              }
+            >
+              Run UMAP embeddding
+            </Button>
           </>
         )
       }}
