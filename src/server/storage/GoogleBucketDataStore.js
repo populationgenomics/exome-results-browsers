@@ -21,18 +21,20 @@ class GoogleBucketDataStore extends DataStore {
   }
 
   resolveFile(fileName, options = { subdirectories: [] }) {
-    if (this.fileCache.has(fileName)) {
+    const pathInBucket = path.join(this.browserDataPath, ...options.subdirectories, fileName)
+
+    if (this.fileCache.has(pathInBucket)) {
       return new Promise((resolve) => {
-        resolve(this.fileCache.get(fileName))
+        resolve(this.fileCache.get(pathInBucket))
       })
     }
 
     const tempPath = path.resolve(path.join(this.tempDir, fileName))
     return this.bucket
-      .file(path.join(this.browserDataPath, ...options.subdirectories, fileName))
+      .file(pathInBucket)
       .download({ destination: tempPath })
       .then(() => {
-        this.fileCache.set(fileName, tempPath)
+        this.fileCache.set(pathInBucket, tempPath)
         return tempPath
       })
   }
