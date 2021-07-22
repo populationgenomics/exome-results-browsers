@@ -14,7 +14,10 @@ class GoogleBucketDataStore extends DataStore {
     this.fileCache = new Map()
     this.storage = new Storage({
       projectId: 'tob-wgs-browser',
-      keyFile: path.resolve(process.env.GOOGLE_APPLICATION_CREDENTIALS),
+      keyFile:
+        process.env.GOOGLE_APPLICATION_CREDENTIALS != null
+          ? path.resolve(process.env.GOOGLE_APPLICATION_CREDENTIALS)
+          : undefined,
     })
     this.bucket = this.storage.bucket(this.rootDirectory.replace('gs://', '').split('/')[0])
     this.browserDataPath = path.join(...this.rootDirectory.replace('gs://', '').split('/').slice(1))
