@@ -155,10 +155,9 @@ let getDatasetForRequest = () => null
 let metadata = {}
 dataStore.resolveMetadataFile().then((filePath) => {
   metadata = JSON.parse(fs.readFileSync(filePath, { encoding: 'utf8' }))
-
   // In development, serve the browser specified by the BROWSER environment variable.
   // In production, determine the browser/dataset to show based on the subdomain.
-  if (isDevelopment) {
+  if (isDevelopment || process.env.BYPASS_SUBDOMAIN === 'true') {
     const devDataset = Object.keys(metadata.datasets).find(
       (dataset) => dataset.toLowerCase() === process.env.BROWSER.toLowerCase()
     )
@@ -178,6 +177,7 @@ dataStore.resolveMetadataFile().then((filePath) => {
 // Store dataset on request object so other route handlers can use it.
 app.use('/', (req, res, next) => {
   let dataset
+  console.log(getDatasetForRequest(req))
   try {
     dataset = getDatasetForRequest(req)
   } catch (err) {} // eslint-disable-line no-empty
@@ -428,15 +428,23 @@ app.use('/api', (request, response) => {
 // Static files
 // ================================================================================================
 
-// Serve static files from the appropriate dataset's directory.
+// Serve static files from the appropriate dataset's directory. Webpack creates browser directories
+// using uppercase characters when in production mode.
 app.use((req, res, next) => {
-  req.url = `/${req.dataset}${req.url}`
+  req.url = `/${isDevelopment ? req.dataset : req.dataset.toUpperCase()}${req.url}`
   next()
 }, express.static(path.join(__dirname, 'public')))
 
 // Return index.html for unknown paths and let client side routing handle it.
 app.use((req, res) => {
-  res.sendFile(path.resolve(__dirname, 'public', req.dataset, 'index.html'))
+  res.sendFile(
+    path.resolve(
+      __dirname,
+      'public',
+      isDevelopment ? req.dataset : req.dataset.toUpperCase(),
+      'index.html'
+    )
+  )
 })
 
 // ================================================================================================
