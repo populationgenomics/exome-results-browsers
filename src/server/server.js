@@ -177,7 +177,6 @@ dataStore.resolveMetadataFile().then((filePath) => {
 // Store dataset on request object so other route handlers can use it.
 app.use('/', (req, res, next) => {
   let dataset
-  console.log(getDatasetForRequest(req))
   try {
     dataset = getDatasetForRequest(req)
   } catch (err) {} // eslint-disable-line no-empty
@@ -217,13 +216,13 @@ app.get('/api/results', (req, res) => {
     .then((filePath) => {
       return res.sendFile(filePath, (err) => {
         if (err) {
-          res.status(404).json({ error: 'Results not found' })
+          return res.status(404).json({ error: 'Results not found' })
         }
       })
     })
     .catch((error) => {
       const code = error?.code || 500
-      res.status(code).json({ error: error.toString() })
+      return res.status(code).json({ error: error.toString() })
     })
 })
 
@@ -254,13 +253,13 @@ app.get('/api/gene/:geneIdOrName', (req, res) => {
     .then((filePath) => {
       return res.sendFile(filePath, (err) => {
         if (err) {
-          res.status(404).json({ error: 'Gene not found' })
+          return res.status(404).json({ error: 'Gene not found' })
         }
       })
     })
     .catch((error) => {
       const code = error?.code || 500
-      res.status(code).json({ error: error.toString() })
+      return res.status(code).json({ error: error.toString() })
     })
 })
 
@@ -290,13 +289,13 @@ app.get('/api/gene/:geneIdOrName/variants', (req, res) => {
     .then((filePath) => {
       return res.sendFile(filePath, (err) => {
         if (err) {
-          res.status(404).json({ error: 'Gene not found' })
+          return res.status(404).json({ error: 'Gene not found' })
         }
       })
     })
     .catch((error) => {
       const code = error?.code || 500
-      res.status(code).json({ error: error.toString() })
+      return res.status(code).json({ error: error.toString() })
     })
 })
 
