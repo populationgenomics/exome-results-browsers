@@ -8,7 +8,7 @@ const express = require('express')
 const morgan = require('morgan')
 
 const { UMAP } = require('umap-js')
-const dfd = require('danfojs-node')
+const PapaParse = require('papaparse')
 
 const { PrefixTrie } = require('./search')
 const { createDataStore } = require('./storage')
@@ -211,13 +211,14 @@ app.use('/config.js', (req, res) => {
 // ================================================================================================
 
 app.get('/api/results', (req, res) => {
-  dataStore
+  return dataStore
     .resolveDatasetFile(req.dataset)
     .then((filePath) => {
       return res.sendFile(filePath, (err) => {
         if (err) {
           return res.status(404).json({ error: 'Results not found' })
         }
+        return res
       })
     })
     .catch((error) => {
@@ -248,13 +249,14 @@ app.get('/api/gene/:geneIdOrName', (req, res) => {
   }
 
   const referenceGenome = metadata.datasets[req.dataset].reference_genome
-  dataStore
+  return dataStore
     .resolveGeneFile(geneId, referenceGenome)
     .then((filePath) => {
       return res.sendFile(filePath, (err) => {
         if (err) {
           return res.status(404).json({ error: 'Gene not found' })
         }
+        return res
       })
     })
     .catch((error) => {
@@ -284,13 +286,14 @@ app.get('/api/gene/:geneIdOrName/variants', (req, res) => {
     }
   }
 
-  dataStore
+  return dataStore
     .resolveGeneVariantsFile(geneId, req.dataset)
     .then((filePath) => {
       return res.sendFile(filePath, (err) => {
         if (err) {
           return res.status(404).json({ error: 'Gene not found' })
         }
+        return res
       })
     })
     .catch((error) => {
@@ -309,7 +312,7 @@ app.get('/api/umap', (req, res) => {
     minDistance = 0.1,
     geneSymbols = null,
     cellLabels = null,
-    nEpochs = 200,
+    nEpochs = 100,
   } = req.query
 
   // TODO: get these from config
@@ -363,15 +366,19 @@ app.get('/api/umap', (req, res) => {
     'Plasma',
   ]
 
-  const removeGeneSymbols = GENES.filter((g) => !geneSymbols.includes(g))
+  const removeGeneSymbols = new Set(GENES.filter((g) => !geneSymbols.includes(g)))
   const removeCellLabels = new Set(LABELS.filter((l) => !cellLabels.includes(l)))
 
-  dataStore
+  return dataStore
     .resolveUmapDataFile()
     .then((filePath) => {
-      dfd
-        .read_csv(filePath)
-        .then((df) => {
+      PapaParse.parse(fs.readFileSync(filePath, 'utf8'), {
+        header: true,
+        delimiter: ',',
+        error: (error) => {
+          return res.status(500).json({ error: error.toString() })
+        },
+        complete: (results) => {
           const umap = new UMAP({
             nComponents: 2,
             nEpochs,
@@ -380,12 +387,22 @@ app.get('/api/umap', (req, res) => {
             random: Math.random,
           })
 
-          let labels = df.loc({ columns: ['cell_label'] }).values.flat()
-
           // Filter data points related to cell labels that were requested
-          const data = df
-            .drop({ columns: ['cell_label', ...removeGeneSymbols] })
-            .values.filter((_, idx) => !removeCellLabels.has(labels[idx]))
+          let labels = results.data.map((row) => row.cell_label)
+          const data = results.data
+            .filter((row) => {
+              return !removeCellLabels.has(row.cell_label)
+            })
+            .map((row) => {
+              const rowData = []
+              Object.entries(row).forEach(([key, value]) => {
+                if (!removeGeneSymbols.has(key) && key !== 'cell_label') {
+                  rowData.push(parseFloat(value))
+                }
+              })
+
+              return rowData
+            })
 
           // Filter labels to those that were requested
           labels = labels.filter((l) => !removeCellLabels.has(l))
@@ -393,7 +410,7 @@ app.get('/api/umap', (req, res) => {
 
           try {
             const embedding = umap.fit(data)
-            res.status(200).json({
+            return res.status(200).json({
               results: {
                 embedding,
                 labels,
@@ -401,16 +418,14 @@ app.get('/api/umap', (req, res) => {
               },
             })
           } catch (e) {
-            res.status(500).json({ error: e.toString() })
+            return res.status(500).json({ error: e.toString() })
           }
-        })
-        .catch((e) => {
-          res.status(500).json({ error: e.toString() })
-        })
+        },
+      })
     })
     .catch((error) => {
       const code = error?.code || 500
-      res.status(code).json({ error: error.toString() })
+      return res.status(code).json({ error: error.toString() })
     })
 })
 
