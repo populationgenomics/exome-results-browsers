@@ -1,10 +1,12 @@
 import PropTypes from 'prop-types'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { withSize } from 'react-sizeme'
 import styled from 'styled-components'
+import { TooltipAnchor } from '@gnomad/ui'
 
-import Chart from 'chart.js/auto'
 import lodash from 'lodash'
+import { scaleLinear, extent, zoom, select, axisBottom, axisLeft } from 'd3'
+import { border, margin } from 'polished'
 
 const DEFAULT_COLORS = [
   '#332288',
@@ -21,59 +23,123 @@ const DEFAULT_COLORS = [
   '#aa4499',
 ]
 
-const GeneResultsUmapPlot = ({ id, embedding, labels, labelColors, ...otherProps }) => {
-  const [chart, setChart] = useState(null)
+const margins = { left: 20, right: 20, top: 20, bottom: 20 }
+
+const GeneResultsUmapPlot = ({
+  height,
+  width,
+  id,
+  embedding,
+  labels,
+  labelColors,
+  ...otherProps
+}) => {
+  const svgRef = useRef()
+  const wrapperRef = useRef()
+  const [currentZoomState, setCurrentZoomState] = useState()
+  const [hover, setHover] = useState(null)
 
   useEffect(() => {
-    const ctx = document.getElementById(id).getContext('2d')
-    if (ctx == null) {
-      return
-    }
+    const svg = select(svgRef.current)
+    const svgContent = svg.select('.content')
 
-    if (chart != null) {
-      chart.destroy()
+    const xScale = scaleLinear()
+      .domain(extent(embedding.map((d) => d[0])))
+      .range([margins.left, width - margins.right])
+      .nice()
+    const yScale = scaleLinear()
+      .domain(extent(embedding.map((d) => d[1])))
+      .range([margins.top, height - margins.bottom])
+      .nice()
+
+    if (currentZoomState) {
+      xScale.domain(currentZoomState.rescaleX(xScale).domain())
+      yScale.domain(currentZoomState.rescaleY(yScale).domain())
     }
 
     const datasets = lodash.groupBy(lodash.zip(labels, embedding), (tuple) => tuple[0])
-    const chartData = lodash.keys(datasets).map((key, idx) => {
-      return {
-        label: key,
-        data: datasets[key].map(([x, y]) => {
-          return { x: y[0], y: y[1] }
-        }),
-        borderColor: labelColors[idx],
-        backgroundColor: labelColors[idx],
-      }
-    })
+    const colourKeys = lodash.keys(datasets)
 
-    const newChart = new Chart(ctx, {
-      type: 'scatter',
-      data: {
-        labels: new Set(labels),
-        datasets: chartData,
-      },
-      options: {
-        ...otherProps,
-        responsive: true,
-        plugins: {
-          legend: {
-            position: 'top',
-          },
-          title: {
-            display: true,
-            text: 'UMAP of residual expression across all genes',
-          },
-        },
-      },
-    })
+    const Tooltip = select(wrapperRef.current).select('.tooltip')
 
-    setChart(newChart)
-  }, [embedding, labels, labelColors])
+    Tooltip.style('opacity', 0)
+      .attr('class', 'tooltip')
+      .style('background-color', 'white')
+      .style('border', 'solid')
+      .style('border-width', '2px')
+      .style('border-radius', '5px')
+      .style('padding', '5px')
+      .style('position', 'absolute')
 
-  return <canvas id={id} />
+    svgContent
+      .selectAll('.mydot')
+      .data(embedding)
+      .join('circle')
+      .attr('class', 'mydot')
+      .attr('r', 5)
+      .attr('cx', (d) => xScale(d[0]))
+      .attr('cy', (d) => yScale(d[1]))
+      .attr('fill-opacity', (d, i) => (labels[i] === hover ? 1 : 0.3))
+      .attr('fill', (d, i) => labelColors[colourKeys.indexOf(labels[i])])
+      .on('mouseover', (e, d) => {
+        setHover(labels[embedding.indexOf(d)])
+        Tooltip.style('opacity', 1)
+      })
+      .on('mouseleave', () => {
+        setHover(null)
+        Tooltip.style('opacity', 0)
+      })
+      .on('mousemove', (e, d) => {
+        Tooltip.html(labels[embedding.indexOf(d)])
+          .style('opacity', 1)
+          .style('left', `${xScale(d[0])}px`)
+          .style('top', `${yScale(d[1]) + 10}px`)
+      })
+
+    const xAxis = axisBottom(xScale)
+    svg
+      .select('.x-axis')
+      .attr('transform', `translate(0, ${height - 30})`)
+      .call(xAxis)
+
+    const yAxis = axisLeft(yScale)
+    svg.select('.y-axis').attr('transform', `translate(30, 0)`).call(yAxis)
+
+    // zoom
+    const zoomBehaviour = zoom()
+      .scaleExtent([0.5, 5])
+      .translateExtent([
+        [0, 0],
+        [width, height],
+      ])
+      .on('zoom', (e) => {
+        setCurrentZoomState(e.transform)
+      })
+    svg.call(zoomBehaviour)
+  }, [currentZoomState, embedding, labels, hover])
+
+  return (
+    <>
+      <div ref={wrapperRef}>
+        <svg ref={svgRef} height={height} width={width} style={{ border: '1px solid black' }}>
+          <defs>
+            <clipPath id={id}>
+              <rect x="0" y="0" width="100%" height="100%" />
+            </clipPath>
+          </defs>
+          <g className="content" clipPath={`url(#${id})`} />
+          <g className="x-axis" />
+          <g className="y-axis" />
+        </svg>
+        <div className="tooltip" />
+      </div>
+    </>
+  )
 }
 
 GeneResultsUmapPlot.propTypes = {
+  height: PropTypes.number.isRequired,
+  width: PropTypes.number.isRequired,
   id: PropTypes.string,
   embedding: PropTypes.arrayOf(PropTypes.array).isRequired,
   labels: PropTypes.arrayOf(PropTypes.string).isRequired,
