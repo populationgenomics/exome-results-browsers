@@ -131,6 +131,7 @@ if (process.env.WEBPACK_DEV_SERVER) {
     stats: 'errors-only',
     // Write files to disk so that server.js can respond with index.html.
     writeToDisk: true,
+    allowedHosts: ['.dev.localhost'],
   }
 }
 
