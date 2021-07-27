@@ -1,0 +1,23 @@
+name: tob-wgs-browser
+channels:
+  - cpg
+  - bioconda/osx-64
+  - conda-forge/osx-64
+dependencies:
+  - python
+  - pip
+  - black
+  - pylint
+  - pandas
+  - numpy
+  - scikit-learn
+  - jupyterlab
+  - pre-commit
+  - hail
+  - nodejs
+  - yarn
+  - pip:
+      - umap-learn
+      - bokeh
+      - seaborn
+      - requests
