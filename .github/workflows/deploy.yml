@@ -11,7 +11,7 @@ jobs:
       DOCKER_BUILDKIT: 1
       BUILDKIT_PROGRESS: plain
       CLOUDSDK_CORE_DISABLE_PROMPTS: 1
-      DOCKER_IMAGE: australia-southeast1-docker.pkg.dev/tob-wgs-browser/images/exome-browser:${{ github.sha }}
+      DOCKER_IMAGE: australia-southeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_ARTIFACT_REPO }}/${{ secrets.GCP_IMAGE_NAME }}:${{ github.sha }}
 
     steps:
       - name: 'checkout repo'
@@ -20,8 +20,8 @@ jobs:
       - name: 'gcloud setup'
         uses: google-github-actions/setup-gcloud@master
         with:
-          project_id: tob-wgs-browser
-          service_account_key: ${{ secrets.GCP_SERVER_DEPLOY_KEY }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
 
       - name: 'gcloud docker auth'
         run: |
@@ -37,12 +37,11 @@ jobs:
         id: deploy
         uses: google-github-actions/deploy-cloudrun@main
         with:
-          service: hello-cloud-run
+          service: ${{ secrets.GCP_CLOUD_RUN_SERVICE }}
           image: $DOCKER_IMAGE
           region: australia-southeast1
-          env_vars:
-            - RESULTS_DATA_DIRECTORY=gs://cpg-tob-wgs-browser-dev/browser_data
-          credentials: ${{ secrets.GCP_SERVER_DEPLOY_KEY }}
+          credentials: ${{ secrets.GCP_SA_KEY }}
+          env_vars: RESULTS_DATA_DIRECTORY="${{ secrets.GCP_BUCKET }}"
 
       - name: Use Output
         run: curl "${{ steps.deploy.outputs.url }}"
