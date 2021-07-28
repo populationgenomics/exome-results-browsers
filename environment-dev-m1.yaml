@@ -1,8 +1,8 @@
 name: tob-wgs-browser
 channels:
   - cpg
-  - bioconda
-  - conda-forge
+  - bioconda/osx-64
+  - conda-forge/osx-64
 dependencies:
   - python
   - pip

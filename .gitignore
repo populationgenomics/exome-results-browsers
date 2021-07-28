@@ -38,3 +38,9 @@ hail-*.log
 !/src/data/tob/results/.gitkeep
 
 !/src/data/tob/notebooks/
+
+# MacOS files
+.DS_Store
+
+# Direnv files
+.envrc
