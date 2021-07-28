@@ -45,7 +45,7 @@ jobs:
           image: ${{ env.DOCKER_IMAGE }}
           region: australia-southeast1
           credentials: ${{ secrets.GCP_SA_KEY }}
-          env_vars: RESULTS_DATA_DIRECTORY="${{ secrets.GCP_BUCKET }}"
+          env_vars: RESULTS_DATA_DIRECTORY=${{ secrets.GCP_BUCKET }}
 
       - name: Use Output
         run: curl "${{ steps.deploy.outputs.url }}"
