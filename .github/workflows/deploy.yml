@@ -1,0 +1,48 @@
+name: Deploy web server
+on:
+  push:
+    branches:
+      - main
+jobs:
+  deploy_server:
+    runs-on: ubuntu-latest
+
+    env:
+      DOCKER_BUILDKIT: 1
+      BUILDKIT_PROGRESS: plain
+      CLOUDSDK_CORE_DISABLE_PROMPTS: 1
+      DOCKER_IMAGE: australia-southeast1-docker.pkg.dev/tob-wgs-browser/images/exome-browser:${{ github.sha }}
+
+    steps:
+      - name: 'checkout repo'
+        uses: actions/checkout@v2
+
+      - name: 'gcloud setup'
+        uses: google-github-actions/setup-gcloud@master
+        with:
+          project_id: tob-wgs-browser
+          service_account_key: ${{ secrets.GCP_SERVER_DEPLOY_KEY }}
+
+      - name: 'gcloud docker auth'
+        run: |
+          gcloud auth configure-docker australia-southeast1-docker.pkg.dev
+      - name: 'build image'
+        run: |
+          docker build --tag $DOCKER_IMAGE .
+      - name: 'push image'
+        run: |
+          docker push $DOCKER_IMAGE
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@main
+        with:
+          service: hello-cloud-run
+          image: $DOCKER_IMAGE
+          region: australia-southeast1
+          env_vars:
+            - RESULTS_DATA_DIRECTORY=gs://cpg-tob-wgs-browser-dev/browser_data
+          credentials: ${{ secrets.GCP_SERVER_DEPLOY_KEY }}
+
+      - name: Use Output
+        run: curl "${{ steps.deploy.outputs.url }}"
