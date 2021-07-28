@@ -18,6 +18,9 @@ jobs:
       - name: 'checkout repo'
         uses: actions/checkout@v2
 
+      - name: Create dummy build.env file
+        run: touch build.env
+
       - name: 'gcloud setup'
         uses: google-github-actions/setup-gcloud@master
         with:
