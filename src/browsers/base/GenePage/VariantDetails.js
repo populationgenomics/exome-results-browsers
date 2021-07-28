@@ -166,7 +166,7 @@ VariantDetails.propTypes = {
     consequence: PropTypes.string,
     hgvsc: PropTypes.string,
     hgvsp: PropTypes.string,
-    info: PropTypes.object,
+    info: PropTypes.object, // eslint-disable-line react/forbid-prop-types
     group_results: PropTypes.objectOf(PropTypes.object).isRequired,
   }).isRequired,
   variantAnalysisGroupLabels: PropTypes.objectOf(PropTypes.string).isRequired,

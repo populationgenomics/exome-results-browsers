@@ -49,7 +49,7 @@ export default () => (
         </li>
         <li>
           <b>Garvan-Weizmann Centre for Cellular Genomics: </b>
-          A/Prof Joseph Powell's group generated the scRNA-seq and SNPchip data as part of the
+          A/Prof Joseph Powell&apos;s group generated the scRNA-seq and SNPchip data as part of the
           OneK1K study.
         </li>
         <li>
