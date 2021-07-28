@@ -12,7 +12,7 @@ jobs:
       BUILDKIT_PROGRESS: plain
       CLOUDSDK_CORE_DISABLE_PROMPTS: 1
       CI_ENVIRONMENT: staging
-      DOCKER_IMAGE: australia-southeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_ARTIFACT_REPO }}/${{ secrets.GCP_IMAGE_NAME }}:${{ env.CI_ENVIRONMENT }}:${{ github.sha }}
+      DOCKER_IMAGE: australia-southeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_ARTIFACT_REPO }}/${{ secrets.GCP_IMAGE_NAME }}:staging:${{ github.sha }}
 
     steps:
       - name: 'checkout repo'
@@ -39,7 +39,7 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@main
         with:
           service: ${{ secrets.GCP_CLOUD_RUN_SERVICE }}-${{ env.CI_ENVIRONMENT }}
-          image: $DOCKER_IMAGE
+          image: ${{ env.DOCKER_IMAGE }}
           region: australia-southeast1
           credentials: ${{ secrets.GCP_SA_KEY }}
           env_vars: RESULTS_DATA_DIRECTORY="${{ secrets.GCP_BUCKET }}"
