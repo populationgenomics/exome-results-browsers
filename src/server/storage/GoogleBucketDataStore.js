@@ -10,10 +10,9 @@ const { DataStore } = require('./DataStore')
 class GoogleBucketDataStore extends DataStore {
   constructor(rootDirectory) {
     super(rootDirectory)
-    this.tempDir = fs.mkdtempSync('/tmp/tob_wgs_cache_')
+    this.tempDir = fs.mkdtempSync('/tmp/gcs_cache_')
     this.fileCache = new Map()
     this.storage = new Storage({
-      projectId: 'tob-wgs-browser',
       keyFile:
         process.env.GOOGLE_APPLICATION_CREDENTIALS != null
           ? path.resolve(process.env.GOOGLE_APPLICATION_CREDENTIALS)
