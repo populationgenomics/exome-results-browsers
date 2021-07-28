@@ -1,3 +1,5 @@
+/* eslint-disable react/destructuring-assignment */
+
 import { get } from 'lodash'
 import React from 'react'
 import Highlighter from 'react-highlight-words'

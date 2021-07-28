@@ -151,8 +151,8 @@ GenePage.propTypes = {
         })
       ),
     }).isRequired,
-    gnomad_constraint: PropTypes.object,
-    exac_constraint: PropTypes.object,
+    gnomad_constraint: PropTypes.object, // eslint-disable-line react/forbid-prop-types
+    exac_constraint: PropTypes.object, // eslint-disable-line react/forbid-prop-types
     gene_results: PropTypes.objectOf(PropTypes.any).isRequired,
   }).isRequired,
 }

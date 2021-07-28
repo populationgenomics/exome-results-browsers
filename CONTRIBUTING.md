@@ -41,7 +41,10 @@ RESULTS_DATA_DIRECTORY=/path/to/results/data ./start.sh SCHEMA
 
 This runs the server with nodemon and frontend with webpack-dev-server, so that each is
 rebuilt/reloaded when a source file is changed. `RESULTS_DATA_DIRECTORY` should be the path
-to a directory where the data pipeline results files were written.
+to a directory where the data pipeline results files were written. If this is a GCP bucket URL, 
+then you will also need to supply a service account key file. In this case, additionally set the 
+environment variable `GOOGLE_APPLICATION_CREDENTIALS` to point to the location of your service 
+account key file which has GCS read access for your project's buckets.
 
 For frontend development, instead of running a server locally, API requests can be proxied
 to the production environment.
@@ -87,6 +90,7 @@ work locally is adding hostnames to `/etc/hosts`:
 127.0.0.1 bipex.dev.localhost
 127.0.0.1 epi25.dev.localhost
 127.0.0.1 schema.dev.localhost
+127.0.0.1 tob.dev.localhost
 ```
 
 With those lines added to `/etc/hosts`, the browsers can be accessed at

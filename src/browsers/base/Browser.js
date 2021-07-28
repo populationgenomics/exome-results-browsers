@@ -175,7 +175,7 @@ Browser.propTypes = {
   }),
   variantCustomFilter: PropTypes.shape({
     component: PropTypes.func.isRequired,
-    defaultFilter: PropTypes.any.isRequired,
+    defaultFilter: PropTypes.any.isRequired, // eslint-disable-line react/forbid-prop-types
     applyFilter: PropTypes.func.isRequired,
   }),
   renderVariantAttributes: PropTypes.func,

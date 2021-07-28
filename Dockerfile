@@ -1,4 +1,4 @@
-FROM node:12.18.1-alpine
+FROM node:14.17.3-buster-slim
 
 RUN mkdir -p /home/node/app && chown -R node:node /home/node/app
 WORKDIR /home/node/app
@@ -22,7 +22,17 @@ COPY --chown=node:node build.env .
 RUN export $(cat build.env | xargs); yarn run build
 
 ###############################################################################
-FROM node:12.18.1-alpine
+FROM node:14.17.3-buster-slim
+
+# Required to build tensorflow js
+RUN export PYTHON=/usr/local/bin/python3
+RUN apt-get update && \ 
+	apt-get install -y build-essential \
+	wget \
+	python3 \
+	make \
+	gcc \ 
+	libc6-dev
 
 RUN mkdir -p /home/node/app && chown -R node:node /home/node/app
 WORKDIR /home/node/app

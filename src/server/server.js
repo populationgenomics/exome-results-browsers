@@ -7,7 +7,11 @@ const compression = require('compression')
 const express = require('express')
 const morgan = require('morgan')
 
+const { UMAP } = require('umap-js')
+const PapaParse = require('papaparse')
+
 const { PrefixTrie } = require('./search')
+const { createDataStore } = require('./storage')
 
 // ================================================================================================
 // Configuration
@@ -25,11 +29,12 @@ if (missingConfig.length) {
 }
 
 const config = {
-  dataDirectory: path.resolve(process.env.RESULTS_DATA_DIRECTORY),
   enableHttpsRedirect: JSON.parse(process.env.ENABLE_HTTPS_REDIRECT || 'false'),
   port: process.env.PORT || 8000,
   trustProxy: JSON.parse(process.env.TRUST_PROXY || 'false'),
 }
+
+const dataStore = createDataStore({ rootDirectory: process.env.RESULTS_DATA_DIRECTORY })
 
 // ================================================================================================
 // Express app
@@ -77,19 +82,24 @@ const geneSearch = new PrefixTrie()
 
 const indexGenes = () => {
   return new Promise((resolve) => {
-    const rl = readline.createInterface({
-      input: fs.createReadStream(path.join(config.dataDirectory, 'gene_search_terms.json.txt')),
-      crlfDelay: Infinity,
-    })
+    dataStore
+      .resolveGeneSearchTermsFile()
+      .then((filePath) => {
+        const rl = readline.createInterface({
+          input: fs.createReadStream(filePath),
+          crlfDelay: Infinity,
+        })
 
-    rl.on('line', (line) => {
-      const [geneId, searchTerms] = JSON.parse(line)
-      for (const searchTerm of searchTerms) {
-        geneSearch.add(searchTerm, geneId)
-      }
-    })
+        rl.on('line', (line) => {
+          const [geneId, searchTerms] = JSON.parse(line)
+          for (const searchTerm of searchTerms) {
+            geneSearch.add(searchTerm, geneId)
+          }
+        })
 
-    rl.on('close', resolve)
+        rl.on('close', resolve)
+      })
+      .catch((error) => resolve(error))
   })
 }
 
@@ -102,7 +112,13 @@ app.use('/api/search', (req, res) => {
     return res.status(400).json({ error: 'One query required' })
   }
 
-  const query = req.query.q.toUpperCase()
+  let query = req.query.q
+  // Upper case queries matching HGNC names or Ensembl identifiers
+  if (req.query.q.match(/^[A-Z0-9-]+$|^C[0-9XY]+orf[0-9]+$/)) {
+    query = req.query.q.toUpperCase()
+  } else if (req.query.q.match(/^ENSG\d{11}$/)) {
+    query = req.query.q.toUpperCase()
+  }
 
   let results
   if (query.match(/^ENSG\d{11}$/)) {
@@ -135,29 +151,30 @@ app.use('/api/search', (req, res) => {
 // Dataset
 // ================================================================================================
 
-const metadata = JSON.parse(
-  fs.readFileSync(path.join(config.dataDirectory, 'metadata.json'), { encoding: 'utf8' })
-)
-
-// In development, serve the browser specified by the BROWSER environment variable.
-// In production, determine the browser/dataset to show based on the subdomain.
-let getDatasetForRequest
-
-if (isDevelopment) {
-  const devDataset = Object.keys(metadata.datasets).find(
-    (dataset) => dataset.toLowerCase() === process.env.BROWSER.toLowerCase()
-  )
-  getDatasetForRequest = () => devDataset
-} else {
-  const datasetBySubdomain = Object.keys(metadata.datasets).reduce(
-    (acc, dataset) => ({
-      ...acc,
-      [dataset.toLowerCase()]: dataset,
-    }),
-    {}
-  )
-  getDatasetForRequest = (req) => datasetBySubdomain[req.subdomains[0]]
-}
+let getDatasetForRequest = () => null
+let metadata = {}
+dataStore.resolveMetadataFile().then((filePath) => {
+  metadata = JSON.parse(fs.readFileSync(filePath, { encoding: 'utf8' }))
+  // In development, serve the browser specified by the BROWSER environment variable.
+  // In production, determine the browser/dataset to show based on the subdomain.
+  if (isDevelopment) {
+    const devDataset = Object.keys(metadata.datasets).find(
+      (dataset) => dataset.toLowerCase() === process.env.BROWSER.toLowerCase()
+    )
+    getDatasetForRequest = () => devDataset
+  } else {
+    const datasetBySubdomain = Object.keys(metadata.datasets).reduce(
+      (acc, dataset) => ({
+        ...acc,
+        [dataset.toLowerCase()]: dataset,
+      }),
+      {}
+    )
+    // TODO: subdomain being used is 'wgs'. Change class names etc to WGS. Map for now.
+    datasetBySubdomain.wgs = 'tob'
+    getDatasetForRequest = (req) => datasetBySubdomain[req.subdomains[0]]
+  }
+})
 
 // Store dataset on request object so other route handlers can use it.
 app.use('/', (req, res, next) => {
@@ -192,28 +209,24 @@ app.use('/config.js', (req, res) => {
 })
 
 // ================================================================================================
-// File paths
-// ================================================================================================
-
-const geneDataDirectory = (geneId) => {
-  const n = Number(geneId.replace(/^ENSGR?/, ''))
-  const geneDataPath = path.join('genes', String(n % 1000).padStart(3, '0'))
-
-  return geneDataPath
-}
-
-// ================================================================================================
 // Gene results
 // ================================================================================================
 
 app.get('/api/results', (req, res) => {
-  const resultsPath = path.join('results', `${req.dataset.toLowerCase()}.json`)
-
-  return res.sendFile(resultsPath, { root: config.dataDirectory }, (err) => {
-    if (err) {
-      res.status(404).json({ error: 'Results not found' })
-    }
-  })
+  return dataStore
+    .resolveDatasetFile(req.dataset)
+    .then((filePath) => {
+      return res.sendFile(filePath, (err) => {
+        if (err) {
+          return res.status(404).json({ error: 'Results not found' })
+        }
+        return res
+      })
+    })
+    .catch((error) => {
+      const code = error?.code || 500
+      return res.status(code).json({ error: error.toString() })
+    })
 })
 
 // ================================================================================================
@@ -238,13 +251,20 @@ app.get('/api/gene/:geneIdOrName', (req, res) => {
   }
 
   const referenceGenome = metadata.datasets[req.dataset].reference_genome
-  const genePath = path.join(geneDataDirectory(geneId), `${geneId}_${referenceGenome}.json`)
-
-  return res.sendFile(genePath, { root: config.dataDirectory }, (err) => {
-    if (err) {
-      res.status(404).json({ error: 'Gene not found' })
-    }
-  })
+  return dataStore
+    .resolveGeneFile(geneId, referenceGenome)
+    .then((filePath) => {
+      return res.sendFile(filePath, (err) => {
+        if (err) {
+          return res.status(404).json({ error: 'Gene not found' })
+        }
+        return res
+      })
+    })
+    .catch((error) => {
+      const code = error?.code || 500
+      return res.status(code).json({ error: error.toString() })
+    })
 })
 
 // ================================================================================================
@@ -268,16 +288,147 @@ app.get('/api/gene/:geneIdOrName/variants', (req, res) => {
     }
   }
 
-  const variantsPath = path.join(
-    geneDataDirectory(geneId),
-    `${geneId}_${req.dataset.toLowerCase()}_variants.json`
-  )
+  return dataStore
+    .resolveGeneVariantsFile(geneId, req.dataset)
+    .then((filePath) => {
+      return res.sendFile(filePath, (err) => {
+        if (err) {
+          return res.status(404).json({ error: 'Gene not found' })
+        }
+        return res
+      })
+    })
+    .catch((error) => {
+      const code = error?.code || 500
+      return res.status(code).json({ error: error.toString() })
+    })
+})
 
-  return res.sendFile(variantsPath, { root: config.dataDirectory }, (err) => {
-    if (err) {
-      res.status(404).json({ error: 'Gene not found' })
-    }
-  })
+// ================================================================================================
+// UMAP computation
+// ================================================================================================
+
+app.get('/api/umap', (req, res) => {
+  const {
+    nNeighbors = 15,
+    minDistance = 0.1,
+    geneSymbols = null,
+    cellLabels = null,
+    nEpochs = 100,
+  } = req.query
+
+  // TODO: get these from config
+  const GENES = [
+    'AC000068.5',
+    'AC002472.13',
+    'AC007308.6',
+    'ADORA2A-AS1',
+    'ADRBK2',
+    'APOBEC3A',
+    'APOBEC3B',
+    'APOBEC3C',
+    'APOBEC3G',
+    'APOBEC3H',
+    'APOL2',
+    'APOL6',
+    'ARFGAP3',
+    'ARSA',
+    'ARVCF',
+    'ASPHD2',
+    'BCR',
+    'BIK',
+    'C22orf34',
+    'CBX6',
+    'CDC42EP1',
+    'CHCHD10',
+    'CRYBB2',
+    'CTA-29F11.1',
+    'DDT',
+    'FAM118A',
+    'GGT1',
+    'IGLL1',
+    'LGALS2',
+    'MIF',
+    'NDUFA6',
+    'SELM',
+  ]
+
+  const LABELS = [
+    'BimmNaive',
+    'Bmem',
+    'CD4all',
+    'CD8all',
+    'CD8eff',
+    'CD8unknown',
+    'DC',
+    'MonoC',
+    'MonoNC',
+    'NKact',
+    'NKmat',
+    'Plasma',
+  ]
+
+  const removeGeneSymbols = new Set(GENES.filter((g) => !geneSymbols.includes(g)))
+  const removeCellLabels = new Set(LABELS.filter((l) => !cellLabels.includes(l)))
+
+  return dataStore
+    .resolveUmapDataFile()
+    .then((filePath) => {
+      PapaParse.parse(fs.readFileSync(filePath, 'utf8'), {
+        header: true,
+        delimiter: ',',
+        error: (error) => {
+          return res.status(500).json({ error: error.toString() })
+        },
+        complete: (results) => {
+          const umap = new UMAP({
+            nComponents: 2,
+            nEpochs,
+            nNeighbors,
+            minDist: minDistance,
+            random: Math.random,
+          })
+
+          // Filter data points related to cell labels that were requested
+          let labels = results.data.map((row) => row.cell_label)
+          const data = results.data
+            .filter((row) => {
+              return !removeCellLabels.has(row.cell_label)
+            })
+            .map((row) => {
+              const rowData = []
+              Object.entries(row).forEach(([key, value]) => {
+                if (!removeGeneSymbols.has(key) && key !== 'cell_label') {
+                  rowData.push(parseFloat(value))
+                }
+              })
+
+              return rowData
+            })
+
+          // Filter labels to those that were requested
+          labels = labels.filter((l) => !removeCellLabels.has(l))
+          const uniqueLabels = new Set(labels)
+
+          try {
+            const embedding = umap.fit(data)
+            return res.status(200).json({
+              results: {
+                embedding,
+                labels,
+                nLabels: uniqueLabels.size,
+              },
+            })
+          } catch (e) {
+            return res.status(500).json({ error: e.toString() })
+          }
+        },
+      })
+    })
+    .catch((error) => {
+      const code = error?.code || 500
+      return res.status(code).json({ error: error.toString() })
+    })
 })
 
 // ================================================================================================
@@ -293,15 +444,23 @@ app.use('/api', (request, response) => {
 // Static files
 // ================================================================================================
 
-// Serve static files from the appropriate dataset's directory.
+// Serve static files from the appropriate dataset's directory. Webpack creates browser directories
+// using uppercase characters when in production mode.
 app.use((req, res, next) => {
-  req.url = `/${req.dataset}${req.url}`
+  req.url = `/${isDevelopment ? req.dataset : req.dataset.toUpperCase()}${req.url}`
   next()
 }, express.static(path.join(__dirname, 'public')))
 
 // Return index.html for unknown paths and let client side routing handle it.
 app.use((req, res) => {
-  res.sendFile(path.resolve(__dirname, 'public', req.dataset, 'index.html'))
+  res.sendFile(
+    path.resolve(
+      __dirname,
+      'public',
+      isDevelopment ? req.dataset : req.dataset.toUpperCase(),
+      'index.html'
+    )
+  )
 })
 
 // ================================================================================================
