@@ -158,7 +158,7 @@ dataStore.resolveMetadataFile().then((filePath) => {
   // In development, serve the browser specified by the BROWSER environment variable.
   // In production, determine the browser/dataset to show based on the subdomain.
   if (isDevelopment) {
-    let devDataset = Object.keys(metadata.datasets).find(
+    const devDataset = Object.keys(metadata.datasets).find(
       (dataset) => dataset.toLowerCase() === process.env.BROWSER.toLowerCase()
     )
     getDatasetForRequest = () => devDataset
@@ -171,7 +171,7 @@ dataStore.resolveMetadataFile().then((filePath) => {
       {}
     )
     // TODO: subdomain being used is 'wgs'. Change class names etc to WGS. Map for now.
-    datasetBySubdomain['wgs'] = 'tob'
+    datasetBySubdomain.wgs = 'tob'
     getDatasetForRequest = (req) => datasetBySubdomain[req.subdomains[0]]
   }
 })
