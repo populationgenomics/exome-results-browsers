@@ -1,0 +1,68 @@
+name: Deploy web server
+on:
+  push:
+    tags:
+      - '*'
+    branches:
+      - 'staging'
+jobs:
+  deploy_server:
+    runs-on: ubuntu-latest
+
+    env:
+      DOCKER_BUILDKIT: 1
+      BUILDKIT_PROGRESS: plain
+      CLOUDSDK_CORE_DISABLE_PROMPTS: 1
+      DOCKER_IMAGE_BASE: australia-southeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_ARTIFACT_REPO }}
+
+    steps:
+      - name: 'checkout repo'
+        uses: actions/checkout@v2
+
+      - name: Create dummy build.env file
+        run: touch build.env
+
+      - name: Check production deployment
+        if: ${{ github.event.ref_type == 'tag' }}
+        run: |
+          echo "Deploying to production server on tag ${GITHUB_REF/refs\/tags\//} && \
+          echo "RELEASE_TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV && \
+          echo "CONTEXT=production" >> $GITHUB_ENV
+
+      - name: Check staging deployment
+        if: ${{ github.ref == 'refs/heads/staging' }}
+        run: |
+          echo "Deploying to staging server on branch $GITHUB_REF" && \
+          echo "RELEASE_TAG=${GITHUB_SHA:0:8}" >> $GITHUB_ENV && \
+          echo "CONTEXT=staging" >> $GITHUB_ENV
+
+      - name: Set Docker image
+        run: |
+          echo "DOCKER_IMAGE=${{ env.DOCKER_IMAGE_BASE }}/web-$${{ env.CONTEXT }}:${{ env.RELEASE_TAG }}" >> $GITHUB_ENV
+
+      - name: 'gcloud setup'
+        uses: google-github-actions/setup-gcloud@master
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_DEPLOY_SA_KEY }}
+
+      - name: 'gcloud docker auth'
+        run: |
+          gcloud auth configure-docker australia-southeast1-docker.pkg.dev
+      - name: 'build image'
+        run: |
+          docker build --tag $DOCKER_IMAGE .
+      - name: 'push image'
+        run: |
+          docker push $DOCKER_IMAGE
+
+      - name: 'gcloud run deploy'
+      - run: |
+          gcloud run deploy web-${{ env.CONTEXT }} \
+            --memory 1Gi
+            --region australia-southeast1 \
+            --no-allow-unauthenticated \
+            --platform managed \
+            --set-env-vars=RESULTS_DATA_DIRECTORY=${{ secrets.GCP_BUCKET }} \ 
+            --service-account=$${{ secrets.GCP_CLOUD_RUN_SA }}
+            --image ${{ env.DOCKER_IMAGE }}
