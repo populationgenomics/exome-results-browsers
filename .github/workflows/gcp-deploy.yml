@@ -28,17 +28,15 @@ jobs:
 
       - name: Check production deployment
         if: ${{ github.event.ref_type == 'tag' }}
-        run: |
-          echo "Deploying to production server on tag ${GITHUB_REF/refs\/tags\//}"
-          echo "RELEASE_TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
-          echo "CONTEXT=production" >> $GITHUB_ENV
+        run: echo "Deploying to production server on tag ${GITHUB_REF/refs\/tags\//}"
+        run: echo "RELEASE_TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
+        run: echo "CONTEXT=production" >> $GITHUB_ENV
 
       - name: Check staging deployment
         if: ${{ github.ref == 'refs/heads/staging' }}
-        run: |
-          echo "Deploying to staging server on branch $GITHUB_REF"
-          echo "RELEASE_TAG=${GITHUB_SHA:0:8}" >> $GITHUB_ENV
-          echo "CONTEXT=staging" >> $GITHUB_ENV
+        run: echo "Deploying to staging server on branch $GITHUB_REF"
+        run: echo "RELEASE_TAG=${GITHUB_SHA:0:8}" >> $GITHUB_ENV
+        run: echo "CONTEXT=staging" >> $GITHUB_ENV
 
       - name: Set Docker image
         run: |
@@ -63,10 +61,10 @@ jobs:
       - name: 'gcloud run deploy'
       - run: |
           gcloud run deploy web-${{ env.CONTEXT }} \
-            --memory 1Gi \
-            --region australia-southeast1 \
-            --no-allow-unauthenticated \
-            --platform managed \
+            --memory=1Gi \
+            --region=australia-southeast1 \
+            --platform=managed \
             --set-env-vars=RESULTS_DATA_DIRECTORY=${{ secrets.GCP_BUCKET }} \ 
             --service-account=$${{ secrets.GCP_CLOUD_RUN_SA }} \
-            --image ${{ env.DOCKER_IMAGE }}
+            --image=${{ env.DOCKER_IMAGE }} \
+            --no-allow-unauthenticated
