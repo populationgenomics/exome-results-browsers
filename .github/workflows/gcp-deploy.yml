@@ -66,6 +66,6 @@ jobs:
           --region=australia-southeast1 \
           --platform=managed \
           --set-env-vars=RESULTS_DATA_DIRECTORY=${{ secrets.GCP_BUCKET }} \
-          --service-account=$${{ secrets.GCP_CLOUD_RUN_SA }} \
+          --service-account=${{ secrets.GCP_CLOUD_RUN_SA }} \
           --image=$DOCKER_IMAGE \
           --no-allow-unauthenticated
