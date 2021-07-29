@@ -30,7 +30,7 @@ jobs:
       - name: Check production deployment
         if: ${{ github.event.ref_type == 'tag' }}
         run: |
-          echo "Deploying to production server on tag ${GITHUB_REF/refs\/tags\//}
+          echo "Deploying to production server on tag ${GITHUB_REF/refs\/tags\//}"
           echo "RELEASE_TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
           echo "CONTEXT=production" >> $GITHUB_ENV
 
