@@ -25,14 +25,14 @@ jobs:
       - name: Create dummy build.env file
         run: touch build.env
 
-      - name: Check production deployment
-        if: ${{ github.event.ref_type == 'tag' }}
+      - name: Check if production deployment
+        if: ${{ github.event.ref_type == 'release' }}
         run: |
-          echo "Deploying to production server on tag ${GITHUB_REF/refs\/tags\//}"
-          echo "RELEASE_TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
+          echo "Deploying to production server using tag ${GITHUB_REF}"
+          echo "RELEASE_TAG=${GITHUB_REF}" >> $GITHUB_ENV
           echo "CONTEXT=production" >> $GITHUB_ENV
 
-      - name: Check staging deployment
+      - name: Check if staging deployment
         if: ${{ github.ref == 'refs/heads/staging' }}
         run: |
           echo "Deploying to staging server on branch $GITHUB_REF"
@@ -41,7 +41,7 @@ jobs:
 
       - name: Set Docker image
         run: |
-          echo "DOCKER_IMAGE=${{ env.DOCKER_IMAGE_BASE }}/web-$${{ env.CONTEXT }}:${{ env.RELEASE_TAG }}" >> $GITHUB_ENV
+          echo "DOCKER_IMAGE=$DOCKER_IMAGE_BASE/web-$CONTEXT:$RELEASE_TAG" >> $GITHUB_ENV
 
       - name: 'gcloud setup'
         uses: google-github-actions/setup-gcloud@master
@@ -61,11 +61,11 @@ jobs:
 
       - name: 'gcloud run deploy'
         run: |
-          gcloud run deploy web-${{ env.CONTEXT }} \
+          gcloud run deploy web-$CONTEXT \
           --memory=1Gi \
           --region=australia-southeast1 \
           --platform=managed \
           --set-env-vars=RESULTS_DATA_DIRECTORY=${{ secrets.GCP_BUCKET }} \
           --service-account=$${{ secrets.GCP_CLOUD_RUN_SA }} \
-          --image=${{ env.DOCKER_IMAGE }} \
+          --image=$DOCKER_IMAGE \
           --no-allow-unauthenticated
