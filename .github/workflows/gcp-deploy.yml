@@ -41,7 +41,7 @@ jobs:
 
       - name: Set Docker image
         run: |
-          echo "DOCKER_IMAGE=$DOCKER_IMAGE_BASE/web-$CONTEXT:$RELEASE_TAG" >> $GITHUB_ENV
+          echo "DOCKER_IMAGE=$DOCKER_IMAGE_BASE/browser-$CONTEXT:$RELEASE_TAG" >> $GITHUB_ENV
 
       - name: 'gcloud setup'
         uses: google-github-actions/setup-gcloud@master
@@ -61,7 +61,7 @@ jobs:
 
       - name: 'gcloud run deploy'
         run: |
-          gcloud run deploy web-$CONTEXT \
+          gcloud run deploy browser-$CONTEXT \
           --memory=1Gi \
           --region=australia-southeast1 \
           --platform=managed \
