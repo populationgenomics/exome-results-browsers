@@ -170,8 +170,10 @@ dataStore.resolveMetadataFile().then((filePath) => {
       }),
       {}
     )
-    // TODO: subdomain being used is 'wgs'. Change class names etc to WGS. Map for now.
+    // TODO: subdomains being used is 'wgs' and 'staging', map these to tob dataset.
     datasetBySubdomain.wgs = 'tob'
+    datasetBySubdomain.staging = 'tob'
+
     getDatasetForRequest = (req) => datasetBySubdomain[req.subdomains[0]]
   }
 })
