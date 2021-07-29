@@ -2,12 +2,15 @@ name: Deploy web server
 
 on:
   push:
-    tags: ['*']
+    tags:
+      - '*'
   workflow_run:
     workflows:
       - 'CI'
-    types: [completed]
-    branches: ['staging']
+    types:
+      - completed
+    branches:
+      - staging
 
 jobs:
   deploy_server:
