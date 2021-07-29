@@ -30,15 +30,15 @@ jobs:
       - name: Check production deployment
         if: ${{ github.event.ref_type == 'tag' }}
         run: |
-          echo "Deploying to production server on tag ${GITHUB_REF/refs\/tags\//} && \
-          echo "RELEASE_TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV && \
+          echo "Deploying to production server on tag ${GITHUB_REF/refs\/tags\//}
+          echo "RELEASE_TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
           echo "CONTEXT=production" >> $GITHUB_ENV
 
       - name: Check staging deployment
         if: ${{ github.ref == 'refs/heads/staging' }}
         run: |
-          echo "Deploying to staging server on branch $GITHUB_REF" && \
-          echo "RELEASE_TAG=${GITHUB_SHA:0:8}" >> $GITHUB_ENV && \
+          echo "Deploying to staging server on branch $GITHUB_REF"
+          echo "RELEASE_TAG=${GITHUB_SHA:0:8}" >> $GITHUB_ENV
           echo "CONTEXT=staging" >> $GITHUB_ENV
 
       - name: Set Docker image
