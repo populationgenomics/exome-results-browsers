@@ -5,7 +5,7 @@ on:
     workflows:
       - CI
     types:
-      - completed
+      - requested
 
 jobs:
   deploy_server:
