@@ -1,11 +1,12 @@
 name: Deploy web server
 
 on:
-  workflow_run:
-    workflows:
-      - CI
+  release:
     types:
-      - requested
+      - published
+  push:
+    branches:
+      - 'staging'
 
 jobs:
   deploy_server:
