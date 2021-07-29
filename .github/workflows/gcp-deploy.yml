@@ -5,11 +5,10 @@ on:
       - 'CI'
     types:
       - 'completed'
-  push:
-    tags:
-      - '*'
     branches:
       - 'staging'
+    tags:
+      - '*'
 jobs:
   deploy_server:
     runs-on: ubuntu-latest
