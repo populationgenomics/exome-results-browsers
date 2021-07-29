@@ -59,13 +59,14 @@ jobs:
       - name: 'push image'
         run: |
           docker push $DOCKER_IMAGE
-      # - name: 'gcloud run deploy'
-      # - run: |
-      #     gcloud run deploy web-${{ env.CONTEXT }} \
-      #     --memory=1Gi \
-      #     --region=australia-southeast1 \
-      #     --platform=managed \
-      #     --set-env-vars=RESULTS_DATA_DIRECTORY=${{ secrets.GCP_BUCKET }} \
-      #     --service-account=$${{ secrets.GCP_CLOUD_RUN_SA }} \
-      #     --image=${{ env.DOCKER_IMAGE }} \
-      #     --no-allow-unauthenticated
+
+      - name: 'gcloud run deploy'
+        run: |
+          gcloud run deploy web-${{ env.CONTEXT }} \
+          --memory=1Gi \
+          --region=australia-southeast1 \
+          --platform=managed \
+          --set-env-vars=RESULTS_DATA_DIRECTORY=${{ secrets.GCP_BUCKET }} \
+          --service-account=$${{ secrets.GCP_CLOUD_RUN_SA }} \
+          --image=${{ env.DOCKER_IMAGE }} \
+          --no-allow-unauthenticated
