@@ -1,5 +1,6 @@
 # Dependencies
 node_modules
+venv
 
 # Build variables
 build.env
@@ -14,9 +15,6 @@ __pycache__
 
 # Hail logs
 hail-*.log
-
-# Editor config
-**/.vscode/**
 
 # Mypy cache
 **/.mypy_cache/**
