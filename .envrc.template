@@ -1,0 +1,4 @@
+export NODE_ENV=development
+export USE_REMOTE_API=false
+export RESULTS_DATA_DIRECTORY=src/data/tob
+export GOOGLE_APPLICATION_CREDENTIALS=

@@ -61,7 +61,10 @@ def prepare_gene_results():
         )
 
         if final_results:
-            final_results = final_results.join(category_results.drop("n_cases", "n_controls"), "outer",)
+            final_results = final_results.join(
+                category_results.drop("n_cases", "n_controls"),
+                "outer",
+            )
 
             # N cases/controls should be the same for all consequence categories for a gene/analysis group.
             # However, if there are no variants of a certain consequence category found in a gene, then

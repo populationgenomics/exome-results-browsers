@@ -4,7 +4,7 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin')
 const CopyPlugin = require('copy-webpack-plugin')
 const HtmlPlugin = require('html-webpack-plugin')
 
-const BROWSERS = ['ASC', 'BipEx', 'Epi25', 'SCHEMA']
+const BROWSERS = ['ASC', 'BipEx', 'Epi25', 'SCHEMA', 'TOB']
 
 const isDev = process.env.NODE_ENV === 'development'
 
@@ -131,6 +131,7 @@ if (process.env.WEBPACK_DEV_SERVER) {
     stats: 'errors-only',
     // Write files to disk so that server.js can respond with index.html.
     writeToDisk: true,
+    allowedHosts: ['.dev.localhost'],
   }
 }
 
