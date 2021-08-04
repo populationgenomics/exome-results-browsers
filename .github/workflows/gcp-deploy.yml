@@ -31,7 +31,7 @@ jobs:
             echo "DEPLOYMENT_TYPE=dev" >> $GITHUB_ENV
           fi
           echo "Setting up a ${DEPLOYMENT_TYPE} deployment"
-          echo "RELEASE_TAG=${GITHUB_SHA:0:8}" >> $GITHUB_ENV
+          echo "RELEASE_TAG=${GITHUB_SHA}" >> $GITHUB_ENV
 
       - name: Set Docker image
         run: |
