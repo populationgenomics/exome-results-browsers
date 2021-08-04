@@ -172,7 +172,7 @@ dataStore.resolveMetadataFile().then((filePath) => {
     )
     // TODO: subdomains being used is 'wgs' and 'staging', map these to tob dataset.
     datasetBySubdomain.wgs = 'tob'
-    datasetBySubdomain.staging = 'tob'
+    datasetBySubdomain.dev = 'tob'
 
     getDatasetForRequest = (req) => datasetBySubdomain[req.subdomains[0]]
   }
@@ -309,6 +309,28 @@ app.get('/api/gene/:geneIdOrName/variants', (req, res) => {
 // ================================================================================================
 // UMAP computation
 // ================================================================================================
+app.get('/api/heatmap', (req, res) => {
+  // const { search = '' } = req.query
+
+  const allCellLabels = metadata.datasets[req.dataset].gene_group_result_field_names
+  const allGenesSymbols = metadata.datasets[req.dataset].gene_symbols
+
+  const mockData = allGenesSymbols.map(() => {
+    return allCellLabels.map(() => Math.random())
+  })
+
+  return res.status(200).json({
+    results: {
+      columnLabels: allCellLabels,
+      rowLabels: allGenesSymbols,
+      cellData: mockData,
+    },
+  })
+})
+
+// ================================================================================================
+// UMAP computation
+// ================================================================================================
 
 app.get('/api/umap', (req, res) => {
   const {
@@ -319,59 +341,11 @@ app.get('/api/umap', (req, res) => {
     nEpochs = 100,
   } = req.query
 
-  // TODO: get these from config
-  const GENES = [
-    'AC000068.5',
-    'AC002472.13',
-    'AC007308.6',
-    'ADORA2A-AS1',
-    'ADRBK2',
-    'APOBEC3A',
-    'APOBEC3B',
-    'APOBEC3C',
-    'APOBEC3G',
-    'APOBEC3H',
-    'APOL2',
-    'APOL6',
-    'ARFGAP3',
-    'ARSA',
-    'ARVCF',
-    'ASPHD2',
-    'BCR',
-    'BIK',
-    'C22orf34',
-    'CBX6',
-    'CDC42EP1',
-    'CHCHD10',
-    'CRYBB2',
-    'CTA-29F11.1',
-    'DDT',
-    'FAM118A',
-    'GGT1',
-    'IGLL1',
-    'LGALS2',
-    'MIF',
-    'NDUFA6',
-    'SELM',
-  ]
+  const allGenesSymbols = metadata.datasets[req.dataset].gene_symbols
+  const allCellLabels = metadata.datasets[req.dataset].gene_group_result_field_names
 
-  const LABELS = [
-    'BimmNaive',
-    'Bmem',
-    'CD4all',
-    'CD8all',
-    'CD8eff',
-    'CD8unknown',
-    'DC',
-    'MonoC',
-    'MonoNC',
-    'NKact',
-    'NKmat',
-    'Plasma',
-  ]
-
-  const removeGeneSymbols = new Set(GENES.filter((g) => !geneSymbols.includes(g)))
-  const removeCellLabels = new Set(LABELS.filter((l) => !cellLabels.includes(l)))
+  const removeGeneSymbols = new Set(allGenesSymbols.filter((g) => !geneSymbols.includes(g)))
+  const removeCellLabels = new Set(allCellLabels.filter((l) => !cellLabels.includes(l)))
 
   return dataStore
     .resolveUmapDataFile()
