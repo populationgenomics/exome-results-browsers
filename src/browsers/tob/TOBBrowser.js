@@ -6,6 +6,7 @@ import datasetConfig from '../datasetConfig'
 
 import TOBHomePage from './TOBHomePage'
 import TOBUmapPlot from './TOBUmapPlot'
+import TOBHeatmapLocusPlot from './TOBHeatmapLocusPlot'
 
 const TOBBrowser = () => (
   <Browser
@@ -27,8 +28,13 @@ const TOBBrowser = () => (
     })}
     geneResultTabs={[
       {
-        id: 'umap-plot',
-        label: 'UMAP Plot',
+        id: 'heatmap-tab',
+        label: 'Association heatmap',
+        render: () => <TOBHeatmapLocusPlot />,
+      },
+      {
+        id: 'umap-tab',
+        label: 'Expression UMAP',
         render: () => <TOBUmapPlot />,
       },
     ]}
