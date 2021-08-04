@@ -48,7 +48,7 @@ GeneResultsHeatmap.propTypes = {
 GeneResultsHeatmap.defaultProps = {
   height: 500,
   width: 500,
-  id: 'gene-results-heatmapmap',
+  id: 'gene-results-heatmap',
 }
 
 const Wrapper = styled.div`
