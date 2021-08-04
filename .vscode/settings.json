@@ -2,7 +2,6 @@
   "files.autoSave": "onFocusChange",
   "editor.formatOnSave": true,
   "editor.tabSize": 4,
-  "editor.renderWhitespace": "boundary",
   "editor.suggest.insertMode": "replace",
   "git.autofetch": true,
   // ----------- Frontend
@@ -62,7 +61,6 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   // ----------- Python
-  "python.pythonPath": "venv/bin/python",
   "[python]": {
     "editor.tabSize": 4,
     "editor.rulers": [120],
