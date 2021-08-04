@@ -24,7 +24,6 @@ jobs:
         run: touch build.env
 
       - name: Set deployment type
-        if: ${{ github.event.ref_type == 'release' }}
         run: |
           if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
             echo "DEPLOYMENT_TYPE=prod" >> $GITHUB_ENV
