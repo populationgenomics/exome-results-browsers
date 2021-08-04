@@ -1,12 +1,10 @@
 name: Deploy web server
 
 on:
-  release:
-    types:
-      - published
   push:
     branches:
-      - 'staging'
+      - main
+      - dev
 
 jobs:
   deploy_server:
@@ -25,23 +23,20 @@ jobs:
       - name: Create dummy build.env file
         run: touch build.env
 
-      - name: Check if production deployment
+      - name: Set deployment type
         if: ${{ github.event.ref_type == 'release' }}
         run: |
-          echo "Deploying to production server using tag ${GITHUB_REF}"
-          echo "RELEASE_TAG=${GITHUB_REF}" >> $GITHUB_ENV
-          echo "CONTEXT=production" >> $GITHUB_ENV
-
-      - name: Check if staging deployment
-        if: ${{ github.ref == 'refs/heads/staging' }}
-        run: |
-          echo "Deploying to staging server on branch $GITHUB_REF"
+          if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
+            echo "DEPLOYMENT_TYPE=prod" >> $GITHUB_ENV
+          else
+            echo "DEPLOYMENT_TYPE=dev" >> $GITHUB_ENV
+          fi
+          echo "Setting up a ${DEPLOYMENT_TYPE} deployment"
           echo "RELEASE_TAG=${GITHUB_SHA:0:8}" >> $GITHUB_ENV
-          echo "CONTEXT=staging" >> $GITHUB_ENV
 
       - name: Set Docker image
         run: |
-          echo "DOCKER_IMAGE=$DOCKER_IMAGE_BASE/browser-$CONTEXT:$RELEASE_TAG" >> $GITHUB_ENV
+          echo "DOCKER_IMAGE=$DOCKER_IMAGE_BASE/browser-$DEPLOYMENT_TYPE:$RELEASE_TAG" >> $GITHUB_ENV
 
       - name: 'gcloud setup'
         uses: google-github-actions/setup-gcloud@master
@@ -61,7 +56,7 @@ jobs:
 
       - name: 'gcloud run deploy'
         run: |
-          gcloud run deploy browser-$CONTEXT \
+          gcloud run deploy browser-$DEPLOYMENT_TYPE \
           --memory=1Gi \
           --region=australia-southeast1 \
           --platform=managed \
