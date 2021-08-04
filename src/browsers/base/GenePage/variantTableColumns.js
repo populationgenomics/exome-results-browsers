@@ -26,6 +26,7 @@ const VariantCategoryMarker = styled.span`
   width: 10px;
   height: 10px;
   margin-right: 0.5em;
+
   &::before {
     content: '';
     display: inline-block;
