@@ -2,28 +2,20 @@ import React, { useEffect, useState } from 'react'
 
 import { Button, TooltipAnchor, TooltipHint } from '@gnomad/ui'
 import Select from 'react-select'
-import styled from 'styled-components'
 
 import Fetch from '../base/Fetch'
 import AutosizedGeneResultsUmapPlot from '../base/GeneResultsPage/GeneResultsUmapPlot'
 import StatusMessage from '../base/StatusMessage'
-import datasetConfig from '../datasetConfig'
+import { TooltipWrapper, PlotWrapper } from './utilities/styling'
+import { cellLabels, geneSymbols } from './utilities/config'
 
-const geneSelectionOptions = datasetConfig.gene_symbols.map((n) => {
+const geneSelectionOptions = geneSymbols().map((n) => {
   return { value: n, label: n }
 })
 
-const cellLabelOptions = datasetConfig.gene_group_result_field_names.map((n) => {
+const cellLabelOptions = cellLabels().map((n) => {
   return { value: n, label: n }
 })
-
-const UmapTooltipWrapper = styled.div`
-  margin: 1em 0;
-`
-
-const UmapPlotWrapper = styled.div`
-  margin: 1em 0;
-`
 
 const TOBUmapPlot = () => {
   const [apiPath, setApiPath] = useState(null)
@@ -63,11 +55,11 @@ const TOBUmapPlot = () => {
 
         return (
           <>
-            <UmapTooltipWrapper>
+            <TooltipWrapper>
               <TooltipAnchor tooltip="Add genes to include in UMAP embedding computation">
                 <TooltipHint>Genes</TooltipHint>
               </TooltipAnchor>
-            </UmapTooltipWrapper>
+            </TooltipWrapper>
             <Select
               id="umap-genes"
               isMulti
@@ -78,11 +70,11 @@ const TOBUmapPlot = () => {
                 setSelectedGenes([...selection] || [])
               }}
             />
-            <UmapTooltipWrapper>
+            <TooltipWrapper>
               <TooltipAnchor tooltip="Add cell labels to include in UMAP embedding computation">
                 <TooltipHint>Cell labels</TooltipHint>
               </TooltipAnchor>
-            </UmapTooltipWrapper>
+            </TooltipWrapper>
             <Select
               id="umap-cell-labels"
               isMulti
@@ -93,13 +85,13 @@ const TOBUmapPlot = () => {
                 setSelectedCellLabels([...selection] || [])
               }}
             />
-            <UmapPlotWrapper>
+            <PlotWrapper>
               <AutosizedGeneResultsUmapPlot
                 id="gene-results-umap-plot"
                 embedding={data.results.embedding}
                 labels={data.results.labels}
               />
-            </UmapPlotWrapper>
+            </PlotWrapper>
             <Button
               style={{ margin: '1em', float: 'right' }}
               onClick={() =>
