@@ -111,7 +111,7 @@ const GeneResultsUmapPlot = ({ height, width, id, embedding, labels, labelColors
   return (
     <>
       <div ref={wrapperRef}>
-        <svg ref={svgRef} height={height} width={width} style={{ border: '1px solid black' }}>
+        <svg ref={svgRef} height={height} width={width}>
           <defs>
             <clipPath id={id}>
               <rect x="0" y="0" width="100%" height="100%" />
