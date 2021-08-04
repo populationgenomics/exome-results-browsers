@@ -170,9 +170,11 @@ dataStore.resolveMetadataFile().then((filePath) => {
       }),
       {}
     )
-    // TODO: subdomains being used is 'wgs' and 'staging', map these to tob dataset.
-    datasetBySubdomain.wgs = 'tob'
-    datasetBySubdomain.dev = 'tob'
+
+    const subdomains = ['wgs', 'tob', 'tob-dev']
+    subdomains.forEach((subdomain) => {
+      datasetBySubdomain[subdomain] = 'tob'
+    })
 
     getDatasetForRequest = (req) => datasetBySubdomain[req.subdomains[0]]
   }
