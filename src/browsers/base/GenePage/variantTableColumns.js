@@ -1,3 +1,5 @@
+/* eslint-disable react/destructuring-assignment */
+
 import { get } from 'lodash'
 import React from 'react'
 import Highlighter from 'react-highlight-words'
@@ -24,7 +26,6 @@ const VariantCategoryMarker = styled.span`
   width: 10px;
   height: 10px;
   margin-right: 0.5em;
-
   &::before {
     content: '';
     display: inline-block;

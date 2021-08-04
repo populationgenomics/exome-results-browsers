@@ -2,11 +2,9 @@ import PropTypes from 'prop-types'
 import React, { useEffect, useState, useRef } from 'react'
 import { withSize } from 'react-sizeme'
 import styled from 'styled-components'
-import { TooltipAnchor } from '@gnomad/ui'
 
 import lodash from 'lodash'
 import { scaleLinear, extent, zoom, select, axisBottom, axisLeft } from 'd3'
-import { border, margin } from 'polished'
 
 const DEFAULT_COLORS = [
   '#332288',
@@ -25,15 +23,7 @@ const DEFAULT_COLORS = [
 
 const margins = { left: 20, right: 20, top: 20, bottom: 20 }
 
-const GeneResultsUmapPlot = ({
-  height,
-  width,
-  id,
-  embedding,
-  labels,
-  labelColors,
-  ...otherProps
-}) => {
+const GeneResultsUmapPlot = ({ height, width, id, embedding, labels, labelColors }) => {
   const svgRef = useRef()
   const wrapperRef = useRef()
   const [currentZoomState, setCurrentZoomState] = useState()
@@ -138,8 +128,8 @@ const GeneResultsUmapPlot = ({
 }
 
 GeneResultsUmapPlot.propTypes = {
-  height: PropTypes.number.isRequired,
-  width: PropTypes.number.isRequired,
+  height: PropTypes.number,
+  width: PropTypes.number,
   id: PropTypes.string,
   embedding: PropTypes.arrayOf(PropTypes.array).isRequired,
   labels: PropTypes.arrayOf(PropTypes.string).isRequired,
@@ -147,6 +137,8 @@ GeneResultsUmapPlot.propTypes = {
 }
 
 GeneResultsUmapPlot.defaultProps = {
+  height: 500,
+  width: 500,
   id: 'gene-results-umap-plot',
   labelColors: [...DEFAULT_COLORS],
 }

@@ -219,7 +219,7 @@ VariantFilterControls.propTypes = {
       other: PropTypes.bool.isRequired,
     }).isRequired,
     searchText: PropTypes.string.isRequired,
-    custom: PropTypes.any,
+    custom: PropTypes.any, // eslint-disable-line react/forbid-prop-types
   }).isRequired,
   customFilterComponent: PropTypes.func,
   geneId: PropTypes.string.isRequired,

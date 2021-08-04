@@ -11,7 +11,7 @@ class DataStore {
    * @returns {Promise<string>}
    */
   resolveGeneSearchTermsFile() {
-    return this.resolveFile('gene_search_terms.txt.json')
+    return this.resolveFile('gene_search_terms.json.txt')
   }
 
   /**
