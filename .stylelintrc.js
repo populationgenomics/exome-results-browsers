@@ -135,7 +135,7 @@ module.exports = {
     // This rule sometimes conflicts with ESLint and Prettier in styled components
     // that contain multi-line functions
     'declaration-colon-newline-after': null,
-    'unit-whitelist': ['%', 'deg', 'em', 'rem', 's', 'px', 'vw', 'vh'],
+    'unit-allowed-list': ['%', 'deg', 'em', 'rem', 's', 'px', 'vw', 'vh'],
     'order/properties-order': [propertiesOrder],
   },
   ignoreFiles: './**/node_modules/**/*',
