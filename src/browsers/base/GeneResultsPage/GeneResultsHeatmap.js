@@ -5,6 +5,11 @@ import { minBy, maxBy } from 'lodash'
 import { withSize } from 'react-sizeme'
 import { scaleBand, select, axisTop, axisLeft, scaleSequential, interpolateRgb, pointer } from 'd3'
 
+export const TileEventType = {
+  SELECT: 0,
+  DESELECT: 1,
+}
+
 const margin = { left: 80, right: 80, top: 40, bottom: 80 }
 
 const GeneResultsHeatmap = ({
@@ -96,10 +101,14 @@ const GeneResultsHeatmap = ({
       .on('mouseover', (e, d) => {
         onHoverTile(d)
         Tooltip.style('opacity', 1)
-        select(e.target)
-          .style('stroke', tileSelectBorderColor)
-          .style('stroke-width', `${tileSelectBorderWidth}`)
-          .style('opacity', 1)
+
+        const element = select(e.target)
+        if (!element.attr('class')?.includes('selected')) {
+          element
+            .style('stroke', tileSelectBorderColor)
+            .style('stroke-width', `${tileSelectBorderWidth}`)
+            .style('opacity', 1)
+        }
       })
       .on('mousemove', (e, d) => {
         Tooltip.html(renderTooltip(d))
@@ -108,9 +117,28 @@ const GeneResultsHeatmap = ({
       })
       .on('mouseleave', (e) => {
         Tooltip.style('opacity', 0)
-        select(e.target).style('stroke', 'none').style('opacity', 0.8)
+
+        const element = select(e.target)
+        if (!element.attr('class')?.includes('selected')) {
+          select(e.target).style('stroke', 'none').style('opacity', 0.8)
+        }
       })
-      .on('click', (_, d) => onClickTile(d))
+      .on('click', (e, d) => {
+        const element = select(e.target)
+
+        // Are we deselecting?
+        if (element.attr('class')?.includes('selected')) {
+          onClickTile(d, TileEventType.DESELECT)
+          element.attr('class', null).style('stroke', 'none').style('opacity', 0.8)
+        } else {
+          onClickTile(d, TileEventType.SELECT)
+          element
+            .attr('class', 'selected')
+            .style('stroke', tileSelectBorderColor)
+            .style('stroke-width', `${tileSelectBorderWidth}`)
+            .style('opacity', 1)
+        }
+      })
 
     // Update the legend gradient def
     svg.select('#grad-start').attr('stop-color', colorScale(minScaleValue))
