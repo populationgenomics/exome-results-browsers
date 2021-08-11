@@ -6,9 +6,7 @@ import { SearchInput } from '@gnomad/ui'
 import Fetch from '../base/Fetch'
 import StatusMessage from '../base/StatusMessage'
 import AutosizedGeneResultsHeatmap from '../base/GeneResultsPage/GeneResultsHeatmap'
-// import AutosizedGeneResultsLocusPlot from '../base/GeneResultsPage/GeneResultsLocusPlot'
-
-import { PlotWrapper } from './utilities/styling'
+import AutosizedGeneResultsManhattanPlot from '../base/GeneResultsPage/GeneResultsManhattanPlot'
 
 const TOBHeatmapLocusPlot = () => {
   const [apiPath, setApiPath] = useState('/heatmap/')
@@ -21,35 +19,52 @@ const TOBHeatmapLocusPlot = () => {
     }
   }, [requestParams])
 
-  const deoubceSetRequestParams = useCallback(
+  const debounceSetRequestParams = useCallback(
     debounce((value) => setRequestParams(value), 1000),
     []
   )
   const handleSearchInputChange = (value) => {
     setSearchText(value)
-    deoubceSetRequestParams({ ...requestParams, search: value?.trim() })
+    debounceSetRequestParams({ ...requestParams, search: value?.trim() })
   }
 
   return (
-    <Fetch path={apiPath} params>
-      {({ data, error, loading }) => {
-        if (loading) {
-          return <StatusMessage>Loading results...</StatusMessage>
-        }
+    <>
+      <Fetch path="/locus-plot" params>
+        {({ data, error, loading }) => {
+          if (loading) {
+            return <StatusMessage>Loading locus-plot...</StatusMessage>
+          }
 
-        if (error || !(data || {}).results) {
-          return <StatusMessage>Unable to load results</StatusMessage>
-        }
+          if (error || !(data || {}).results) {
+            return <StatusMessage>Unable to load locus-plot</StatusMessage>
+          }
 
-        return (
-          <>
-            <SearchInput
-              id="heatmap-search"
-              placeholder="rs45448095, 1-55039774-C-T, 1:55505221-55530525"
-              isDisabled={loading || error}
-              value={searchText}
-              onChange={handleSearchInputChange}
-            />
+          return (
+            <>
+              <SearchInput
+                id="heatmap-search"
+                placeholder="rs45448095, 1-55039774-C-T, 1:55505221-55530525"
+                isDisabled={loading || error}
+                value={searchText}
+                onChange={handleSearchInputChange}
+              />
+              <AutosizedGeneResultsManhattanPlot results={data.results.data} />
+            </>
+          )
+        }}
+      </Fetch>
+      <Fetch path={apiPath} params>
+        {({ data, error, loading }) => {
+          if (loading) {
+            return <StatusMessage>Loading heatmap...</StatusMessage>
+          }
+
+          if (error || !(data || {}).results) {
+            return <StatusMessage>Unable to load heatmap</StatusMessage>
+          }
+
+          return (
             <AutosizedGeneResultsHeatmap
               id="gene-results-heatmap"
               height={1200}
@@ -65,10 +80,10 @@ const TOBHeatmapLocusPlot = () => {
                 return `${d.col} - ${d.row}: ${d.value.toFixed(4)}`
               }}
             />
-          </>
-        )
-      }}
-    </Fetch>
+          )
+        }}
+      </Fetch>
+    </>
   )
 }
 
