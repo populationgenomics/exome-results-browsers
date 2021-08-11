@@ -58,7 +58,7 @@ const TOBHeatmapLocusPlot = () => {
               data={data.results.data}
               minValue={data.results.minValue}
               maxValue={data.results.maxValue}
-              tileSpacing={0}
+              tileSpacing={0.01}
               onTileClick={() => {}}
               onTileHover={() => {}}
               renderTooltip={(d) => {

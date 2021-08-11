@@ -3,15 +3,7 @@ import PropTypes from 'prop-types'
 import styled from 'styled-components'
 import { minBy, maxBy } from 'lodash'
 import { withSize } from 'react-sizeme'
-import {
-  scaleBand,
-  select,
-  axisBottom,
-  axisLeft,
-  scaleSequential,
-  interpolateRgb,
-  scaleLinear,
-} from 'd3'
+import { scaleBand, select, axisTop, axisLeft, scaleSequential, interpolateRgb, pointer } from 'd3'
 
 const margin = { left: 80, right: 80, top: 40, bottom: 80 }
 
@@ -52,43 +44,36 @@ const GeneResultsHeatmap = ({
       .domain(rowLabels)
       .padding(tileSpacing)
 
+    const xAxis = axisTop(xScale).tickSize(0)
+    svg
+      .select('.x-axis')
+      .attr('transform', `translate(0, ${margin.top - 5})`)
+      .call(xAxis)
+      .select('.domain')
+      .remove()
+
+    const yAxis = axisLeft(yScale).tickSize(0)
+    svg
+      .select('.y-axis')
+      .attr('transform', `translate(${margin.left - 5}, 0)`)
+      .call(yAxis)
+      .select('.domain')
+      .remove()
+
     const colorScale = scaleSequential()
       .interpolator(interpolateRgb(minValueColor, maxValueColor))
       .domain([minScaleValue, maxScaleValue])
       .range([minValueColor, maxValueColor])
 
-    const Tooltip = select(wrapperRef.current).select('.tooltip')
-
-    Tooltip.style('opacity', 0)
-      .attr('class', 'tooltip-active')
+    const Tooltip = select(wrapperRef.current)
+      .select('.tooltip')
+      .style('opacity', 0)
       .style('background-color', 'white')
       .style('border', 'solid')
       .style('border-width', '1px')
       .style('border-radius', '5px')
       .style('padding', '5px')
       .style('position', 'absolute')
-
-    function mouseOver() {
-      Tooltip.style('opacity', 1)
-      select(this)
-        .style('stroke', tileSelectBorderColor)
-        .style('stroke-width', `${tileSelectBorderWidth}`)
-        .style('opacity', 1)
-    }
-    function mouseMove(_, d) {
-      onHoverTile(d)
-      Tooltip.html(renderTooltip(d))
-        .style('opacity', 1)
-        .style('left', `${xScale(d.col)}px`)
-        .style('top', `${yScale(d.row) - 30}px`)
-    }
-    function mouseLeave() {
-      Tooltip.style('opacity', 0)
-      select(this).style('stroke', 'none').style('opacity', 0.8)
-    }
-    function mouseClick(_, d) {
-      onClickTile(d)
-    }
 
     // Clear content for re-draw so rectangles aren't drawn over each other.
     svgContent.selectAll('rect').remove()
@@ -97,18 +82,35 @@ const GeneResultsHeatmap = ({
       .data(data, (d) => `${d.col}:${d.row}`)
       .enter()
       .append('rect')
+      .attr('type', 'tile')
       .attr('x', (d) => xScale(d.col))
       .attr('y', (d) => yScale(d.row))
+      .attr('rx', 4)
+      .attr('ry', 4)
       .attr('width', xScale.bandwidth())
       .attr('height', yScale.bandwidth())
       .style('fill', (d) => colorScale(d.value))
       .style('stroke-width', 4)
       .style('stroke', 'none')
       .style('opacity', 0.8)
-      .on('mouseover', mouseOver)
-      .on('mousemove', mouseMove)
-      .on('mouseleave', mouseLeave)
-      .on('click', mouseClick)
+      .on('mouseover', (e, d) => {
+        onHoverTile(d)
+        Tooltip.style('opacity', 1)
+        select(e.target)
+          .style('stroke', tileSelectBorderColor)
+          .style('stroke-width', `${tileSelectBorderWidth}`)
+          .style('opacity', 1)
+      })
+      .on('mousemove', (e, d) => {
+        Tooltip.html(renderTooltip(d))
+          .style('left', `${pointer(e)[0] + 20}px`)
+          .style('top', `${pointer(e)[1]}px`)
+      })
+      .on('mouseleave', (e) => {
+        Tooltip.style('opacity', 0)
+        select(e.target).style('stroke', 'none').style('opacity', 0.8)
+      })
+      .on('click', (_, d) => onClickTile(d))
 
     // Update the legend gradient def
     svg.select('#grad-start').attr('stop-color', colorScale(minScaleValue))
@@ -142,15 +144,6 @@ const GeneResultsHeatmap = ({
       .attr('x', width - margin.right + 40 + 10)
       .attr('y', margin.top + 10)
       .text(maxScaleValue.toString())
-
-    const xAxis = axisBottom(xScale)
-    svg
-      .select('.x-axis')
-      .attr('transform', `translate(0, ${height - margin.bottom})`)
-      .call(xAxis)
-
-    const yAxis = axisLeft(yScale)
-    svg.select('.y-axis').attr('transform', `translate(${margin.left}, 0)`).call(yAxis)
   }, [
     rowLabels,
     columnLabels,
@@ -219,7 +212,7 @@ GeneResultsHeatmap.propTypes = {
   onClickTile: PropTypes.func,
   onHoverTile: PropTypes.func,
   renderTooltip: PropTypes.func,
-  tileSpacing: PropTypes.number,
+  tileSpacing: PropTypes.number, // d3 expects a proportion between 0 and 1
   tileSelectBorderWidth: PropTypes.number,
   tileSelectBorderColor: PropTypes.string,
 }
@@ -232,9 +225,9 @@ GeneResultsHeatmap.defaultProps = {
   maxValue: null,
   minValueColor: '#FFFFFF',
   maxValueColor: '#6C010E',
-  tileSpacing: 0,
-  tileSelectBorderWidth: 4,
-  tileSelectBorderColor: '#FF0000',
+  tileSpacing: 0.01,
+  tileSelectBorderWidth: 2,
+  tileSelectBorderColor: '#1e1e1e',
   onClickTile: () => {},
   onHoverTile: () => {},
   renderTooltip: (d) => d.value.toFixed(4),
