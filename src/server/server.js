@@ -309,7 +309,7 @@ app.get('/api/gene/:geneIdOrName/variants', (req, res) => {
 })
 
 // ================================================================================================
-// UMAP computation
+// Heatmap
 // ================================================================================================
 app.get('/api/heatmap', (req, res) => {
   // const { search = '' } = req.query
@@ -330,6 +330,45 @@ app.get('/api/heatmap', (req, res) => {
       columnLabels: allCellLabels,
       rowLabels: allGenesSymbols,
       data: mockData,
+      minValue: 0,
+      maxValue: 1,
+    },
+  })
+})
+
+// ================================================================================================
+// Locus plot
+// ================================================================================================
+app.get('/api/locus-plot', (req, res) => {
+  // const { search = '' } = req.query
+
+  const allGenesSymbols = metadata.datasets[req.dataset].gene_symbols
+  const allCellLabels = metadata.datasets[req.dataset].gene_group_result_field_names
+  const cellColors = allCellLabels.map(() => {
+    const letters = '0123456789ABCDEF'
+    return ['#', [...Array(6).keys()].map(() => letters[Math.floor(Math.random() * 16)])].join('')
+  })
+
+  const points = allCellLabels
+    .map((c, i) => {
+      return [...Array(1000).keys()].map(() => {
+        const start = Math.ceil(Math.random() * 1000)
+        return {
+          snp: `5:${start}:${start + 1}:A:G`,
+          pos: start,
+          chrom: '5',
+          pval: Math.random(),
+          color: cellColors[i],
+          cell: c,
+          gene: allGenesSymbols[0],
+        }
+      })
+    })
+    .flat()
+
+  return res.status(200).json({
+    results: {
+      data: points,
       minValue: 0,
       maxValue: 1,
     },
