@@ -50,15 +50,21 @@ const TOBHeatmapLocusPlot = () => {
               value={searchText}
               onChange={handleSearchInputChange}
             />
-            <PlotWrapper>
-              <AutosizedGeneResultsHeatmap
-                id="gene-results-heatmap"
-                columnLabels={data.results.columnLabels}
-                rowLabels={data.results.rowLabels}
-                cellData={data.results.cellData}
-                onClickCell={() => {}}
-              />
-            </PlotWrapper>
+            <AutosizedGeneResultsHeatmap
+              id="gene-results-heatmap"
+              height={1200}
+              columnLabels={data.results.columnLabels}
+              rowLabels={data.results.rowLabels}
+              data={data.results.data}
+              minValue={data.results.minValue}
+              maxValue={data.results.maxValue}
+              tileSpacing={0}
+              onTileClick={() => {}}
+              onTileHover={() => {}}
+              renderTooltip={(d) => {
+                return `${d.col} - ${d.row}: ${d.value.toFixed(4)}`
+              }}
+            />
           </>
         )
       }}
