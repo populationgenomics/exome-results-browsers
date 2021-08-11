@@ -317,15 +317,21 @@ app.get('/api/heatmap', (req, res) => {
   const allCellLabels = metadata.datasets[req.dataset].gene_group_result_field_names
   const allGenesSymbols = metadata.datasets[req.dataset].gene_symbols
 
-  const mockData = allGenesSymbols.map(() => {
-    return allCellLabels.map(() => Math.random())
-  })
+  const mockData = allGenesSymbols
+    .map((g) => {
+      return allCellLabels.map((c) => {
+        return { row: g, col: c, value: Math.random() }
+      })
+    })
+    .flat()
 
   return res.status(200).json({
     results: {
       columnLabels: allCellLabels,
       rowLabels: allGenesSymbols,
-      cellData: mockData,
+      data: mockData,
+      minValue: 0,
+      maxValue: 1,
     },
   })
 })
