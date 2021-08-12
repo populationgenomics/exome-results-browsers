@@ -2,7 +2,6 @@
   "files.autoSave": "onFocusChange",
   "editor.formatOnSave": true,
   "editor.tabSize": 4,
-  "editor.suggest.insertMode": "replace",
   "git.autofetch": true,
   // ----------- Frontend
   "emmet.includeLanguages": {
