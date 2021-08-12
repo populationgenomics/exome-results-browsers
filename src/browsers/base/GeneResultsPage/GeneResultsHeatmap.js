@@ -6,8 +6,8 @@ import { withSize } from 'react-sizeme'
 import { scaleBand, select, axisTop, axisLeft, scaleSequential, interpolateRgb, pointer } from 'd3'
 
 export const TileEventType = {
-  SELECT: 0,
-  DESELECT: 1,
+  SELECT: 'select',
+  DESELECT: 'deselect',
 }
 
 const margin = { left: 80, right: 80, top: 40, bottom: 80 }
@@ -266,7 +266,7 @@ const Wrapper = styled.div`
   width: 100%;
 `
 
-const AutosizedGeneResultsHeatmap = withSize()(({ size, ...otherProps }) => (
+export const AutosizedGeneResultsHeatmap = withSize()(({ size, ...otherProps }) => (
   <Wrapper>
     {Boolean(size.width) && <GeneResultsHeatmap width={size.width} {...otherProps} />}
   </Wrapper>
