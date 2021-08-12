@@ -340,27 +340,30 @@ app.get('/api/heatmap', (req, res) => {
 // Locus plot
 // ================================================================================================
 app.get('/api/locus-plot', (req, res) => {
-  // const { search = '' } = req.query
+  const { geneCellPair = [], delimiter = '|', pValMax = null } = req.query
 
-  const allGenesSymbols = metadata.datasets[req.dataset].gene_symbols
   const allCellLabels = metadata.datasets[req.dataset].gene_group_result_field_names
   const cellColors = allCellLabels.map(() => {
     const letters = '0123456789ABCDEF'
-    return ['#', [...Array(6).keys()].map(() => letters[Math.floor(Math.random() * 16)])].join('')
+    return ['#', ...[...Array(6).keys()].map(() => letters[Math.floor(Math.random() * 16)])].join(
+      ''
+    )
   })
 
-  const points = allCellLabels
-    .map((c, i) => {
-      return [...Array(1000).keys()].map(() => {
+  const geneCellPairs = geneCellPair.map((pair) => pair.split(delimiter))
+  const points = geneCellPairs
+    .map(([g, c], i) => {
+      return [...Array(100).keys()].map(() => {
         const start = Math.ceil(Math.random() * 1000)
         return {
-          snp: `5:${start}:${start + 1}:A:G`,
+          snp: `${(i + 1) % 18}:${start}:${start + 1}:A:G`,
           pos: start,
-          chrom: '5',
+          chrom: `${(i + 1) % 18}`,
           pval: Math.random(),
-          color: cellColors[i],
+          color: cellColors[i % cellColors.length],
           cell: c,
-          gene: allGenesSymbols[0],
+          gene_symbol: g,
+          gene_id: null,
         }
       })
     })
