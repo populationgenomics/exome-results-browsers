@@ -312,7 +312,7 @@ app.get('/api/gene/:geneIdOrName/variants', (req, res) => {
 // Heatmap
 // ================================================================================================
 app.get('/api/heatmap', (req, res) => {
-  // const { search = '' } = req.query
+  // const { search = null, pValMax = null } = req.query
 
   const allCellLabels = metadata.datasets[req.dataset].gene_group_result_field_names
   const allGenesSymbols = metadata.datasets[req.dataset].gene_symbols
@@ -340,7 +340,7 @@ app.get('/api/heatmap', (req, res) => {
 // Locus plot
 // ================================================================================================
 app.get('/api/locus-plot', (req, res) => {
-  const { geneCellPair = [], delimiter = '|', pValMax = null } = req.query
+  const { geneCellPair = [], delimiter = '|' } = req.query
 
   const allCellLabels = metadata.datasets[req.dataset].gene_group_result_field_names
   const cellColors = allCellLabels.map(() => {
@@ -349,11 +349,8 @@ app.get('/api/locus-plot', (req, res) => {
       ''
     )
   })
-  let newGeneCellPair = geneCellPair //! temporary hacky fix. BUG: When geneCellPair has 1 element, it is a string not an array and therefore .map() can't run and the API breaks.
-  if (geneCellPair.constructor !== Array) {
-    newGeneCellPair = [geneCellPair]
-  }
-  const geneCellPairs = newGeneCellPair.map((pair) => pair.split(delimiter))
+
+  const geneCellPairs = [geneCellPair].flat().map((pair) => pair.split(delimiter))
   const points = geneCellPairs
     .map(([g, c], i) => {
       return [...Array(100).keys()].map(() => {
@@ -365,8 +362,8 @@ app.get('/api/locus-plot', (req, res) => {
           pval: Math.random(),
           color: cellColors[i % cellColors.length],
           cell: c,
-          gene_symbol: g,
-          gene_id: null,
+          geneSymbol: g,
+          geneId: g,
         }
       })
     })
