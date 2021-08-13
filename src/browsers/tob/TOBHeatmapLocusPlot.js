@@ -42,13 +42,10 @@ const TOBHeatmapLocusPlot = () => {
   // Locus plot state management
   // ===============================================================================================
   // Keep track of selected heatmap tiles and which ones we have already fetched locus plot data for
-  const [selectedTiles, setSelectedTiles] = useState(new Map())
+  // const [selectedTiles, setSelectedTiles] = useState(new Map())
   const [locusPlotApiPath, setLocusPlotApiPath] = useState('/locus-plot/')
   const [locusPlotRequestParams, setLocusPlotRequestParams] = useState({
-    geneCellPairs: [
-      ['SELM', 'MonoC'],
-      ['NDUFA6', 'NKact'],
-    ],
+    geneCellPairs: [],
     pValMax: null,
   })
 
@@ -62,6 +59,12 @@ const TOBHeatmapLocusPlot = () => {
    * @param {TileEventType} eventType
    */
   const handleTileClick = (tile, eventType) => {
+    if (eventType === 'select') {
+      debounceSetLocusPlotRequestParams({
+        geneCellPairs: [...locusPlotRequestParams.geneCellPairs, [tile.row, tile.col]],
+        pValMax: null,
+      })
+    }
     console.log(`${eventType} tile Tile(${tile.row}, ${tile.col}, ${tile.value})`)
   }
 
@@ -101,7 +104,6 @@ const TOBHeatmapLocusPlot = () => {
             if (error || !(data || {}).results) {
               return <StatusMessage>Unable to load locus plot</StatusMessage>
             }
-
             return <AutosizedGeneResultsManhattanPlot results={data.results.data} />
           }}
         </Fetch>

@@ -349,16 +349,19 @@ app.get('/api/locus-plot', (req, res) => {
       ''
     )
   })
-
-  const geneCellPairs = geneCellPair.map((pair) => pair.split(delimiter))
+  let newGeneCellPair = geneCellPair //! temporary hacky fix. BUG: When geneCellPair has 1 element, it is a string not an array and therefore .map() can't run and the API breaks.
+  if (geneCellPair.constructor !== Array) {
+    newGeneCellPair = [geneCellPair]
+  }
+  const geneCellPairs = newGeneCellPair.map((pair) => pair.split(delimiter))
   const points = geneCellPairs
     .map(([g, c], i) => {
       return [...Array(100).keys()].map(() => {
         const start = Math.ceil(Math.random() * 1000)
         return {
-          snp: `${(i + 1) % 18}:${start}:${start + 1}:A:G`,
+          snp: `${1}:${start}:${start + 1}:A:G`, // `${(i + 1) % 18}:${start}:${start + 1}:A:G`,
           pos: start,
-          chrom: `${(i + 1) % 18}`,
+          chrom: '1', // `${(i + 1) % 1}`, //! Temp fix: all on same chromosome (same for SNP)
           pval: Math.random(),
           color: cellColors[i % cellColors.length],
           cell: c,
