@@ -5,7 +5,14 @@ import styled from 'styled-components'
 
 import { ManhattanPlot } from '@gnomad/manhattan-plot'
 
-const GeneResultsManhattanPlot = ({ pValueColumn, results, ...otherProps }) => {
+const GeneResultsManhattanPlot = ({
+  pValueColumn,
+  pointLabel,
+  pointColor,
+  onClickPoint,
+  results,
+  ...otherProps
+}) => {
   const renderedDataPoints = results
     .filter((r) => r.chrom && r.pos && r[pValueColumn])
     .map((r) => ({ ...r, pval: r[pValueColumn] }))
@@ -14,12 +21,10 @@ const GeneResultsManhattanPlot = ({ pValueColumn, results, ...otherProps }) => {
     <ManhattanPlot
       {...otherProps}
       dataPoints={renderedDataPoints}
-      pointLabel={(d) => `${d.gene_symbol || d.gene_id} (p = ${d.pval.toExponential(3)})`}
-      pointColor={(d) => d.color}
+      pointLabel={pointLabel}
+      pointColor={pointColor}
       yLabel={'-log\u2081\u2080(p)'}
-      onClickPoint={(d) => {
-        window.open(`/gene/${d.gene_symbol || d.gene_id}`)
-      }}
+      onClickPoint={onClickPoint}
     />
   )
 }
@@ -27,21 +32,27 @@ const GeneResultsManhattanPlot = ({ pValueColumn, results, ...otherProps }) => {
 GeneResultsManhattanPlot.propTypes = {
   pValueColumn: PropTypes.string,
   results: PropTypes.arrayOf(PropTypes.object).isRequired,
+  pointLabel: PropTypes.func,
+  pointColor: PropTypes.func,
+  onClickPoint: PropTypes.func,
 }
 
 GeneResultsManhattanPlot.defaultProps = {
   pValueColumn: 'pval',
+  pointLabel: (d) => `${d.id} ${d.gene_symbol || d.gene_id} (p = ${d.pval.toExponential(3)})`,
+  pointColor: (d) => d.color || '#1e1e1e',
+  onClickPoint: (d) => window.open(`/gene/${d.gene_symbol || d.gene_id}`),
 }
 
 const Wrapper = styled.div`
-  overflow: hidden;
+  overflow: visible;
   width: 100%;
 `
 
 const AutosizedGeneResultsManhattanPlot = withSize()(({ size, ...otherProps }) => (
   <Wrapper>
     {Boolean(size.width) && (
-      <GeneResultsManhattanPlot height={500} width={size.width} {...otherProps} />
+      <GeneResultsManhattanPlot height={400} width={size.width} {...otherProps} />
     )}
   </Wrapper>
 ))
