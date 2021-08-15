@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react'
 
-import { debounce, maxBy, minBy } from 'lodash'
+import { debounce } from 'lodash'
 import { SearchInput } from '@gnomad/ui'
 
 import StatusMessage from '../base/StatusMessage'
@@ -9,6 +9,8 @@ import AutosizedGeneResultsHeatmap from '../base/GeneResultsPage/GeneResultsHeat
 import AutosizedGeneResultsManhattanPlot from '../base/GeneResultsPage/GeneResultsManhattanPlot'
 import AutosizedGeneResultsGenesTrack from '../base/GeneResultsPage/GeneResultsGenesTrack'
 import Fetch from '../base/Fetch'
+import datasetConfig from '../datasetConfig'
+import RegionControls from '../base/components/RegionControls'
 
 const TOBAssociationPage = () => {
   const [searchText, setSearchText] = useState('22:37966255-37978623')
@@ -20,9 +22,6 @@ const TOBAssociationPage = () => {
     []
   )
 
-  /**
-   * @param {string} value
-   */
   const handleSearchInputChange = (value) => {
     setSearchText(value)
     if (value?.trim()) {
@@ -30,8 +29,12 @@ const TOBAssociationPage = () => {
     }
   }
 
+  const handleRegionChange = ({ chrom, start, stop }) => {
+    debounceSetRequestParams({ ...requestParams, search: `${chrom}:${start}-${stop}` }, 1000)
+  }
+
   /**
-   * @param {{row: string, col: string, data: object}} tile
+   * @param {object} tile
    * @param {TileEventType} eventType
    */
   const handleTileClick = (tile, eventType) => {
@@ -78,7 +81,7 @@ const TOBAssociationPage = () => {
                   chrom: a.chr,
                   pos: a.bp,
                   pval: a.p_value,
-                  color: '#1e1e1e',
+                  color: datasetConfig.cell_colors[a.cell] || '#1e1e1e',
                 }
               })
             })
@@ -87,6 +90,38 @@ const TOBAssociationPage = () => {
           return (
             <>
               <div style={{ margin: '1em 0' }}>
+                <div
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {Object.keys(datasetConfig.cell_colors).map((cell) => {
+                    return (
+                      <div
+                        style={{
+                          textAlign: 'center',
+                          margin: '1em 1em',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 10,
+                            height: 10,
+                            backgroundColor: datasetConfig.cell_colors[cell],
+                            borderRadius: '50%',
+                            marginBottom: 4,
+                            position: 'relative',
+                            left: 'calc(50% - 0.4em)',
+                          }}
+                        />
+                        <span style={{ display: 'block' }}>{cell}</span>
+                      </div>
+                    )
+                  })}
+                </div>
                 <AutosizedGeneResultsManhattanPlot
                   results={associations}
                   pointColor={(d) => d.color}
@@ -94,31 +129,41 @@ const TOBAssociationPage = () => {
               </div>
 
               <div style={{ margin: '1em 0' }}>
+                <div style={{ float: 'right', marginBottom: '2em' }}>
+                  <RegionControls region={data.results.regions[0]} onChange={handleRegionChange} />
+                </div>
                 <AutosizedGeneResultsGenesTrack
                   genes={data.results.genes}
-                  regions={data.results.regions}
+                  regions={[data.results.regions[0]]}
                 />
               </div>
 
               <div style={{ margin: '1em 0' }}>
-                <AutosizedGeneResultsHeatmap
-                  results={data.results.heatmap}
-                  id="gene-results-heatmap"
-                  title={'Maximum -log\u2081\u2080(p) variant association'}
-                  colNames={data.results.cellNames}
-                  rowNames={data.results.geneNames}
-                  minValue={data.results.minValue}
-                  maxValue={data.results.maxValue}
-                  tileSpacing={0.01}
-                  onClickTile={handleTileClick}
-                  highlightTiles={selectedTiles}
-                  tileRowName={(d) => d.gene}
-                  tileColName={(d) => d.cell}
-                  tileValue={(d) => d.value}
-                  tileTooltip={(d) => {
-                    return `${d.gene} - ${d.cell}: ${d.value.toFixed(2)}`
-                  }}
-                />
+                {(() => {
+                  if (data.results.heatmap.length) {
+                    return (
+                      <AutosizedGeneResultsHeatmap
+                        results={data.results.heatmap}
+                        id="gene-results-heatmap"
+                        title={'Maximum -log\u2081\u2080(p) variant association'}
+                        colNames={data.results.cellNames}
+                        rowNames={data.results.geneNames}
+                        minValue={data.results.minValue}
+                        maxValue={data.results.maxValue}
+                        tileSpacing={0.01}
+                        onClickTile={handleTileClick}
+                        highlightTiles={selectedTiles}
+                        tileRowName={(d) => d.gene}
+                        tileColName={(d) => d.cell}
+                        tileValue={(d) => d.value}
+                        tileTooltip={(d) => {
+                          return `${d.gene} - ${d.cell}: ${d.value.toFixed(2)}`
+                        }}
+                      />
+                    )
+                  }
+                  return <StatusMessage>No assoications found</StatusMessage>
+                })()}
               </div>
             </>
           )
