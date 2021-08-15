@@ -406,9 +406,6 @@ app.get('/api/associations', (req, res) => {
       const geneNames = genes.map((g) => g.symbol)
       const cellNames = metadata.datasets[req.dataset].gene_group_result_field_names
 
-      const minValue = -Math.log10(1)
-      const maxValue = -Math.log10(1e-20) // maxAssociationValue({ transform })
-
       const heatmap = genes
         .map((gene) => {
           return cellNames.map((cell) => {
@@ -418,7 +415,7 @@ app.get('/api/associations', (req, res) => {
               value: transform(
                 maxBy(
                   gene.associations.filter((a) => a.cell === cell),
-                  (d) => d.p_value
+                  (d) => transform(d.p_value)
                 )?.p_value || 1
               ),
             }
@@ -426,8 +423,11 @@ app.get('/api/associations', (req, res) => {
         })
         .flat()
 
+      const minValue = 0
+      const maxValue = Math.ceil(maxBy(heatmap, (tile) => tile.value)?.value || 1) // maxAssociationValue({ transform })
+
       let region = {}
-      const padding = 0
+      const padding = 1e2
       if (isRegionId(search)) {
         region = { ...parseRegionId(normalizeRegionId(search)), feature_type: 'region' }
       } else {
