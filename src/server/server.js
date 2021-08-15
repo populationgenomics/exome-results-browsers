@@ -351,19 +351,19 @@ const fetchGenesInRegion = (
   })
 }
 
-const maxAssociationValue = ({ transform } = { transform: (x) => -Math.log10(x) }) => {
-  return dataStore.resolveGeneRecordsFile().then((file) => {
-    const genes = JSON.parse(fs.readFileSync(file))
+// const maxAssociationValue = ({ transform } = { transform: (x) => -Math.log10(x) }) => {
+//   return dataStore.resolveGeneRecordsFile().then((file) => {
+//     const genes = JSON.parse(fs.readFileSync(file))
 
-    const values = genes
-      .map((gene) => {
-        return gene.associations.map((a) => transform(a.p_value))
-      })
-      .flat()
+//     const values = genes
+//       .map((gene) => {
+//         return gene.associations.map((a) => transform(a.p_value))
+//       })
+//       .flat()
 
-    return Math.max(...values)
-  })
-}
+//     return Math.max(...values)
+//   })
+// }
 
 app.get('/api/associations', (req, res) => {
   const { search = null, threshold = null } = req.query
