@@ -7,8 +7,16 @@ const compression = require('compression')
 const express = require('express')
 const morgan = require('morgan')
 
+const { maxBy, minBy } = require('lodash')
 const { UMAP } = require('umap-js')
 const PapaParse = require('papaparse')
+const {
+  isRegionId,
+  normalizeRegionId,
+  parseRegionId,
+  isVariantId,
+  normalizeVariantId,
+} = require('@gnomad/identifiers')
 
 const { PrefixTrie } = require('./search')
 const { createDataStore } = require('./storage')
@@ -170,12 +178,6 @@ dataStore.resolveMetadataFile().then((filePath) => {
       }),
       {}
     )
-
-    const subdomains = ['wgs', 'tob', 'tob-dev']
-    subdomains.forEach((subdomain) => {
-      datasetBySubdomain[subdomain] = 'tob'
-    })
-
     getDatasetForRequest = (req) => datasetBySubdomain[req.subdomains[0]]
   }
 })
@@ -185,7 +187,9 @@ app.use('/', (req, res, next) => {
   let dataset
   try {
     dataset = getDatasetForRequest(req)
-  } catch (err) {} // eslint-disable-line no-empty
+  } catch (err) {
+    dataset = 'tob'
+  } // eslint-disable-line no-empty
 
   if (!dataset) {
     res.status(500).json({ message: 'Unknown dataset' })
@@ -309,73 +313,151 @@ app.get('/api/gene/:geneIdOrName/variants', (req, res) => {
 })
 
 // ================================================================================================
-// Heatmap
+// Associations
 // ================================================================================================
-app.get('/api/heatmap', (req, res) => {
-  // const { search = null, pValMax = null } = req.query
 
-  const allCellLabels = metadata.datasets[req.dataset].gene_group_result_field_names
-  const allGenesSymbols = metadata.datasets[req.dataset].gene_symbols
+const fetchGenesAssociatedWithVariant = (
+  variant,
+  { threshold, transform } = { threshold: null, transform: (x) => -Math.log10(x) }
+) => {
+  return dataStore.resolveGeneRecordsFile().then((file) => {
+    const genes = JSON.parse(fs.readFileSync(file))
 
-  const mockData = allGenesSymbols
-    .map((g) => {
-      return allCellLabels.map((c) => {
-        return { row: g, col: c, value: Math.random() }
-      })
+    return genes.filter((gene) => {
+      return gene.associations
+        .filter((v) => normalizeVariantId(v.id) === normalizeVariantId(variant))
+        .filter((v) => (threshold == null ? true : transform(v.p_value) <= threshold))
     })
-    .flat()
-
-  return res.status(200).json({
-    results: {
-      columnLabels: allCellLabels,
-      rowLabels: allGenesSymbols,
-      data: mockData,
-      minValue: 0,
-      maxValue: 1,
-    },
   })
-})
+}
 
-// ================================================================================================
-// Locus plot
-// ================================================================================================
-app.get('/api/locus-plot', (req, res) => {
-  const { geneCellPair = [], delimiter = '|' } = req.query
+const fetchGenesInRegion = (
+  region,
+  { threshold, transform } = { threshold: null, transform: (x) => -Math.log10(x) }
+) => {
+  const { chrom, start, stop } = region
+  return dataStore.resolveGeneRecordsFile().then((file) => {
+    const genes = JSON.parse(fs.readFileSync(file))
 
-  const allCellLabels = metadata.datasets[req.dataset].gene_group_result_field_names
-  const cellColors = allCellLabels.map(() => {
-    const letters = '0123456789ABCDEF'
-    return ['#', ...[...Array(6).keys()].map(() => letters[Math.floor(Math.random() * 16)])].join(
-      ''
-    )
+    return genes
+      .filter((gene) => {
+        return gene.chrom === chrom.toString() && start <= gene.start && gene.stop <= stop
+      })
+      .filter((gene) => {
+        return gene.associations.filter((a) =>
+          threshold == null ? true : transform(a.p_value) <= threshold
+        )
+      })
   })
+}
 
-  const geneCellPairs = [geneCellPair].flat().map((pair) => pair.split(delimiter))
-  const points = geneCellPairs
-    .map(([g, c], i) => {
-      return [...Array(100).keys()].map(() => {
-        const start = Math.ceil(Math.random() * 1000)
-        return {
-          snp: `${1}:${start}:${start + 1}:A:G`, // `${(i + 1) % 18}:${start}:${start + 1}:A:G`,
-          pos: start,
-          chrom: '1', // `${(i + 1) % 1}`, //! Temp fix: all on same chromosome (same for SNP)
-          pval: Math.random(),
-          color: cellColors[i % cellColors.length],
-          cell: c,
-          geneSymbol: g,
-          geneId: g,
+const maxAssociationValue = ({ transform } = { transform: (x) => -Math.log10(x) }) => {
+  return dataStore.resolveGeneRecordsFile().then((file) => {
+    const genes = JSON.parse(fs.readFileSync(file))
+
+    const values = genes
+      .map((gene) => {
+        return gene.associations.map((a) => transform(a.p_value))
+      })
+      .flat()
+
+    return Math.max(...values)
+  })
+}
+
+app.get('/api/associations', (req, res) => {
+  const { search = null, threshold = null } = req.query
+  const transform = (x) => -Math.log10(x)
+
+  let promise = null
+  try {
+    if (isVariantId(search)) {
+      const variant = normalizeVariantId(search)
+      promise = fetchGenesAssociatedWithVariant(variant, { threshold, transform })
+    } else if (isRegionId(search)) {
+      const region = parseRegionId(normalizeRegionId(search))
+      if (Math.abs(region.stop - region.start) > 4e6) {
+        throw new Error('Region is too large, please restrict to 4Mb or less.')
+      }
+      promise = fetchGenesInRegion(region, { transform })
+    } else {
+      throw new Error(
+        'Search supports either a region (eg 22:21077335-21080208) ' +
+          'or a variant identifier (eg 22-21077335-A-G)'
+      )
+    }
+  } catch (error) {
+    return res.status(400).json({
+      error: error.message,
+    })
+  }
+
+  if (!promise) {
+    return res.status(500).json({ error: 'A promise was broken' })
+  }
+
+  return promise
+    .then((genes) => {
+      if (!genes) {
+        // TODO: Check empty genes client side and render an error message.
+        return res.status(500).json({ error: `Search '${search}' returned no associations.` })
+      }
+
+      const geneNames = genes.map((g) => g.symbol)
+      const cellNames = metadata.datasets[req.dataset].gene_group_result_field_names
+
+      const minValue = -Math.log10(1)
+      const maxValue = -Math.log10(1e-20) // maxAssociationValue({ transform })
+
+      const heatmap = genes
+        .map((gene) => {
+          return cellNames.map((cell) => {
+            return {
+              gene: gene.symbol,
+              cell,
+              value: transform(
+                maxBy(
+                  gene.associations.filter((a) => a.cell === cell),
+                  (d) => d.p_value
+                )?.p_value || 1
+              ),
+            }
+          })
+        })
+        .flat()
+
+      let region = {}
+      const padding = 0
+      if (isRegionId(search)) {
+        region = { ...parseRegionId(normalizeRegionId(search)), feature_type: 'region' }
+      } else {
+        region = {
+          start: minBy(genes, (g) => g.start).start,
+          stop: maxBy(genes, (g) => g.stop).stop,
+          chrom: genes.map((g) => g.chrom.toString())[0],
+          feature_type: 'region',
         }
+      }
+      region.start -= padding
+      region.stop += padding
+
+      return res.status(200).json({
+        results: {
+          geneNames,
+          cellNames,
+          genes,
+          regions: [region],
+          heatmap,
+          minValue,
+          maxValue,
+        },
       })
     })
-    .flat()
-
-  return res.status(200).json({
-    results: {
-      data: points,
-      minValue: 0,
-      maxValue: 1,
-    },
-  })
+    .catch((error) => {
+      return res.status(500).json({
+        error: error.message,
+      })
+    })
 })
 
 // ================================================================================================
@@ -434,15 +516,14 @@ app.get('/api/umap', (req, res) => {
 
           // Filter labels to those that were requested
           labels = labels.filter((l) => !removeCellLabels.has(l))
-          const uniqueLabels = new Set(labels)
 
           try {
             const embedding = umap.fit(data)
             return res.status(200).json({
               results: {
-                embedding,
-                labels,
-                nLabels: uniqueLabels.size,
+                data: embedding.map((e, i) => {
+                  return { x: e[0], y: e[1], label: labels[i] }
+                }),
               },
             })
           } catch (e) {
