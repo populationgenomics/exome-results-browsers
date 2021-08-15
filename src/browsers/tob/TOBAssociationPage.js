@@ -30,7 +30,9 @@ const TOBAssociationPage = () => {
   }
 
   const handleRegionChange = ({ chrom, start, stop }) => {
-    debounceSetRequestParams({ ...requestParams, search: `${chrom}:${start}-${stop}` }, 1000)
+    const text = `${chrom}:${start}-${stop}`
+    setSearchText(text)
+    debounceSetRequestParams({ ...requestParams, search: text }, 1000)
   }
 
   /**
@@ -51,8 +53,8 @@ const TOBAssociationPage = () => {
   return (
     <>
       <SearchInput
-        id="heatmap-search"
-        placeholder="rs45448095, 1-55039774-C-T, 1:55505221-55530525"
+        id="association-search"
+        placeholder="1-55039774-C-T or 1:55505221-55530525"
         value={searchText}
         onChange={handleSearchInputChange}
       />
