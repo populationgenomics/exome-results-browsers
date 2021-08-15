@@ -88,8 +88,7 @@ const TOBUmapPlot = () => {
             <PlotWrapper>
               <AutosizedGeneResultsUmapPlot
                 id="gene-results-umap-plot"
-                embedding={data.results.embedding}
-                labels={data.results.labels}
+                results={data.results.data}
               />
             </PlotWrapper>
             <Button
