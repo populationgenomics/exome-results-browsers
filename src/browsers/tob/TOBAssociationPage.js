@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 
 import { debounce } from 'lodash'
 import { SearchInput } from '@gnomad/ui'
@@ -43,7 +43,7 @@ const TOBAssociationPage = () => {
     if (eventType === TileEventType.SELECT) {
       setSelectedTiles([...selectedTiles, tile])
     } else {
-      setSelectedTiles(selectedTiles.filter((t) => t.gene !== tile.gene && t.cell !== tile.cell))
+      setSelectedTiles(selectedTiles.filter((t) => t.gene !== tile.gene || t.cell !== tile.cell))
     }
   }
 
@@ -73,22 +73,6 @@ const TOBAssociationPage = () => {
             )
           }
 
-          const associations = data.results.genes
-            .map((gene) => {
-              return gene.associations.map((a) => {
-                return {
-                  id: a.id,
-                  gene_id: gene.gene_id,
-                  gene_symbol: gene.symbol,
-                  chrom: a.chr,
-                  pos: a.bp,
-                  pval: a.p_value,
-                  color: datasetConfig.cell_colors[a.cell] || '#1e1e1e',
-                }
-              })
-            })
-            .flat()
-
           return (
             <>
               <div style={{ margin: '1em 0' }}>
@@ -100,9 +84,13 @@ const TOBAssociationPage = () => {
                     justifyContent: 'center',
                   }}
                 >
-                  {Object.keys(datasetConfig.cell_colors).map((cell) => {
+                  {(selectedTiles.length
+                    ? selectedTiles
+                    : Object.keys(datasetConfig.cell_colors)
+                  ).map((v) => {
                     return (
                       <div
+                        key={v.cell || v}
                         style={{
                           textAlign: 'center',
                           margin: '1em 1em',
@@ -112,20 +100,52 @@ const TOBAssociationPage = () => {
                           style={{
                             width: 10,
                             height: 10,
-                            backgroundColor: datasetConfig.cell_colors[cell],
+                            backgroundColor: datasetConfig.cell_colors[v.cell || v],
                             borderRadius: '50%',
                             marginBottom: 4,
                             position: 'relative',
                             left: 'calc(50% - 0.4em)',
                           }}
                         />
-                        <span style={{ display: 'block' }}>{cell}</span>
+                        <span style={{ display: 'block' }}>{v.cell || v}</span>
                       </div>
                     )
                   })}
                 </div>
                 <AutosizedGeneResultsManhattanPlot
-                  results={associations}
+                  chromosomes={[
+                    ...selectedTiles
+                      .map((tile) => {
+                        return data.results.genes.filter((gene) => gene.symbol === tile.gene)
+                      })
+                      .flat()
+                      .map((gene) => gene.chrom),
+                  ]}
+                  results={[
+                    ...selectedTiles
+                      .map((tile) => {
+                        return data.results.genes
+                          .filter((gene) => gene.symbol === tile.gene)
+                          .map((gene) => {
+                            return gene.associations
+                              .filter((a) => a.cell === tile.cell)
+                              .map((a) => {
+                                return {
+                                  id: a.id,
+                                  cell: a.cell,
+                                  gene_id: gene.gene_id,
+                                  gene_symbol: gene.symbol,
+                                  chrom: a.chr,
+                                  pos: a.bp,
+                                  pval: a.p_value,
+                                  color: datasetConfig.cell_colors[a.cell] || '#1e1e1e',
+                                }
+                              })
+                          })
+                          .flat()
+                      })
+                      .flat(),
+                  ]}
                   pointColor={(d) => d.color}
                 />
               </div>
@@ -154,7 +174,7 @@ const TOBAssociationPage = () => {
                         maxValue={data.results.maxValue}
                         tileSpacing={0.01}
                         onClickTile={handleTileClick}
-                        highlightTiles={selectedTiles}
+                        selectedTiles={selectedTiles}
                         tileRowName={(d) => d.gene}
                         tileColName={(d) => d.cell}
                         tileValue={(d) => d.value}
