@@ -406,6 +406,21 @@ app.get('/api/associations', (req, res) => {
       const geneNames = genes.map((g) => g.symbol)
       const cellNames = metadata.datasets[req.dataset].gene_group_result_field_names
 
+      let region = {}
+      const padding = 0
+      if (isRegionId(search)) {
+        region = { ...parseRegionId(normalizeRegionId(search)), feature_type: 'region' }
+      } else {
+        region = {
+          start: minBy(genes, (g) => g.start).start,
+          stop: maxBy(genes, (g) => g.stop).stop,
+          chrom: genes.map((g) => g.chrom.toString())[0],
+          feature_type: 'region',
+        }
+      }
+      region.start -= padding
+      region.stop += padding
+
       const heatmap = genes
         .map((gene) => {
           return cellNames.map((cell) => {
@@ -424,22 +439,8 @@ app.get('/api/associations', (req, res) => {
         .flat()
 
       const minValue = 0
-      const maxValue = Math.ceil(maxBy(heatmap, (tile) => tile.value)?.value || 1) // maxAssociationValue({ transform })
-
-      let region = {}
-      const padding = 1e2
-      if (isRegionId(search)) {
-        region = { ...parseRegionId(normalizeRegionId(search)), feature_type: 'region' }
-      } else {
-        region = {
-          start: minBy(genes, (g) => g.start).start,
-          stop: maxBy(genes, (g) => g.stop).stop,
-          chrom: genes.map((g) => g.chrom.toString())[0],
-          feature_type: 'region',
-        }
-      }
-      region.start -= padding
-      region.stop += padding
+      // const maxValue =  maxAssociationValue({ transform })
+      const maxValue = Math.ceil(maxBy(heatmap, (tile) => tile.value)?.value || 1)
 
       return res.status(200).json({
         results: {
