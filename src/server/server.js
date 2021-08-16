@@ -186,7 +186,7 @@ dataStore.resolveMetadataFile().then((filePath) => {
 app.use('/', (req, res, next) => {
   let dataset
   try {
-    dataset = getDatasetForRequest(req)
+    dataset = getDatasetForRequest(req) || 'tob'
   } catch (err) {
     dataset = 'tob'
   } // eslint-disable-line no-empty
