@@ -102,6 +102,7 @@ const Heatmap = ({
       .attr('height', yScale.bandwidth())
       .style('fill', (d) => colorScale(tileValue(d)))
       .style('opacity', 0.8)
+      .style('cursor', 'pointer')
       .on('mouseover', (e, d) => {
         onHoverTile(d)
         Tooltip.style('opacity', 1)
@@ -286,7 +287,7 @@ Heatmap.defaultProps = {
   minValue: null,
   maxValue: null,
   minValueColor: '#FFFFFF',
-  maxValueColor: '#6C010E',
+  maxValueColor: '#cc0000',
   tileSpacing: 0.01,
   tileSelectBorderWidth: 1,
   tileSelectBorderColor: '#1e1e1e',
