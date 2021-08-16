@@ -113,6 +113,7 @@ const TOBAssociationPage = () => {
             })
             .flat()
 
+          // eslint-disable-next-line no-console
           console.log(region, associations)
           // Fixme: 22:36044442-36064456 APOL6 variants are outside this gene's region:
           //    Have we got the wrong transcript?
