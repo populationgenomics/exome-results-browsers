@@ -6,7 +6,7 @@ import datasetConfig from '../datasetConfig'
 
 import TOBHomePage from './TOBHomePage'
 import TOBUmapPlot from './TOBUmapPlot'
-import TOBHeatmapLocusPlot from './TOBHeatmapLocusPlot'
+import TOBAssociationPage from './TOBAssociationPage'
 
 const TOBBrowser = () => (
   <Browser
@@ -30,7 +30,7 @@ const TOBBrowser = () => (
       {
         id: 'heatmap-tab',
         label: 'Association heatmap',
-        render: () => <TOBHeatmapLocusPlot />,
+        render: () => <TOBAssociationPage />,
       },
       {
         id: 'umap-tab',

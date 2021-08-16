@@ -38,6 +38,13 @@ class DataStore {
   }
 
   /**
+   * @returns {Promise<string>}
+   */
+  resolveGeneRecordsFile() {
+    return this.resolveFile('genes.json')
+  }
+
+  /**
    * @param {string} geneId Ensembl gene identifier.
    * @param {string} referenceGenome Reference genome name defined by the `reference_genome` field
    *  in the `metadata.json` file.

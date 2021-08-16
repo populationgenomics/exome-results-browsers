@@ -42,3 +42,7 @@ hail-*.log
 
 # Direnv files
 .envrc
+
+# Temp
+!genes.json
+*.gtf.gz
