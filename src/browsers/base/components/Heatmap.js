@@ -18,7 +18,7 @@ const Heatmap = ({
   tileColName,
   rowNames,
   colNames,
-  highlightTiles,
+  selectedTiles,
   onClickTile,
   onHoverTile,
   id,
@@ -131,18 +131,8 @@ const Heatmap = ({
         const element = select(e.target)
         if (element.attr('class')?.includes('selected')) {
           onClickTile(d, TileEventType.DESELECT)
-          // element
-          //   .attr('class', null)
-          //   .style('stroke', null)
-          //   .style('stroke-width', null)
-          //   .style('opacity', 0.8)
         } else {
           onClickTile(d, TileEventType.SELECT)
-          // element
-          //   .attr('class', 'selected')
-          //   .style('stroke', tileSelectBorderColor)
-          //   .style('stroke-width', `${tileSelectBorderWidth}`)
-          //   .style('opacity', 1)
         }
       })
 
@@ -215,15 +205,15 @@ const Heatmap = ({
     const svgContent = svg.select('.content')
 
     const tileId = (t) => `${tileRowName(t)}:${tileColName(t)}`
-    const ids = new Set(highlightTiles.map(tileId))
+    const ids = new Set(selectedTiles.map(tileId))
 
     svgContent
       .selectAll('rect')
-      .attr('class', (d) => ids.has(tileId(d) ? 'highlight' : null))
-      .style('stroke', (d) => ids.has(tileId(d) ? tileSelectBorderColor : 'none'))
-      .style('stroke-width', (d) => ids.has(tileId(d) ? `${tileSelectBorderWidth}` : 'none'))
-      .style('opacity', (d) => ids.has(tileId(d) ? 1.0 : 0.8))
-  }, [highlightTiles, tileSelectBorderColor, tileSelectBorderWidth])
+      .attr('class', (d) => (ids.has(tileId(d)) ? 'selected' : null))
+      .style('stroke', (d) => (ids.has(tileId(d)) ? tileSelectBorderColor : null))
+      .style('stroke-width', (d) => (ids.has(tileId(d)) ? `${tileSelectBorderWidth}` : null))
+      .style('opacity', (d) => (ids.has(tileId(d)) ? 1.0 : 0.8))
+  }, [selectedTiles, tileSelectBorderColor, tileSelectBorderWidth, tileRowName, tileColName])
 
   return (
     <>
@@ -259,7 +249,7 @@ Heatmap.propTypes = {
   data: PropTypes.arrayOf(PropTypes.object).isRequired,
   rowNames: PropTypes.arrayOf(PropTypes.string),
   colNames: PropTypes.arrayOf(PropTypes.string),
-  highlightTiles: PropTypes.arrayOf(PropTypes.object),
+  selectedTiles: PropTypes.arrayOf(PropTypes.object),
   id: PropTypes.string,
   title: PropTypes.string,
   height: PropTypes.number,
@@ -291,7 +281,7 @@ Heatmap.defaultProps = {
   title: null,
   colNames: [],
   rowNames: [],
-  highlightTiles: [],
+  selectedTiles: [],
   id: 'heatmap',
   minValue: null,
   maxValue: null,
