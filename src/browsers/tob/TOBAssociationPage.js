@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react'
 
 import { debounce } from 'lodash'
 import { SearchInput } from '@gnomad/ui'
+import { parseRegionId } from '@gnomad/identifiers'
 
 import StatusMessage from '../base/StatusMessage'
 import { TileEventType } from '../base/components/Heatmap'
@@ -16,6 +17,12 @@ const TOBAssociationPage = () => {
   const [searchText, setSearchText] = useState('22:37966255-37978623')
   const [requestParams, setRequestParams] = useState({ search: searchText, threshold: null })
   const [selectedTiles, setSelectedTiles] = useState([])
+  const [region, setRegion] = useState({
+    chrom: '22',
+    start: 37966255,
+    stop: 37978623,
+    feature_type: 'region',
+  })
 
   const debounceSetRequestParams = useCallback(
     debounce((value) => setRequestParams(value), 1000),
@@ -24,6 +31,8 @@ const TOBAssociationPage = () => {
 
   const handleSearchInputChange = (value) => {
     setSearchText(value)
+    setSelectedTiles([])
+    setRegion({ ...region, ...parseRegionId(value) })
     if (value?.trim()) {
       debounceSetRequestParams({ ...requestParams, search: value.trim() }, 1000)
     }
@@ -32,6 +41,8 @@ const TOBAssociationPage = () => {
   const handleRegionChange = ({ chrom, start, stop }) => {
     const text = `${chrom}:${start}-${stop}`
     setSearchText(text)
+    setSelectedTiles([])
+    setRegion({ ...region, chrom, start, stop })
     debounceSetRequestParams({ ...requestParams, search: text }, 1000)
   }
 
@@ -41,7 +52,8 @@ const TOBAssociationPage = () => {
    */
   const handleTileClick = (tile, eventType) => {
     if (eventType === TileEventType.SELECT) {
-      setSelectedTiles([...selectedTiles, tile])
+      // Only allow one gene to be selected at a time.
+      setSelectedTiles([...selectedTiles, tile].filter((t) => t.gene === tile.gene))
     } else {
       setSelectedTiles(selectedTiles.filter((t) => t.gene !== tile.gene || t.cell !== tile.cell))
     }
@@ -73,6 +85,61 @@ const TOBAssociationPage = () => {
             )
           }
 
+          const selectedCells = selectedTiles.length
+            ? Array.from(new Set(selectedTiles.map((tile) => tile.cell)))
+            : Object.keys(datasetConfig.cell_colors)
+
+          let associations = selectedTiles
+            .map((tile) => {
+              return data.results.genes
+                .filter((gene) => gene.symbol === tile.gene)
+                .map((gene) => {
+                  return gene.associations
+                    .filter((a) => a.cell === tile.cell)
+                    .map((a) => {
+                      return {
+                        id: a.id,
+                        cell: a.cell,
+                        gene_id: gene.gene_id,
+                        gene_symbol: gene.symbol,
+                        chrom: a.chr,
+                        pos: a.bp,
+                        pval: a.p_value,
+                        color: datasetConfig.cell_colors[a.cell] || '#1e1e1e',
+                      }
+                    })
+                })
+                .flat()
+            })
+            .flat()
+
+          console.log(region, associations)
+          // Fixme: 22:36044442-36064456 APOL6 variants are outside this gene's region:
+          //    Have we got the wrong transcript?
+          //    Variants not CIS?
+          associations = associations.filter((a) => a.pos >= region.start && a.pos <= region.stop)
+
+          associations.push({
+            id: `anchor-${region.start}`,
+            cell: '',
+            gene_id: '',
+            gene_symbol: '',
+            chrom: region.chrom,
+            pos: region.start,
+            pval: 1,
+            color: 'transparent',
+          })
+          associations.push({
+            id: `anchor-${region.stop}`,
+            cell: '',
+            gene_id: '',
+            gene_symbol: '',
+            chrom: region.chrom,
+            pos: region.stop,
+            pval: 10 ** -(data.results.maxValue + 1),
+            color: 'transparent',
+          })
+
           return (
             <>
               <div style={{ margin: '1em 0' }}>
@@ -84,13 +151,10 @@ const TOBAssociationPage = () => {
                     justifyContent: 'center',
                   }}
                 >
-                  {(selectedTiles.length
-                    ? selectedTiles
-                    : Object.keys(datasetConfig.cell_colors)
-                  ).map((v) => {
+                  {selectedCells.map((cell) => {
                     return (
                       <div
-                        key={v.cell || v}
+                        key={cell}
                         style={{
                           textAlign: 'center',
                           margin: '1em 1em',
@@ -100,52 +164,31 @@ const TOBAssociationPage = () => {
                           style={{
                             width: 10,
                             height: 10,
-                            backgroundColor: datasetConfig.cell_colors[v.cell || v],
+                            backgroundColor: datasetConfig.cell_colors[cell],
                             borderRadius: '50%',
                             marginBottom: 4,
                             position: 'relative',
                             left: 'calc(50% - 0.4em)',
                           }}
                         />
-                        <span style={{ display: 'block' }}>{v.cell || v}</span>
+                        <span style={{ display: 'block' }}>{cell}</span>
                       </div>
                     )
                   })}
                 </div>
                 <AutosizedGeneResultsManhattanPlot
-                  chromosomes={[
-                    ...selectedTiles
-                      .map((tile) => {
-                        return data.results.genes.filter((gene) => gene.symbol === tile.gene)
-                      })
-                      .flat()
-                      .map((gene) => gene.chrom),
-                  ]}
-                  results={[
-                    ...selectedTiles
-                      .map((tile) => {
-                        return data.results.genes
-                          .filter((gene) => gene.symbol === tile.gene)
-                          .map((gene) => {
-                            return gene.associations
-                              .filter((a) => a.cell === tile.cell)
-                              .map((a) => {
-                                return {
-                                  id: a.id,
-                                  cell: a.cell,
-                                  gene_id: gene.gene_id,
-                                  gene_symbol: gene.symbol,
-                                  chrom: a.chr,
-                                  pos: a.bp,
-                                  pval: a.p_value,
-                                  color: datasetConfig.cell_colors[a.cell] || '#1e1e1e',
-                                }
-                              })
-                          })
-                          .flat()
-                      })
-                      .flat(),
-                  ]}
+                  chromosomes={Array.from(
+                    new Set([
+                      region.chrom,
+                      ...selectedTiles
+                        .map((tile) => {
+                          return data.results.genes.filter((gene) => gene.symbol === tile.gene)
+                        })
+                        .flat()
+                        .map((gene) => gene.chrom),
+                    ])
+                  )}
+                  results={associations}
                   pointColor={(d) => d.color}
                 />
               </div>
@@ -154,10 +197,7 @@ const TOBAssociationPage = () => {
                 <div style={{ float: 'right', marginBottom: '2em' }}>
                   <RegionControls region={data.results.regions[0]} onChange={handleRegionChange} />
                 </div>
-                <AutosizedGeneResultsGenesTrack
-                  genes={data.results.genes}
-                  regions={[data.results.regions[0]]}
-                />
+                <AutosizedGeneResultsGenesTrack genes={data.results.genes} regions={[region]} />
               </div>
 
               <div style={{ margin: '1em 0' }}>
