@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react'
 
 import { debounce } from 'lodash'
 import { SearchInput } from '@gnomad/ui'
-import { parseRegionId } from '@gnomad/identifiers'
+import { isRegionId, parseRegionId } from '@gnomad/identifiers'
 
 import StatusMessage from '../base/StatusMessage'
 import { TileEventType } from '../base/components/Heatmap'
@@ -32,7 +32,9 @@ const TOBAssociationPage = () => {
   const handleSearchInputChange = (value) => {
     setSearchText(value)
     setSelectedTiles([])
-    setRegion({ ...region, ...parseRegionId(value) })
+    if (isRegionId(value)) {
+      setRegion({ ...region, ...parseRegionId(value) })
+    }
     if (value?.trim()) {
       debounceSetRequestParams({ ...requestParams, search: value.trim() }, 1000)
     }
@@ -113,8 +115,6 @@ const TOBAssociationPage = () => {
             })
             .flat()
 
-          // eslint-disable-next-line no-console
-          console.log(region, associations)
           // Fixme: 22:36044442-36064456 APOL6 variants are outside this gene's region:
           //    Have we got the wrong transcript?
           //    Variants not CIS?
