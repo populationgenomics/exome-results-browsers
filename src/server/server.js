@@ -7,7 +7,7 @@ const compression = require('compression')
 const express = require('express')
 const morgan = require('morgan')
 
-const { maxBy, minBy } = require('lodash')
+const { maxBy } = require('lodash')
 const { UMAP } = require('umap-js')
 const PapaParse = require('papaparse')
 const {
@@ -323,13 +323,18 @@ const fetchGenesAssociatedWithVariant = (
   return dataStore.resolveGeneRecordsFile().then((file) => {
     const genes = JSON.parse(fs.readFileSync(file))
 
-    return genes.filter((gene) => {
-      return (
-        gene.associations
-          .filter((v) => normalizeVariantId(v.id) === normalizeVariantId(variant))
-          .filter((v) => (threshold == null ? true : transform(v.p_value) <= threshold)).length > 0
-      )
-    })
+    return genes
+      .filter((gene) => {
+        return (
+          gene.associations.find((a) => normalizeVariantId(a.id) === normalizeVariantId(variant)) !=
+          null
+        )
+      })
+      .filter((gene) => {
+        return gene.associations.filter((a) =>
+          threshold == null ? true : transform(a.p_value) <= threshold
+        )
+      })
   })
 }
 
@@ -402,7 +407,7 @@ app.get('/api/associations', (req, res) => {
     .then((genes) => {
       if (!genes) {
         // TODO: Check empty genes client side and render an error message.
-        return res.status(500).json({ error: `Search '${search}' returned no associations.` })
+        return res.status(400).json({ error: `Search '${search}' returned no associations.` })
       }
 
       const geneNames = genes.map((g) => g.symbol)
@@ -414,8 +419,8 @@ app.get('/api/associations', (req, res) => {
         region = { ...parseRegionId(normalizeRegionId(search)), feature_type: 'region' }
       } else {
         region = {
-          start: minBy(genes, (g) => g.start).start,
-          stop: maxBy(genes, (g) => g.stop).stop,
+          start: Math.min(...genes.map((g) => g.start)),
+          stop: Math.max(...genes.map((g) => g.stop)),
           chrom: genes.map((g) => g.chrom.toString())[0],
           feature_type: 'region',
         }
