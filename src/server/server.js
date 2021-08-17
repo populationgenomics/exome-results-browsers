@@ -324,9 +324,11 @@ const fetchGenesAssociatedWithVariant = (
     const genes = JSON.parse(fs.readFileSync(file))
 
     return genes.filter((gene) => {
-      return gene.associations
-        .filter((v) => normalizeVariantId(v.id) === normalizeVariantId(variant))
-        .filter((v) => (threshold == null ? true : transform(v.p_value) <= threshold))
+      return (
+        gene.associations
+          .filter((v) => normalizeVariantId(v.id) === normalizeVariantId(variant))
+          .filter((v) => (threshold == null ? true : transform(v.p_value) <= threshold)).length > 0
+      )
     })
   })
 }
