@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react'
 
 import { debounce } from 'lodash'
 import { SearchInput } from '@gnomad/ui'
-import { isRegionId, parseRegionId } from '@gnomad/identifiers'
+import { isRegionId, isVariantId, parseRegionId } from '@gnomad/identifiers'
 
 import StatusMessage from '../base/StatusMessage'
 import { TileEventType } from '../base/components/Heatmap'
@@ -118,15 +118,18 @@ const TOBAssociationPage = () => {
           // Fixme: 22:36044442-36064456 APOL6 variants are outside this gene's region:
           //    Have we got the wrong transcript?
           //    Variants not CIS?
-          associations = associations.filter((a) => a.pos >= region.start && a.pos <= region.stop)
+          const renderRegion = isVariantId(searchText) ? data.results.regions[0] : region
+          associations = associations.filter(
+            (a) => a.pos >= renderRegion.start && a.pos <= renderRegion.stop
+          )
 
           associations.push({
             id: `anchor-${region.start}`,
             cell: '',
             gene_id: '',
             gene_symbol: '',
-            chrom: region.chrom,
-            pos: region.start,
+            chrom: renderRegion.chrom,
+            pos: renderRegion.start,
             pval: 1,
             color: 'transparent',
           })
@@ -135,8 +138,8 @@ const TOBAssociationPage = () => {
             cell: '',
             gene_id: '',
             gene_symbol: '',
-            chrom: region.chrom,
-            pos: region.stop,
+            chrom: renderRegion.chrom,
+            pos: renderRegion.stop,
             pval: 10 ** -(data.results.maxValue + 1),
             color: 'transparent',
           })
@@ -196,9 +199,12 @@ const TOBAssociationPage = () => {
 
               <div style={{ margin: '1em 0' }}>
                 <div style={{ float: 'right', marginBottom: '2em' }}>
-                  <RegionControls region={data.results.regions[0]} onChange={handleRegionChange} />
+                  <RegionControls region={renderRegion} onChange={handleRegionChange} />
                 </div>
-                <AutosizedGeneResultsGenesTrack genes={data.results.genes} regions={[region]} />
+                <AutosizedGeneResultsGenesTrack
+                  genes={data.results.genes}
+                  regions={[renderRegion]}
+                />
               </div>
 
               <div style={{ margin: '1em 0' }}>
