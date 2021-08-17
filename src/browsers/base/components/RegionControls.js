@@ -8,8 +8,10 @@ const Wrapper = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
+
   ${Button} {
     margin-left: 0.5em;
+
     &:first-child {
       margin-left: 0;
     }
@@ -18,6 +20,7 @@ const Wrapper = styled.div`
 
 const ZoomLabel = styled.span`
   margin: 0 0.5em;
+
   @media (max-width: 600px) {
     margin-bottom: 0.5em;
   }
@@ -27,9 +30,11 @@ const ZoomControlsWrapper = styled.div`
   display: flex;
   align-items: center;
   margin-left: 1em;
+
   @media (max-width: 600px) {
     flex-direction: column;
     margin-bottom: 1em;
+
     &:first-child {
       margin-left: 0;
     }
