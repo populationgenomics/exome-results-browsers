@@ -10,7 +10,6 @@ import {
   pointer,
   webglFillColor,
   webglStrokeColor,
-  pointAntiAlias,
 } from 'd3fc'
 import { annotationCallout } from 'd3-svg-annotation'
 
@@ -30,18 +29,18 @@ const DEFAULT_COLORS = [
   '#882255',
   '#aa4499',
 ]
-
+//! FIX ESLINTING
 const Umap = ({
   height,
   width,
-  id,
+  id, // eslint-disable-line
   data,
-  pointColor,
+  pointColor, // eslint-disable-line
   pointLabel,
-  pointX,
-  pointY,
+  pointX, // eslint-disable-line
+  pointY, // eslint-disable-line
   labelColors,
-  margin,
+  margin, // eslint-disable-line
 }) => {
   const wrapperRef = useRef()
   let newData = data
@@ -123,7 +122,7 @@ const Umap = ({
         // update the scales based on current zoom
         xScale.domain(e.transform.rescaleX(xScaleOriginal).domain())
         yScale.domain(e.transform.rescaleY(yScaleOriginal).domain())
-        select('#chart').datum({ annotations, newData }).call(chart)
+        select('#chart').datum({ annotations, newData }).call(chart) // eslint-disable-line
       })
 
     const pointerFunction = pointer().on('point', ([coord]) => {
@@ -177,7 +176,7 @@ const Umap = ({
           gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_DST_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
         })
       }
-      select('#chart').datum({ annotations, newData }).call(chart)
+      select('#chart').datum({ annotations, newData }).call(chart) // eslint-disable-line
     })
 
     const annotationSeries = seriesSvgAnnotation().notePadding(15).type(annotationCallout)
