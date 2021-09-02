@@ -12,6 +12,7 @@ import AutosizedGeneResultsGenesTrack from '../base/GeneResultsPage/GeneResultsG
 import Fetch from '../base/Fetch'
 import datasetConfig from '../datasetConfig'
 import RegionControls from '../base/components/RegionControls'
+import LocusZoomPlot from '../base/components/LocusZoomPlot'
 
 const TOBAssociationPage = () => {
   const [searchText, setSearchText] = useState('22:37966255-37978623')
@@ -147,6 +148,9 @@ const TOBAssociationPage = () => {
           return (
             <>
               <div style={{ margin: '1em 0' }}>
+                <div style={{ textAlign: 'center' }}>
+                  {region.chrom}, {region.start}, {region.stop}
+                </div>
                 <div
                   style={{
                     width: '100%',
@@ -180,32 +184,42 @@ const TOBAssociationPage = () => {
                     )
                   })}
                 </div>
-                <AutosizedGeneResultsManhattanPlot
-                  chromosomes={Array.from(
-                    new Set([
-                      region.chrom,
-                      ...selectedTiles
-                        .map((tile) => {
-                          return data.results.genes.filter((gene) => gene.symbol === tile.gene)
-                        })
-                        .flat()
-                        .map((gene) => gene.chrom),
-                    ])
-                  )}
+                <LocusZoomPlot
                   results={associations}
                   pointColor={(d) => d.color}
+                  region={renderRegion}
+                  genes={data.results.genes}
+                  onChange={handleRegionChange}
                 />
+                {/* <AutosizedGeneResultsManhattanPlot
+                  // chromosomes={Array.from(
+                  //   new Set([
+                  //     region.chrom,
+                  //     ...selectedTiles
+                  //       .map((tile) => {
+                  //         return data.results.genes.filter((gene) => gene.symbol === tile.gene)
+                  //       })
+                  //       .flat()
+                  //       .map((gene) => gene.chrom),
+                  //   ])
+                  // )}
+                  results={associations}
+                  pointColor={(d) => d.color}
+                  region={renderRegion}
+                  onChange={handleRegionChange}
+                /> */}
               </div>
 
-              <div style={{ margin: '1em 0' }}>
+              {/* <div style={{ margin: '1em 0' }}>
                 <div style={{ float: 'right', marginBottom: '2em' }}>
                   <RegionControls region={renderRegion} onChange={handleRegionChange} />
                 </div>
                 <AutosizedGeneResultsGenesTrack
                   genes={data.results.genes}
-                  regions={[renderRegion]}
+                  region={renderRegion}
+                  onChange={handleRegionChange}
                 />
-              </div>
+              </div> */}
 
               <div style={{ margin: '1em 0' }}>
                 {(() => {
@@ -231,7 +245,7 @@ const TOBAssociationPage = () => {
                       />
                     )
                   }
-                  return <StatusMessage>No assoications found</StatusMessage>
+                  return <StatusMessage>No associations found</StatusMessage>
                 })()}
               </div>
             </>
