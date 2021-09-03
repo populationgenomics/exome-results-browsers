@@ -341,7 +341,7 @@ const fetchGenesAssociatedWithVariant = (
 const fetchGenesInRegion = (
   region,
   { padding, threshold, transform } = {
-    padding: 1e4,
+    padding: 4e3,
     threshold: null,
     transform: (x) => -Math.log10(x),
   }
@@ -351,6 +351,7 @@ const fetchGenesInRegion = (
     start: Math.max(region.start - padding, 0),
     stop: region.stop + padding,
   }
+
   return dataStore.resolveGeneRecordsFile().then((file) => {
     const genes = JSON.parse(fs.readFileSync(file))
 
@@ -360,8 +361,7 @@ const fetchGenesInRegion = (
           gene.chrom === chrom.toString() &&
           ((gene.start >= start && gene.stop <= stop) ||
             (gene.start <= start && gene.stop >= start && gene.stop <= stop) ||
-            (gene.start >= start && gene.start <= stop && gene.stop >= stop) ||
-            (gene.start <= start && gene.stop >= stop))
+            (gene.start >= start && gene.start <= stop && gene.stop >= stop))
         )
       })
       .filter((gene) => {
@@ -388,7 +388,16 @@ const fetchGenesInRegion = (
 
 app.get('/api/associations', (req, res) => {
   const { search = null, threshold = null } = req.query
+  let { padding = 4e3 } = { ...req.query.padding }
   const transform = (x) => -Math.log10(x)
+
+  try {
+    padding = parseInt(padding, 10)
+  } catch (error) {
+    return res.status(400).json({
+      error: error.message,
+    })
+  }
 
   let promise = null
   try {
@@ -400,7 +409,7 @@ app.get('/api/associations', (req, res) => {
       if (Math.abs(region.stop - region.start) > 4e6) {
         throw new Error('Region is too large, please restrict to 4Mb or less.')
       }
-      promise = fetchGenesInRegion(region, { transform })
+      promise = fetchGenesInRegion(region, { padding, threshold, transform })
     } else {
       throw new Error(
         'Search supports either a region (eg 22:21077335-21080208) ' +
@@ -428,19 +437,16 @@ app.get('/api/associations', (req, res) => {
       const cellNames = metadata.datasets[req.dataset].gene_group_result_field_names
 
       let region = {}
-      const padding = 0
       if (isRegionId(search)) {
         region = { ...parseRegionId(normalizeRegionId(search)), feature_type: 'region' }
       } else {
         region = {
-          start: Math.min(...genes.map((g) => g.start)),
-          stop: Math.max(...genes.map((g) => g.stop)),
+          start: Math.max(Math.min(...genes.map((g) => g.start)) - padding, 0),
+          stop: Math.max(...genes.map((g) => g.stop)) + padding,
           chrom: genes.map((g) => g.chrom.toString())[0],
           feature_type: 'region',
         }
       }
-      region.start -= padding
-      region.stop += padding
 
       const heatmap = genes
         .map((gene) => {
