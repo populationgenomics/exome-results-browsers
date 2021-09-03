@@ -348,7 +348,13 @@ const fetchGenesInRegion = (
 
     return genes
       .filter((gene) => {
-        return gene.chrom === chrom.toString() && start <= gene.start && gene.stop <= stop
+        return (
+          gene.chrom === chrom.toString() &&
+          ((gene.start >= start && gene.stop <= stop) ||
+            (gene.start <= start && gene.stop >= start && gene.stop <= stop) ||
+            (gene.start >= start && gene.start <= stop && gene.stop >= stop) ||
+            (gene.start <= start && gene.stop >= stop))
+        )
       })
       .filter((gene) => {
         return gene.associations.filter((a) =>
