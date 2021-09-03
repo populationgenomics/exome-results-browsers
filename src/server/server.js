@@ -340,9 +340,17 @@ const fetchGenesAssociatedWithVariant = (
 
 const fetchGenesInRegion = (
   region,
-  { threshold, transform } = { threshold: null, transform: (x) => -Math.log10(x) }
+  { padding, threshold, transform } = {
+    padding: 1e4,
+    threshold: null,
+    transform: (x) => -Math.log10(x),
+  }
 ) => {
-  const { chrom, start, stop } = region
+  const { chrom, start, stop } = {
+    chrom: region.chrom,
+    start: Math.max(region.start - padding, 0),
+    stop: region.stop + padding,
+  }
   return dataStore.resolveGeneRecordsFile().then((file) => {
     const genes = JSON.parse(fs.readFileSync(file))
 
