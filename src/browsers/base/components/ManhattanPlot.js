@@ -69,7 +69,7 @@ const ManhattanPlot = ({
               <rect width={innerWidth} height={innerHeight} fill="none" pointerEvents="all" />
             </clipPath>
           </defs>
-          <rect width={innerWidth} height={innerHeight} fill="none" stroke="black" />
+          {/* <rect width={innerWidth} height={innerHeight} fill="none" stroke="black" /> */}
           <g clipPath="url(#clip)">
             {dataPoints.map((d, i) => (
               <circle
@@ -93,19 +93,20 @@ const ManhattanPlot = ({
               </g>
             ))}
           </g>
+          <line y2={`${innerHeight}`} stroke="black" />
           {yScale.ticks().map((tick) => (
             <g key={tick} transform={`translate(0, ${yScale(tick)})`}>
               <text key={tick} style={{ textAnchor: 'end' }} x={-6} dy=".32em">
                 {tick}
               </text>
               <line x2={-3} stroke="black" />
-              <line x2={innerWidth} stroke="grey" />
+              <line x2={innerWidth} stroke={yScale(tick) === innerHeight ? 'none' : 'lightgrey'} />
             </g>
           ))}
           <text x={innerWidth / 2} y={innerHeight + 50} textAnchor="middle">
             Chromosomal Position
           </text>
-          <g transform={`rotate(90) translate(${innerHeight / 2}, 40)`}>
+          <g transform={`rotate(-90) translate(-${innerHeight / 2}, -40)`}>
             <text textAnchor="middle">
               -log<tspan baselineShift="sub">10</tspan>(p)
             </text>
