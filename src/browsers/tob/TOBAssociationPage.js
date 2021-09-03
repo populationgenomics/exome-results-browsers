@@ -16,7 +16,11 @@ import LocusZoomPlot from '../base/components/LocusZoomPlot'
 
 const TOBAssociationPage = () => {
   const [searchText, setSearchText] = useState('22:37966255-37978623')
-  const [requestParams, setRequestParams] = useState({ search: searchText, threshold: null })
+  const [requestParams, setRequestParams] = useState({
+    search: searchText,
+    threshold: null,
+    padding: 4e3,
+  })
   const [selectedTiles, setSelectedTiles] = useState([])
   const [region, setRegion] = useState({
     chrom: '22',
@@ -24,6 +28,25 @@ const TOBAssociationPage = () => {
     stop: 37978623,
     feature_type: 'region',
   })
+
+  const shouldRequestNewData = (currentRegion, newRegion) => {
+    // Check if partially outside current region plus padding.
+    const { chrom, start, stop } = {
+      chrom: currentRegion.chrom,
+      start: Math.max(currentRegion.start - requestParams.padding, 0),
+      stop: currentRegion.stop + requestParams.padding,
+    }
+
+    const outOfBoundsLeft =
+      newRegion.start <= start && newRegion.stop >= start && newRegion.stop <= stop
+    const outOfBoundsRight =
+      newRegion.start >= start && newRegion.start <= stop && newRegion.stop >= stop
+    const outOfBoundsLeftAndRight = newRegion.start <= start && newRegion.stop >= stop
+
+    return (
+      newRegion.chrom !== chrom || outOfBoundsLeft || outOfBoundsRight || outOfBoundsLeftAndRight
+    )
+  }
 
   const debounceSetRequestParams = useCallback(
     debounce((value) => setRequestParams(value), 1000),
@@ -44,9 +67,13 @@ const TOBAssociationPage = () => {
   const handleRegionChange = ({ chrom, start, stop }) => {
     const text = `${chrom}:${start}-${stop}`
     setSearchText(text)
-    setSelectedTiles([])
-    setRegion({ ...region, chrom, start, stop })
-    debounceSetRequestParams({ ...requestParams, search: text }, 1000)
+
+    if (shouldRequestNewData(region, { chrom, start, stop })) {
+      setRegion({ ...region, chrom, start, stop })
+      debounceSetRequestParams({ ...requestParams, search: text }, 1000)
+    } else {
+      setRegion({ ...region, chrom, start, stop })
+    }
   }
 
   /**
@@ -149,7 +176,10 @@ const TOBAssociationPage = () => {
             <>
               <div style={{ margin: '1em 0' }}>
                 <div style={{ textAlign: 'center' }}>
-                  {region.chrom}, {region.start}, {region.stop}
+                  Region: {region.chrom}, {region.start}, {region.stop}
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  Render: {renderRegion.chrom}, {renderRegion.start}, {renderRegion.stop}
                 </div>
                 <div
                   style={{
