@@ -23,17 +23,23 @@ export class ApiClient {
   }
 
   /**
-   * @param {{ search: string, threshold?: number }} options
+   * @param {{ search: string, threshold?: number, transform?: string, padding?: number }} options
    * @returns {Promise<object>}
    */
-  fetchAssociations({ search, threshold }) {
+  fetchAssociations({ search, threshold, transform, padding }) {
     const params = new URLSearchParams()
 
-    if (search.toString().trim()) {
+    if (search?.toString()?.trim()) {
       params.set('search', search.toString().trim())
     }
     if (parseFloat(threshold)) {
-      params.set('threshold', threshold)
+      params.set('threshold', parseFloat(threshold))
+    }
+    if (transform?.toString()?.trim()) {
+      params.set('transform', transform)
+    }
+    if (parseInt(padding, 10)) {
+      params.set('padding', parseInt(padding, 10))
     }
 
     // TODO:

@@ -388,8 +388,11 @@ const fetchGenesInRegion = (
 
 app.get('/api/associations', (req, res) => {
   const { search = null, threshold = null } = req.query
-  let { padding = 4e3 } = { ...req.query.padding }
-  const transform = (x) => -Math.log10(x)
+  let { padding = 4e3, transform = 'log10' } = { ...req.query.padding }
+
+  if (transform === 'log10') {
+    transform = (x) => -Math.log10(x)
+  }
 
   try {
     padding = parseInt(padding, 10)
