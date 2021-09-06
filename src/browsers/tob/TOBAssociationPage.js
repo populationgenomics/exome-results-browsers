@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 
 import { debounce } from 'lodash'
 import { SearchInput } from '@gnomad/ui'
@@ -7,18 +7,17 @@ import { isRegionId, isVariantId, parseRegionId } from '@gnomad/identifiers'
 import StatusMessage from '../base/StatusMessage'
 import { TileEventType } from '../base/components/Heatmap'
 import AutosizedGeneResultsHeatmap from '../base/GeneResultsPage/GeneResultsHeatmapPlot'
-import AutosizedGeneResultsManhattanPlot from '../base/GeneResultsPage/GeneResultsManhattanPlot'
-import AutosizedGeneResultsGenesTrack from '../base/GeneResultsPage/GeneResultsGenesTrack'
 import Fetch from '../base/Fetch'
 import datasetConfig from '../datasetConfig'
-import RegionControls from '../base/components/RegionControls'
 import LocusZoomPlot from '../base/components/LocusZoomPlot'
+import ApiClient from './api/ApiClient'
 
 const TOBAssociationPage = () => {
   const [searchText, setSearchText] = useState('22:37966255-37978623')
   const [requestParams, setRequestParams] = useState({
     search: searchText,
     threshold: null,
+    transform: 'log10',
     padding: 4e3,
   })
   const [selectedTiles, setSelectedTiles] = useState([])
@@ -75,6 +74,23 @@ const TOBAssociationPage = () => {
       setRegion({ ...region, chrom, start, stop })
     }
   }
+
+  // useEffect(() => {
+  //   const c = new ApiClient()
+  //   setLoading(true)
+  //   c.fetchAssociations({ ...requestParams })
+  //     .catch((error) => {
+  //       setError(error)
+  //       console.log(error)
+  //     })
+  //     .then((data) => {
+  //       setData({ ...data })
+  //       console.log(data)
+  //     })
+  //     .finally(() => {
+  //       setLoading(false)
+  //     })
+  // }, [requestParams])
 
   /**
    * @param {object} tile
