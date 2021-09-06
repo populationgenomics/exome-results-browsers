@@ -119,7 +119,7 @@ const TOBAssociationPage = () => {
             ? Array.from(new Set(selectedTiles.map((tile) => tile.cell)))
             : Object.keys(datasetConfig.cell_colors)
 
-          let associations = selectedTiles
+          const associations = selectedTiles
             .map((tile) => {
               return data.results.genes
                 .filter((gene) => gene.symbol === tile.gene)
@@ -147,9 +147,10 @@ const TOBAssociationPage = () => {
           //    Have we got the wrong transcript?
           //    Variants not CIS?
           const renderRegion = isVariantId(searchText) ? data.results.regions[0] : region
-          associations = associations.filter(
-            (a) => a.pos >= renderRegion.start && a.pos <= renderRegion.stop
-          )
+          //! Do we need this filter?
+          // associations = associations.filter(
+          //   (a) => a.pos >= renderRegion.start && a.pos <= renderRegion.stop
+          // )
 
           associations.push({
             id: `anchor-${region.start}`,
@@ -221,35 +222,7 @@ const TOBAssociationPage = () => {
                   genes={data.results.genes}
                   onChange={handleRegionChange}
                 />
-                {/* <AutosizedGeneResultsManhattanPlot
-                  // chromosomes={Array.from(
-                  //   new Set([
-                  //     region.chrom,
-                  //     ...selectedTiles
-                  //       .map((tile) => {
-                  //         return data.results.genes.filter((gene) => gene.symbol === tile.gene)
-                  //       })
-                  //       .flat()
-                  //       .map((gene) => gene.chrom),
-                  //   ])
-                  // )}
-                  results={associations}
-                  pointColor={(d) => d.color}
-                  region={renderRegion}
-                  onChange={handleRegionChange}
-                /> */}
               </div>
-
-              {/* <div style={{ margin: '1em 0' }}>
-                <div style={{ float: 'right', marginBottom: '2em' }}>
-                  <RegionControls region={renderRegion} onChange={handleRegionChange} />
-                </div>
-                <AutosizedGeneResultsGenesTrack
-                  genes={data.results.genes}
-                  region={renderRegion}
-                  onChange={handleRegionChange}
-                />
-              </div> */}
 
               <div style={{ margin: '1em 0' }}>
                 {(() => {

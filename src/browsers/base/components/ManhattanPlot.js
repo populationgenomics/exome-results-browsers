@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react'
 import PropTypes from 'prop-types'
 
-import { scaleLinear, extent, zoom, select } from 'd3'
+import { scaleLinear, extent, zoom, select, pointer } from 'd3'
 
 const ManhattanPlot = ({
   dataPoints,
@@ -59,6 +59,40 @@ const ManhattanPlot = ({
     zoomBehaviour(select(svg.current))
   }, [])
 
+  function onMouseOver() {
+    select('.manhattanTooltip').style('opacity', 1)
+  }
+
+  function onMouseMove(e, d) {
+    select('.manhattanTooltip')
+      .html(
+        `<table>
+          <tr>
+            <td><b>ID: </b></td> 
+            <td> ${d.id} </td>
+          </tr>
+          <tr>
+            <td><b>Gene ID: </b></td>
+            <td>${d.gene_id} </td>
+          </tr>
+          <tr>
+            <td><b>P-value: </b></td>
+            <td>${d.pval} </td>
+          </tr>
+          <tr>
+            <td><b>-log10 P-value: </b></td>
+            <td> ${-Math.log10(yAccessor(d)).toFixed(5)} </td>
+          </tr>
+        </table>`
+      )
+      .style('left', `${pointer(e)[0] + 70}px`)
+      .style('top', `${pointer(e)[1]}px`)
+  }
+
+  function onMouseLeave() {
+    select('.manhattanTooltip').style('opacity', 0).style('left', `0px`).style('top', `0px`)
+  }
+
   return (
     <>
       <svg width={width} height={height} ref={svg}>
@@ -70,17 +104,6 @@ const ManhattanPlot = ({
             </clipPath>
           </defs>
           {/* <rect width={innerWidth} height={innerHeight} fill="none" stroke="black" /> */}
-          <g clipPath="url(#clip)">
-            {dataPoints.map((d, i) => (
-              <circle
-                key={keyAccessor(d, i)}
-                cx={xScale(xAccessor(d))}
-                cy={yScale(-Math.log10(yAccessor(d)))}
-                r={5}
-                fill={d.color}
-              />
-            ))}
-          </g>
           <g transform={`translate(0, ${innerHeight})`}>
             <line x2={`${innerWidth}`} stroke="black" />
 
@@ -103,6 +126,21 @@ const ManhattanPlot = ({
               <line x2={innerWidth} stroke={yScale(tick) === innerHeight ? 'none' : 'lightgrey'} />
             </g>
           ))}
+          <g clipPath="url(#clip)">
+            {dataPoints.map((d, i) => (
+              <circle
+                key={keyAccessor(d, i)}
+                cx={xScale(xAccessor(d))}
+                cy={yScale(-Math.log10(yAccessor(d)))}
+                r={5}
+                fill={d.color}
+                onMouseOver={() => onMouseOver()}
+                onFocus={() => onMouseOver()}
+                onMouseMove={(e) => onMouseMove(e, d)}
+                onMouseLeave={() => onMouseLeave()}
+              />
+            ))}
+          </g>
           <text x={innerWidth / 2} y={innerHeight + 50} textAnchor="middle">
             Chromosomal Position
           </text>
@@ -113,6 +151,20 @@ const ManhattanPlot = ({
           </g>
         </g>
       </svg>
+      <div
+        className="manhattanTooltip"
+        style={{
+          opacity: 0,
+          backgroundColor: 'white',
+          border: 'solid',
+          borderWidth: '1px',
+          borderRadius: '5px',
+          padding: '5px',
+          position: 'absolute',
+        }}
+      >
+        HI
+      </div>
     </>
   )
 }
