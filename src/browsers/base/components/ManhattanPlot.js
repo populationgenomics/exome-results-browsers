@@ -90,12 +90,16 @@ const ManhattanPlot = ({
   }
 
   function onMouseLeave() {
-    select('.manhattanTooltip').style('opacity', 0).style('left', `0px`).style('top', `0px`)
+    select('.manhattanTooltip')
+      .style('opacity', 0)
+      .style('left', `0px`)
+      .style('top', `0px`)
+      .html('')
   }
 
   return (
     <>
-      <svg width={width} height={height} ref={svg}>
+      <svg width={width} height={height} ref={svg} style={{ cursor: 'move' }}>
         {/* <rect width={width} height={height} fill="none" stroke="black" /> */}
         <g transform={`translate(${margin.left}, ${margin.top})`}>
           <defs>
@@ -138,6 +142,7 @@ const ManhattanPlot = ({
                 onFocus={() => onMouseOver()}
                 onMouseMove={(e) => onMouseMove(e, d)}
                 onMouseLeave={() => onMouseLeave()}
+                style={{ cursor: 'pointer' }}
               />
             ))}
           </g>

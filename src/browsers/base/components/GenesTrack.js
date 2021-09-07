@@ -117,7 +117,7 @@ const GenesTrack = ({
 
   return (
     <>
-      <svg width={width} height={height} ref={svg}>
+      <svg width={width} height={height} ref={svg} style={{ cursor: 'move' }}>
         {/* <rect width={width} height={height} fill="none" stroke="black" /> */}
         <g transform={`translate(${margin.left}, ${margin.top})`}>
           <defs>
