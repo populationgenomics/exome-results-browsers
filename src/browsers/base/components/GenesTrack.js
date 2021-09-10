@@ -77,8 +77,7 @@ const GenesTrack = ({
   onChange,
   topPadding,
 }) => {
-  // const [innerRegion, setInnerRegion] = useState(region)
-  const svg = useRef()
+  const svgGenes = useRef()
 
   const xScale = scaleLinear()
     .domain([innerRegion.start, innerRegion.stop])
@@ -108,16 +107,16 @@ const GenesTrack = ({
     }
 
     const zoomBehaviour = zoom()
-      .scaleExtent([0.5, 20]) // This control how much you can unzoom (x0.5) and zoom (x20)
+      // .scaleExtent([0.5, 20]) // This control how much you can unzoom (x0.5) and zoom (x20)
       .on('zoom', (e) => updateChart(e))
       .on('end', (e) => Emit(e)) // emit region update here
 
-    zoomBehaviour(select(svg.current))
-  }, [])
+    zoomBehaviour(select(svgGenes.current))
+  }, [xScale])
 
   return (
     <>
-      <svg width={width} height={height} ref={svg} style={{ cursor: 'move' }}>
+      <svg width={width} height={height} ref={svgGenes} style={{ cursor: 'move' }}>
         {/* <rect width={width} height={height} fill="none" stroke="black" /> */}
         <g transform={`translate(${margin.left}, ${margin.top})`}>
           <defs>

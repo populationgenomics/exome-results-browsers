@@ -7,7 +7,7 @@ import RegionControls from './RegionControls'
 
 const LocusZoomPlot = ({ results, region, onChange, genes }) => {
   const [innerRegion, setInnerRegion] = useState(region)
-
+  // console.log(innerRegion)
   return (
     <>
       <AutosizedGeneResultsManhattanPlot

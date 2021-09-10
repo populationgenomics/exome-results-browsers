@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react'
 import PropTypes from 'prop-types'
 
-import { scaleLinear, extent, zoom, select, pointer } from 'd3'
+import { scaleLinear, extent, zoom, max, select, pointer, brushX } from 'd3'
 
 const ManhattanPlot = ({
   dataPoints,
@@ -12,18 +12,18 @@ const ManhattanPlot = ({
   innerRegion,
   setInnerRegion,
 }) => {
+  // console.log(innerRegion)
   const xAccessor = (d) => d.pos
   const yAccessor = (d) => d.pval
   const keyAccessor = (_, i) => i
   // const [innerRegion, setInnerRegion] = useState(region)
   const svg = useRef()
+  const brushRef = useRef()
 
   const innerWidth = width - margin.left - margin.right
   const innerHeight = height - margin.top - margin.bottom
 
-  const xScale = scaleLinear()
-    .domain([innerRegion.start, innerRegion.stop])
-    .range([0, width - margin.left - margin.right])
+  const xScale = scaleLinear().domain([innerRegion.start, innerRegion.stop]).range([0, innerWidth])
 
   const yScale = scaleLinear()
     .domain(
@@ -51,13 +51,36 @@ const ManhattanPlot = ({
       })
     }
 
+    function updateBrush(e) {
+      if (e.selection) {
+        setInnerRegion({
+          chrom: innerRegion.chrom,
+          start: Math.round(xScale.invert(e.selection[0])),
+          stop: Math.round(xScale.invert(e.selection[1])),
+        })
+        onChange({
+          chrom: innerRegion.chrom,
+          start: Math.round(xScale.invert(e.selection[0])),
+          stop: Math.round(xScale.invert(e.selection[1])),
+        })
+        select(brushRef.current).call(brushBehaviour.move, null)
+      }
+    }
+
     const zoomBehaviour = zoom()
-      .scaleExtent([0.5, 20]) // This control how much you can unzoom (x0.5) and zoom (x20)
+      // .scaleExtent([0.5, 20]) // This control how much you can unzoom (x0.5) and zoom (x20)
       .on('zoom', (e) => updateChart(e))
       .on('end', (e) => Emit(e)) // emit region update here
-
     zoomBehaviour(select(svg.current))
-  }, [])
+
+    const brushBehaviour = brushX()
+      .extent([
+        [0, 0],
+        [innerWidth, innerHeight],
+      ])
+      .on('end', (e) => updateBrush(e))
+    brushBehaviour(select(brushRef.current))
+  }, [xScale])
 
   function onMouseOver() {
     select('.manhattanTooltip').style('opacity', 1)
@@ -99,7 +122,7 @@ const ManhattanPlot = ({
 
   return (
     <>
-      <svg width={width} height={height} ref={svg} style={{ cursor: 'move' }}>
+      <svg width={width} height={height} style={{ cursor: 'move' }}>
         {/* <rect width={width} height={height} fill="none" stroke="black" /> */}
         <g transform={`translate(${margin.left}, ${margin.top})`}>
           <defs>
@@ -130,6 +153,7 @@ const ManhattanPlot = ({
               <line x2={innerWidth} stroke={yScale(tick) === innerHeight ? 'none' : 'lightgrey'} />
             </g>
           ))}
+          <g ref={brushRef} />
           <g clipPath="url(#clip)">
             {dataPoints.map((d, i) => (
               <circle
@@ -154,6 +178,15 @@ const ManhattanPlot = ({
               -log<tspan baselineShift="sub">10</tspan>(p)
             </text>
           </g>
+          <rect
+            transform={`translate(0, ${innerHeight})`}
+            width={innerWidth}
+            height={margin.bottom}
+            fill="none"
+            // stroke="black"
+            ref={svg}
+            pointerEvents="all"
+          />
         </g>
       </svg>
       <div
