@@ -3,7 +3,8 @@ import React from 'react'
 import { withSize } from 'react-sizeme'
 import styled from 'styled-components'
 
-import { ManhattanPlot } from '@gnomad/manhattan-plot'
+// import { ManhattanPlot } from '@gnomad/manhattan-plot'
+import ManhattanPlot from '../components/ManhattanPlot'
 
 const GeneResultsManhattanPlot = ({
   pValueColumn,
@@ -11,6 +12,7 @@ const GeneResultsManhattanPlot = ({
   pointColor,
   onClickPoint,
   results,
+  region,
   ...otherProps
 }) => {
   const renderedDataPoints = results
@@ -21,10 +23,11 @@ const GeneResultsManhattanPlot = ({
     <ManhattanPlot
       {...otherProps}
       dataPoints={renderedDataPoints}
-      pointLabel={pointLabel}
-      pointColor={pointColor}
-      yLabel={'-log\u2081\u2080(p)'}
-      onClickPoint={onClickPoint}
+      region={region}
+      // pointLabel={pointLabel}
+      // pointColor={pointColor}
+      // yLabel={'-log\u2081\u2080(p)'}
+      // onClickPoint={onClickPoint}
     />
   )
 }
@@ -35,6 +38,11 @@ GeneResultsManhattanPlot.propTypes = {
   pointLabel: PropTypes.func,
   pointColor: PropTypes.func,
   onClickPoint: PropTypes.func,
+  region: PropTypes.shape({
+    chrom: PropTypes.string.isRequired,
+    start: PropTypes.number.isRequired,
+    stop: PropTypes.number.isRequired,
+  }).isRequired,
 }
 
 GeneResultsManhattanPlot.defaultProps = {

@@ -4,26 +4,31 @@ import PropTypes from 'prop-types'
 import { withSize } from 'react-sizeme'
 import styled from 'styled-components'
 
-import { ExternalLink } from '@gnomad/ui'
+// import { ExternalLink } from '@gnomad/ui'
 
-import { RegionViewer } from '@gnomad/region-viewer'
-import { GenesTrack } from '@gnomad/track-genes'
+// import { RegionViewer } from '@gnomad/region-viewer'
+// import { GenesTrack } from '@gnomad/track-genes'
 
-const GeneResultsGenesTrack = ({ genes, regions, ...otherProps }) => (
-  <RegionViewer padding={0} regions={regions} {...otherProps}>
-    <GenesTrack
-      title={null}
-      genes={genes}
-      renderGeneLabel={(gene) => (
-        <ExternalLink href={`https://gnomad.broadinstitute.org/gene/${gene.symbol}`}>
-          <text fill="#1173bb" textAnchor="middle">
-            {gene.symbol}
-          </text>
-        </ExternalLink>
-      )}
-    />
-  </RegionViewer>
-)
+import GenesTrack from '../components/GenesTrack'
+
+const GeneResultsGenesTrack = ({ genes, region, ...otherProps }) => {
+  return (
+    <GenesTrack genes={genes} region={region} {...otherProps} />
+    // <RegionViewer padding={0} regions={regions} {...otherProps}>
+    //   <GenesTrack
+    //     title={null}
+    //     genes={genes}
+    //     renderGeneLabel={(gene) => (
+    //       <ExternalLink href={`https://gnomad.broadinstitute.org/gene/${gene.symbol}`}>
+    //         <text fill="#1173bb" textAnchor="middle">
+    //           {gene.symbol}
+    //         </text>
+    //       </ExternalLink>
+    //     )}
+    //   />
+    // </RegionViewer>
+  )
+}
 
 GeneResultsGenesTrack.propTypes = {
   genes: PropTypes.arrayOf(
@@ -42,14 +47,11 @@ GeneResultsGenesTrack.propTypes = {
       ),
     })
   ).isRequired,
-  regions: PropTypes.arrayOf(
-    PropTypes.shape({
-      chrom: PropTypes.string,
-      start: PropTypes.number,
-      stop: PropTypes.number,
-      feature_type: PropTypes.string,
-    })
-  ).isRequired,
+  region: PropTypes.shape({
+    chrom: PropTypes.string.isRequired,
+    start: PropTypes.number.isRequired,
+    stop: PropTypes.number.isRequired,
+  }).isRequired,
 }
 
 const Wrapper = styled.div`
@@ -59,9 +61,7 @@ const Wrapper = styled.div`
 
 const AutosizedGeneResultsGenesTrack = withSize()(({ size, ...otherProps }) => (
   <Wrapper>
-    {Boolean(size.width) && (
-      <GeneResultsGenesTrack height={500} width={size.width} {...otherProps} />
-    )}
+    {Boolean(size.width) && <GeneResultsGenesTrack width={size.width} {...otherProps} />}
   </Wrapper>
 ))
 

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 
 import { debounce } from 'lodash'
 import { SearchInput } from '@gnomad/ui'
@@ -7,15 +7,19 @@ import { isRegionId, isVariantId, parseRegionId } from '@gnomad/identifiers'
 import StatusMessage from '../base/StatusMessage'
 import { TileEventType } from '../base/components/Heatmap'
 import AutosizedGeneResultsHeatmap from '../base/GeneResultsPage/GeneResultsHeatmapPlot'
-import AutosizedGeneResultsManhattanPlot from '../base/GeneResultsPage/GeneResultsManhattanPlot'
-import AutosizedGeneResultsGenesTrack from '../base/GeneResultsPage/GeneResultsGenesTrack'
 import Fetch from '../base/Fetch'
 import datasetConfig from '../datasetConfig'
-import RegionControls from '../base/components/RegionControls'
+import LocusZoomPlot from '../base/components/LocusZoomPlot'
+import ApiClient from './api/ApiClient'
 
 const TOBAssociationPage = () => {
   const [searchText, setSearchText] = useState('22:37966255-37978623')
-  const [requestParams, setRequestParams] = useState({ search: searchText, threshold: null })
+  const [requestParams, setRequestParams] = useState({
+    search: searchText,
+    threshold: null,
+    transform: 'log10',
+    padding: 4e3,
+  })
   const [selectedTiles, setSelectedTiles] = useState([])
   const [region, setRegion] = useState({
     chrom: '22',
@@ -23,6 +27,25 @@ const TOBAssociationPage = () => {
     stop: 37978623,
     feature_type: 'region',
   })
+
+  const shouldRequestNewData = (currentRegion, newRegion) => {
+    // Check if partially outside current region plus padding.
+    const { chrom, start, stop } = {
+      chrom: currentRegion.chrom,
+      start: Math.max(currentRegion.start - requestParams.padding, 0),
+      stop: currentRegion.stop + requestParams.padding,
+    }
+
+    const outOfBoundsLeft =
+      newRegion.start <= start && newRegion.stop >= start && newRegion.stop <= stop
+    const outOfBoundsRight =
+      newRegion.start >= start && newRegion.start <= stop && newRegion.stop >= stop
+    const outOfBoundsLeftAndRight = newRegion.start <= start && newRegion.stop >= stop
+
+    return (
+      newRegion.chrom !== chrom || outOfBoundsLeft || outOfBoundsRight || outOfBoundsLeftAndRight
+    )
+  }
 
   const debounceSetRequestParams = useCallback(
     debounce((value) => setRequestParams(value), 1000),
@@ -43,10 +66,31 @@ const TOBAssociationPage = () => {
   const handleRegionChange = ({ chrom, start, stop }) => {
     const text = `${chrom}:${start}-${stop}`
     setSearchText(text)
-    setSelectedTiles([])
-    setRegion({ ...region, chrom, start, stop })
-    debounceSetRequestParams({ ...requestParams, search: text }, 1000)
+
+    if (shouldRequestNewData(region, { chrom, start, stop })) {
+      setRegion({ ...region, chrom, start, stop })
+      debounceSetRequestParams({ ...requestParams, search: text }, 1000)
+    } else {
+      setRegion({ ...region, chrom, start, stop })
+    }
   }
+
+  // useEffect(() => {
+  //   const c = new ApiClient()
+  //   setLoading(true)
+  //   c.fetchAssociations({ ...requestParams })
+  //     .catch((error) => {
+  //       setError(error)
+  //       console.log(error)
+  //     })
+  //     .then((data) => {
+  //       setData({ ...data })
+  //       console.log(data)
+  //     })
+  //     .finally(() => {
+  //       setLoading(false)
+  //     })
+  // }, [requestParams])
 
   /**
    * @param {object} tile
@@ -91,7 +135,7 @@ const TOBAssociationPage = () => {
             ? Array.from(new Set(selectedTiles.map((tile) => tile.cell)))
             : Object.keys(datasetConfig.cell_colors)
 
-          let associations = selectedTiles
+          const associations = selectedTiles
             .map((tile) => {
               return data.results.genes
                 .filter((gene) => gene.symbol === tile.gene)
@@ -119,9 +163,10 @@ const TOBAssociationPage = () => {
           //    Have we got the wrong transcript?
           //    Variants not CIS?
           const renderRegion = isVariantId(searchText) ? data.results.regions[0] : region
-          associations = associations.filter(
-            (a) => a.pos >= renderRegion.start && a.pos <= renderRegion.stop
-          )
+          //! Do we need this filter?
+          // associations = associations.filter(
+          //   (a) => a.pos >= renderRegion.start && a.pos <= renderRegion.stop
+          // )
 
           associations.push({
             id: `anchor-${region.start}`,
@@ -147,6 +192,12 @@ const TOBAssociationPage = () => {
           return (
             <>
               <div style={{ margin: '1em 0' }}>
+                <div style={{ textAlign: 'center' }}>
+                  Region: {region.chrom}, {region.start}, {region.stop}
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  Render: {renderRegion.chrom}, {renderRegion.start}, {renderRegion.stop}
+                </div>
                 <div
                   style={{
                     width: '100%',
@@ -180,30 +231,12 @@ const TOBAssociationPage = () => {
                     )
                   })}
                 </div>
-                <AutosizedGeneResultsManhattanPlot
-                  chromosomes={Array.from(
-                    new Set([
-                      region.chrom,
-                      ...selectedTiles
-                        .map((tile) => {
-                          return data.results.genes.filter((gene) => gene.symbol === tile.gene)
-                        })
-                        .flat()
-                        .map((gene) => gene.chrom),
-                    ])
-                  )}
+                <LocusZoomPlot
                   results={associations}
                   pointColor={(d) => d.color}
-                />
-              </div>
-
-              <div style={{ margin: '1em 0' }}>
-                <div style={{ float: 'right', marginBottom: '2em' }}>
-                  <RegionControls region={renderRegion} onChange={handleRegionChange} />
-                </div>
-                <AutosizedGeneResultsGenesTrack
+                  region={renderRegion}
                   genes={data.results.genes}
-                  regions={[renderRegion]}
+                  onChange={handleRegionChange}
                 />
               </div>
 
@@ -231,7 +264,7 @@ const TOBAssociationPage = () => {
                       />
                     )
                   }
-                  return <StatusMessage>No assoications found</StatusMessage>
+                  return <StatusMessage>No associations found</StatusMessage>
                 })()}
               </div>
             </>
