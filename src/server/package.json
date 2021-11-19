@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@gnomad/identifiers": "^2.3.0",
+    "@google-cloud/bigquery": "^5.9.1",
     "@google-cloud/storage": "^5.8.5",
     "compression": "^1.7.4",
     "express": "^4.16.4",
