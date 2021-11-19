@@ -18,7 +18,7 @@ const {
   fetchGeneIdSuggestions,
   fetchAssociationHeatmap,
   convertPositionToGlobalPosition,
-} = require('./api/bigQuery')
+} = require('./queries/bigQuery')
 
 // ================================================================================================
 // Configuration
