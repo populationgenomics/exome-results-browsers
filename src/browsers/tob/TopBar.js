@@ -5,9 +5,10 @@ import styled from 'styled-components'
 
 import { Button, Modal } from '@gnomad/ui'
 
-import Link from './Link'
-import OtherStudies from './OtherStudies'
-import Searchbox from './Searchbox'
+import Link from '../base/Link'
+import OtherStudies from '../base/OtherStudies'
+
+import Searchbox from './shared/components/Searchbox'
 
 const TitleWrapper = styled.div``
 
@@ -105,7 +106,7 @@ const TopBar = ({ title, links, backgroundColor, textColor }) => {
         </ToggleMenuButton>
       </TitleWrapper>
 
-      <Searchbox id="navbar-search" width="320px" />
+      <Searchbox id="navbar-search" width="50%" />
 
       <Menu isExpanded={isMenuExpanded}>
         <li>
