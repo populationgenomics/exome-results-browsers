@@ -1,4 +1,4 @@
-name: tob-wgs-browser
+name: exome-results-browsers
 channels:
   - cpg
   - bioconda/osx-64
