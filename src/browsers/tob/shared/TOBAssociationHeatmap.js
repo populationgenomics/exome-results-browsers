@@ -8,11 +8,11 @@ import { PlotWrapper } from '../utilities/styling'
 
 import AutosizedHeatmap from './components/AutosizedHeatmap'
 
-const TOBAssociationHeatmap = ({ query }) => {
+const TOBAssociationHeatmap = ({ query, round }) => {
   const [apiPath, setApiPath] = useState(null)
 
   useEffect(() => {
-    setApiPath(`/heatmap/?search=${query}`)
+    setApiPath(`/heatmap/?query=${query}&round=${round}`)
   }, [query])
 
   if (!apiPath) {
@@ -85,6 +85,11 @@ const TOBAssociationHeatmap = ({ query }) => {
 
 TOBAssociationHeatmap.propTypes = {
   query: PropTypes.string.isRequired,
+  round: PropTypes.number,
+}
+
+TOBAssociationHeatmap.defaultProps = {
+  round: 1,
 }
 
 export { TileEventType } from './components/AutosizedHeatmap'
