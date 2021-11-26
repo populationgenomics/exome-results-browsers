@@ -1,24 +1,15 @@
 const path = require('path')
 const process = require('process')
 
+const _ = require('lodash')
 const compression = require('compression')
 const express = require('express')
 const morgan = require('morgan')
+const helmet = require('helmet')
 
-const {
-  isRegionId,
-  normalizeRegionId,
-  parseRegionId,
-  isVariantId,
-  normalizeVariantId,
-  isRsId,
-} = require('@gnomad/identifiers')
+const { isRegionId, isVariantId, isRsId } = require('@gnomad/identifiers')
 
-const {
-  fetchGeneIdSuggestions,
-  fetchAssociationHeatmap,
-  convertPositionToGlobalPosition,
-} = require('./queries/bigQuery')
+const { fetchGeneIdSuggestions, fetchAssociationHeatmap } = require('./queries/bigQuery')
 
 // ================================================================================================
 // Configuration
@@ -37,9 +28,11 @@ const config = {
 // ================================================================================================
 
 const app = express()
+
 app.set('trust proxy', config.trustProxy)
 
 app.use(compression())
+app.use(helmet())
 
 // ================================================================================================
 // Logging
@@ -74,7 +67,7 @@ app.use('/api/search', (req, res) => {
     return res.status(400).json({ error: 'One query required' })
   }
 
-  return fetchGeneIdSuggestions({ gene: req.query.q }).then((data) =>
+  return fetchGeneIdSuggestions({ query: req.query.q }).then((data) =>
     res.status(200).json({ results: data })
   )
 })
@@ -117,17 +110,19 @@ app.use('/config.js', (req, res) => {
 // ================================================================================================
 
 app.get('/api/heatmap', (req, res) => {
-  if (!isRegionId(req.query.search)) {
-    return res.status(400).json({ error: 'Query must be a region or variant ID' })
+  const { query } = req.query
+  let { round } = parseInt(req.query, 10)
+
+  if (!isRegionId(query) && !isVariantId(query) && !isRsId(query)) {
+    return res.status(400).json({ error: 'Query must be a region, variant ID or Rsid' })
   }
 
-  return fetchAssociationHeatmap({
-    region: convertPositionToGlobalPosition({
-      ...parseRegionId(req.query.search),
-    }),
-    round: req.query.round || 1,
-    options: { verbose: true },
-  })
+  if (!round) round = 1
+  if (!Number.isInteger(round) && !_.range(1, 7).includes(parseInt(round, 10))) {
+    return res.status(400).json({ error: 'Round must be a number between 1 and 6' })
+  }
+
+  return fetchAssociationHeatmap({ query, round: parseInt(round, 10) })
     .then((data) => res.status(200).json({ results: data }))
     .catch((error) => res.status(400).json({ error: error.message }))
 })
