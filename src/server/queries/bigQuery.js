@@ -1,95 +1,51 @@
 const { BigQuery } = require('@google-cloud/bigquery')
 
-const REFERENCES = {
-  grch37: 'grch37',
-  grch38: 'grch38',
-  default: 'grch37',
+const { convertPositionToGlobalPosition, ReferenceGenome } = require('./utilities')
 
-  referenceIsValid: (value) => {
-    return ['grch37', 'grch38'].includes(value.toString().toLowerCase())
-  },
+const PROJECT_ID = 'tob-wgs-browser'
+
+const DEFAULT_QUERY_OPTIONS = {
+  verbose: process.env.NODE_ENV === 'development',
+  datasetId: ReferenceGenome.default(),
 }
 
-const CHROM_LENGTHS = {
-  [REFERENCES.grch37]: {
-    chr1: 249250621,
-    chr2: 243199373,
-    chr3: 198022430,
-    chr4: 191154276,
-    chr5: 180915260,
-    chr6: 171115067,
-    chr7: 159138663,
-    chr8: 146364022,
-    chr9: 141213431,
-    chr10: 135534747,
-    chr11: 135006516,
-    chr12: 133851895,
-    chr13: 115169878,
-    chr14: 107349540,
-    chr15: 102531392,
-    chr16: 90354753,
-    chr17: 81195210,
-    chr18: 78077248,
-    chr19: 59128983,
-    chr20: 63025520,
-    chr21: 48129895,
-    chr22: 51304566,
-    chrX: 155270560,
-    chrY: 59373566,
-  },
-  [REFERENCES.grch38]: {
-    chr1: 248956422,
-    chr2: 242193529,
-    chr3: 198295559,
-    chr4: 190214555,
-    chr5: 181538259,
-    chr6: 170805979,
-    chr7: 159345973,
-    chr8: 145138636,
-    chr9: 138394717,
-    chr10: 133797422,
-    chr11: 135086622,
-    chr12: 133275309,
-    chr13: 114364328,
-    chr14: 107043718,
-    chr15: 101991189,
-    chr16: 90338345,
-    chr17: 83257441,
-    chr18: 80373285,
-    chr19: 58617616,
-    chr20: 64444167,
-    chr21: 46709983,
-    chr22: 50818468,
-    chrX: 156040895,
-    chrY: 57227415,
-  },
-}
+class Table {
+  static tables = {
+    eqtl: 'eqtl',
+    esnp: 'esnp',
+    logResidual: 'log_residual',
+    cellType: 'cell_type',
+    geneAnnotation: 'gene_annotation',
+  }
 
-const OFFSETS = { [REFERENCES.grch37]: {}, [REFERENCES.grch38]: {} }
-Object.keys(OFFSETS).forEach((reference) => {
-  Object.keys(CHROM_LENGTHS[reference]).forEach((_, index) => {
-    const offset = Object.values(CHROM_LENGTHS[reference])
-      .slice(0, index)
-      .reduce((x, y) => x + y, 0)
+  static tableIds() {
+    return Array.from(Object.values(this.tables))
+  }
 
-    OFFSETS[reference][index + 1] = offset
-  })
-})
+  constructor({ tableId, datasetId = ReferenceGenome.default(), projectId = PROJECT_ID }) {
+    this.projectId = projectId
+    this.datasetId = datasetId || ReferenceGenome.default()
+    this.tableId = tableId.toString().toLowerCase()
 
-const convertPositionToGlobalPosition = ({
-  chrom,
-  start,
-  stop,
-  reference = REFERENCES.default,
-}) => {
-  const offset = OFFSETS[reference][chrom] - 1 // Range end is not included
+    if (datasetId === ReferenceGenome.grch38()) {
+      throw new Error('GRCh38 is not yet supported')
+    }
 
-  return { chrom, start: start + offset, stop: stop + offset }
+    if (!Table.tableIds().includes(this.tableId)) {
+      throw new Error(
+        `Table '${this.tableId}' does not exist. Choose from one of ${this.tableIds().join(', ')}`
+      )
+    }
+  }
+
+  path() {
+    return `${this.projectId}.${this.datasetId}.${this.tableId}`
+  }
 }
 
 const submitQuery = async ({ query, options }) => {
   // For all options, see https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs/query
-  const bigquery = new BigQuery()
+  const client = new BigQuery()
 
   const verbose = options.verbose || false
   if (verbose) {
@@ -97,89 +53,168 @@ const submitQuery = async ({ query, options }) => {
     console.debug(query)
   }
 
-  const [job] = await bigquery.createQueryJob({
+  // Remove options that are not BigQuery options
+  const overrides = { ...options }
+  delete overrides.verbose
+  delete overrides.datasetId
+
+  // Send job and await results. These methods return arrays.
+  const [job] = await client.createQueryJob({
     query,
     location: 'australia-southeast1',
+    useLegacySql: false, // Must be turned off to use parameterized queries.
     allowLargeResults: true,
     useQueryCache: true,
-    ...options,
+    ...overrides,
   })
 
-  const result = await job.getQueryResults()
+  const [rows] = await job.getQueryResults()
 
-  return result.flat()
+  return rows
 }
 
-const fetchGeneIdSuggestions = async ({ gene, options = {} }) => {
-  const query = `
+const fetchGeneIdSuggestions = async ({ query, options = DEFAULT_QUERY_OPTIONS }) => {
+  const table = new Table({ tableId: Table.tables.eqtl, datasetId: options.datasetId })
+
+  let labelColumn = 'gene'
+  if (new RegExp('^ENSG').test(query)) {
+    labelColumn = 'ensembl_gene_id'
+  }
+
+  const sqlQuery = `
+  SELECT
+    DISTINCT
+      ${labelColumn} AS label,
+      CONCAT('/gene/', ensembl_gene_id) AS url
+  FROM
+    ${table.path()}
+  WHERE
+      gene LIKE CONCAT(@query, '%')
+    OR
+      ensembl_gene_id LIKE CONCAT(@query, '%')
+  LIMIT
+    10
+`
+  const results = await submitQuery({
+    query: sqlQuery,
+    options: { ...options, params: { query } },
+  })
+
+  return results
+}
+
+const fetchVariantIdSuggestions = async ({ query, options = DEFAULT_QUERY_OPTIONS }) => {
+  const table = new Table({ tableId: Table.tables.eqtl, datasetId: options.datasetId })
+
+  const sqlQuery = `
     SELECT
-      DISTINCT
-        gene_id,
-        gene_name
-    FROM
-      \`tob-wgs-browser.grch37.gene_annotation\`
+      variant_id as label,
+      CONCAT('/variant/', variant_id) as url
+    FROM 
+      (
+        SELECT
+          rsid,
+          CONCAT(chr, '-', bp, '-', a1, '-', a2) AS variant_id
+        FROM
+          ${table.path()}
+      )
     WHERE
-        gene_name LIKE '${gene}%'
+      variant_id LIKE CONCAT(@query, '%')
+    LIMIT
+      10
   `
 
-  const results = await submitQuery({ query, options })
-
-  return results.map((r) => {
-    return { url: `/gene/${r.gene_id.split('.')[0]}`, label: r.gene_name }
+  const results = await submitQuery({
+    query: sqlQuery,
+    options: { ...options, params: { query } },
   })
+
+  return results
 }
 
-const fetchGenesInRegion = async ({ region, round = 1, options = {} }) => {
-  const query = `
+const fetchGenesInRegion = async ({ region, round = 1, options = DEFAULT_QUERY_OPTIONS }) => {
+  const table = new Table({ tableId: Table.tables.eqtl, datasetId: options.datasetId })
+
+  const sqlQuery = `
   SELECT
-    DISTINCT(gene), 
-  FROM 
-    \`tob-wgs-browser.grch37.eqtl\`
+    DISTINCT(gene)
+  FROM
+    ${table.path()}
   WHERE
-      g_bp >= ${region.start} 
-    AND 
-      g_bp <= ${region.stop}
+      g_bp >= @start
     AND
-      round = ${round}
+      g_bp <= @stop
+    AND
+      round = @round
 `
-  const result = await submitQuery({ query, options })
+  const params = {
+    start: region.start,
+    stop: region.stop,
+    round,
+  }
+
+  const result = await submitQuery({ query: sqlQuery, options: { ...options, params } })
 
   return result.map((record) => record.gene)
 }
 
+const fetchAnnotationsForGene = async ({ gene, options = DEFAULT_QUERY_OPTIONS }) => {
+  const table = new Table({ tableId: Table.tables.geneAnnotation, datasetId: options.datasetId })
+
+  const sqlQuery = `
+    SELECT
+
+  `
+
+  const params = {}
+
+  const result = await submitQuery({ query: sqlQuery, options: { ...options, params } })
+
+  return result
+}
+
 const fetchAssociationHeatmap = async ({
   region,
-  aggregateBy = 'q_value',
   round = 1,
-  options = {},
+  aggregateBy = 'q_value',
+  options = DEFAULT_QUERY_OPTIONS,
 }) => {
-  const heatmapQuery = `
+  const table = new Table({ tableId: Table.tables.eqtl, datasetId: options.datasetId })
+
+  const sqlQuery = `
     SELECT
-      DISTINCT 
-        gene AS geneName, 
+      DISTINCT
+        gene AS geneName,
         cell_type_id AS cellTypeId,
       q_value AS value
-    FROM 
+    FROM
       (
         SELECT
           *,
           MIN(${aggregateBy}) OVER (PARTITION BY gene, cell_type_id) AS minValue
         FROM
-          \`tob-wgs-browser.grch37.eqtl\`
+          ${table.path()}
         WHERE
-            g_bp >= ${region.start} 
-          AND 
-            g_bp <= ${region.stop}
-          AND 
-            chr = ${region.chrom}
+            g_bp >= @start
           AND
-            round = ${round}
+            g_bp <= @stop
+          AND
+            chr = @chrom
+          AND
+            round = @round
       )
     WHERE
       q_value = minValue
   `
 
-  const results = await submitQuery({ query: heatmapQuery, options })
+  const params = {
+    start: region.start,
+    stop: region.stop,
+    chrom: parseInt(region.chrom, 10),
+    round,
+  }
+
+  const results = await submitQuery({ query: sqlQuery, options: { ...options, params } })
 
   const minValue = results.reduce((min, r) => Math.min(min, r.value), Number.MAX_SAFE_INTEGER)
   const maxValue = results.reduce((max, r) => Math.max(max, r.value), Number.MIN_SAFE_INTEGER)
@@ -191,7 +226,8 @@ const fetchAssociationHeatmap = async ({
 
 module.exports = {
   fetchGeneIdSuggestions,
-  convertPositionToGlobalPosition,
   fetchAssociationHeatmap,
   fetchGenesInRegion,
+  fetchVariantIdSuggestions,
+  convertPositionToGlobalPosition,
 }
