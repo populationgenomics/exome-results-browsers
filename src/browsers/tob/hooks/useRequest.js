@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 const cancelable = (promise) => {
   let isCanceled = false
+
   const wrapper = new Promise((resolve, reject) => {
     promise.then(
       (value) => {
@@ -33,13 +34,14 @@ const useRequest = (makeRequest) => {
   useEffect(() => {
     setIsLoading(true)
     setError(null)
+
     const request = cancelable(makeRequest())
+
     request.promise.then(setResponse, setError).finally(() => {
       setIsLoading(false)
     })
-    return () => {
-      request.cancel()
-    }
+
+    return () => request.cancel()
   }, [makeRequest])
 
   return { isLoading, error, response }
