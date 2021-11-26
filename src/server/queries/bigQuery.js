@@ -1,6 +1,12 @@
 const { BigQuery } = require('@google-cloud/bigquery')
+const { isRegionId, isVariantId, isRsId } = require('@gnomad/identifiers')
 
-const { convertPositionToGlobalPosition, ReferenceGenome } = require('./utilities')
+const { ReferenceGenome } = require('./utilities')
+const {
+  generateRegionQuery,
+  generateVariantQuery,
+  generateRsidQuery,
+} = require('./associationHeatmap')
 
 const PROJECT_ID = 'tob-wgs-browser'
 
@@ -51,6 +57,8 @@ const submitQuery = async ({ query, options }) => {
   if (verbose) {
     // eslint-disable-next-line no-console
     console.debug(query)
+    // eslint-disable-next-line no-console
+    console.debug(options.params)
   }
 
   // Remove options that are not BigQuery options
@@ -107,21 +115,21 @@ const fetchVariantIdSuggestions = async ({ query, options = DEFAULT_QUERY_OPTION
   const table = new Table({ tableId: Table.tables.eqtl, datasetId: options.datasetId })
 
   const sqlQuery = `
-    SELECT
-      variant_id as label,
-      CONCAT('/variant/', variant_id) as url
-    FROM 
-      (
-        SELECT
-          rsid,
-          CONCAT(chr, '-', bp, '-', a1, '-', a2) AS variant_id
-        FROM
-          ${table.path()}
-      )
-    WHERE
-      variant_id LIKE CONCAT(@query, '%')
-    LIMIT
-      10
+  SELECT
+    variant_id as label,
+    CONCAT('/variant/', variant_id) as url
+  FROM 
+    (
+      SELECT
+        rsid,
+        CONCAT(chr, '-', bp, '-', a1, '-', a2) AS variant_id
+      FROM
+        ${table.path()}
+    )
+  WHERE
+    variant_id LIKE CONCAT(@query, '%')
+  LIMIT
+    10
   `
 
   const results = await submitQuery({
@@ -146,7 +154,8 @@ const fetchGenesInRegion = async ({ region, round = 1, options = DEFAULT_QUERY_O
       g_bp <= @stop
     AND
       round = @round
-`
+  `
+
   const params = {
     start: region.start,
     stop: region.stop,
@@ -158,63 +167,31 @@ const fetchGenesInRegion = async ({ region, round = 1, options = DEFAULT_QUERY_O
   return result.map((record) => record.gene)
 }
 
-const fetchAnnotationsForGene = async ({ gene, options = DEFAULT_QUERY_OPTIONS }) => {
-  const table = new Table({ tableId: Table.tables.geneAnnotation, datasetId: options.datasetId })
-
-  const sqlQuery = `
-    SELECT
-
-  `
-
-  const params = {}
-
-  const result = await submitQuery({ query: sqlQuery, options: { ...options, params } })
-
-  return result
-}
-
 const fetchAssociationHeatmap = async ({
-  region,
+  query,
   round = 1,
   aggregateBy = 'q_value',
   options = DEFAULT_QUERY_OPTIONS,
 }) => {
   const table = new Table({ tableId: Table.tables.eqtl, datasetId: options.datasetId })
 
-  const sqlQuery = `
-    SELECT
-      DISTINCT
-        gene AS geneName,
-        cell_type_id AS cellTypeId,
-      q_value AS value
-    FROM
-      (
-        SELECT
-          *,
-          MIN(${aggregateBy}) OVER (PARTITION BY gene, cell_type_id) AS minValue
-        FROM
-          ${table.path()}
-        WHERE
-            g_bp >= @start
-          AND
-            g_bp <= @stop
-          AND
-            chr = @chrom
-          AND
-            round = @round
-      )
-    WHERE
-      q_value = minValue
-  `
-
-  const params = {
-    start: region.start,
-    stop: region.stop,
-    chrom: parseInt(region.chrom, 10),
-    round,
+  let generator = null
+  if (isRegionId(query)) {
+    generator = generateRegionQuery
+  } else if (isVariantId(query)) {
+    generator = generateVariantQuery
+  } else if (isRsId(query)) {
+    generator = generateRsidQuery
+  } else {
+    throw new Error('Query must be a region, variant ID or Rsid')
   }
 
-  const results = await submitQuery({ query: sqlQuery, options: { ...options, params } })
+  const q = generator({ query, round, aggregateBy })
+
+  const results = await submitQuery({
+    query: q.query.replace('@@table', table.path()),
+    options: { ...options, params: q.params },
+  })
 
   const minValue = results.reduce((min, r) => Math.min(min, r.value), Number.MAX_SAFE_INTEGER)
   const maxValue = results.reduce((max, r) => Math.max(max, r.value), Number.MIN_SAFE_INTEGER)
@@ -226,8 +203,9 @@ const fetchAssociationHeatmap = async ({
 
 module.exports = {
   fetchGeneIdSuggestions,
+  fetchVariantIdSuggestions,
   fetchAssociationHeatmap,
   fetchGenesInRegion,
-  fetchVariantIdSuggestions,
-  convertPositionToGlobalPosition,
+  // fetchGeneAnnotations,
+  // fetchVariants
 }
