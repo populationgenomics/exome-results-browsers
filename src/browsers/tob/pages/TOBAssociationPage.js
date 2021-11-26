@@ -7,8 +7,6 @@ import TOBAssociationHeatmap from '../shared/TOBAssociationHeatmap'
 const TOBAssociationPage = ({ match }) => {
   const [search, setSearch] = useState(match.params.query || '22:37966255-37978623')
 
-  console.log(match)
-
   return (
     <>
       <PlotWrapper>
