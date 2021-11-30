@@ -12,6 +12,8 @@ dependencies:
   - jupyterlab
   - pre-commit
   - hail
+  - samtools
+  - hstlib
   - nodejs
   - yarn
   - pip:
