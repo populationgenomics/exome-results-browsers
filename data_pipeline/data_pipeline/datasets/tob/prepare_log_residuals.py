@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: utf-8
 
 import re
@@ -28,9 +28,9 @@ def load_residual_file(path):
     residuals["cell_type_id"] = cell_type
     residuals["chrom"] = chrom
 
-    column_order = ["sampleid", "cell_type_id", "chr", "gene", "log_residual"]
+    column_order = ["sampleid", "cell_type_id", "chrom", "gene", "log_residual"]
 
-    return residuals[column_order]
+    return residuals[column_order].rename(columns={"sampleid": "sample_id"})
 
 
 def prepare_log_residuals():
@@ -38,7 +38,7 @@ def prepare_log_residuals():
     bucket = client.get_bucket(get_gcp_bucket_name())
 
     input_path = build_analaysis_input_path()
-    output_path = build_output_path()
+    output_dir = build_output_path()
 
     blobs = [
         f"gs://{bucket.name}/{b.name}"
@@ -54,12 +54,12 @@ def prepare_log_residuals():
     )
 
     for chrom in chromosomes:
-        output_path = f"{output_path}/log_residuals/{chrom}.tsv.gz"
-
         paths = [str(p) for p in files_to_process if f"_{chrom}_" in str(p)]
 
         print(f"Loading {len(paths)} files for {chrom}")
         residuals = pd.concat([load_residual_file(path) for path in paths])
+
+        output_path = f"{output_dir}/log_residuals/{chrom}.tsv.gz"
         print(f"Writing table to '{output_path}'")
 
         residuals.to_csv(output_path, mode="w", sep="\t", header=True, index=False, compression="gzip")

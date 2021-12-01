@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: utf-8
 
 import re
@@ -20,12 +20,12 @@ def import_table(paths, schema=None):
     return hail.import_table(paths, types=schema, impute=not schema)
 
 
-def process_table(table, reference="grch37", is_esnp=False):
-    result = table.transmute(BP=hail.int32(table.BP), CHROM=table.CHR)
+def process_table(table, reference="grch37", is_esnp=False, verify=True):
+    result = table.transmute(BP=hail.int32(table.BP))
 
     result = result.annotate(
         variant=hail.parse_variant(
-            hail.str(":").join([hail.str(result.CHROM), hail.str(result.BP), result.A1, result.A2]),
+            hail.str(":").join([hail.str(result.CHR), hail.str(result.BP), result.A1, result.A2]),
             reference_genome=reference,
         )
     )
@@ -35,7 +35,7 @@ def process_table(table, reference="grch37", is_esnp=False):
         global_bp=result.variant.locus.global_position(),
         id=hail.str(":").join(
             [
-                hail.str(result.CHROM),
+                hail.str(result.CHR),
                 hail.str(result.BP),
                 result.A1,
                 result.A2,
@@ -46,19 +46,29 @@ def process_table(table, reference="grch37", is_esnp=False):
         ),
     )
 
+    if verify:
+        print("Verifying ID uniqueness")
+        assert result.count() == result.key_by("id").distinct().count(), "id column contains duplicate values"
+
     result = result.rename({"db_key": "cell_type_id"})
+    result = result.rename({"cell_type": "cell_type_name"})
+    result = result.rename({"CHR": "chrom"})
     result = result.rename({c: c.lower() for c in list(result.row.keys())})
 
     columns = [c for c in list(result.row.keys()) if c not in ("id", "global_bp")]
-    result = result.select(["id"] + columns[0:8] + ["global_bp"] + columns[8:])
+    column_order = ["id"] + columns[0:8] + ["global_bp"] + columns[8:]
+    result = result.select(*column_order)
+    assert len(set(column_order)) == len(set(result.row.keys()))
 
-    return result.drop(result.variant).key_by("id")
+    result = result.drop(result.variant)
+
+    return result.order_by("global_bp").key_by("id").distinct()
 
 
-def prepare_associations():
+def prepare_associations(verify=True):
     client = storage.Client()
     input_path = build_analaysis_input_path()
-    output_path = build_output_path()
+    output_dir = build_output_path()
 
     bucket = client.get_bucket(get_gcp_bucket_name())
     blobs = [
@@ -67,8 +77,8 @@ def prepare_associations():
         if (input_path.split(f"gs://{bucket.name}/")[-1] in b.name) and (".tsv" in b.name)
     ]
 
-    eqtls = [str(path) for path in blobs if re.search(r"eSNP", str(path))]
-    esnps = [str(path) for path in blobs if re.search(r"eQTL", str(path))]
+    eqtls = [str(path) for path in blobs if re.search(r"eQTL", str(path))]
+    esnps = [str(path) for path in blobs if re.search(r"eSNP", str(path))]
 
     schema = {
         "db_key": hail.tstr,
@@ -93,30 +103,45 @@ def prepare_associations():
         "ROUND": hail.tint32,
     }
 
+    matches = [re.search(r"_(?P<chrom>chr\d+)_", str(s), flags=re.IGNORECASE) for s in [*eqtls, *esnps]]
     chromosomes = sorted(
-        set([re.search(r"_(?P<chrom>chr\d+)_", str(s), flags=re.IGNORECASE).group("chrom") for s in [*eqtls, *esnps]]),
+        set([m.group("chrom") for m in matches if m]),
         key=lambda chrom: chrom_ord(chrom.replace("chr", "")),
     )
 
-    reference = pipeline_config.get(PROJECT, "reference").lower()
+    reference = pipeline_config.get(PROJECT, "reference")
+
+    print("Loading eSNP files")
+    esnp_table = process_table(
+        table=import_table(paths=esnps, schema=schema),
+        reference=reference,
+        is_esnp=True,
+        verify=verify,
+    ).cache()
 
     for (index, chrom) in enumerate(chromosomes):
-        output_path = f"{output_path}/associations/{chrom}.tsv.gz"
-
-        print(f"Loading association files for {chrom}")
+        print(f"Loading eQTL files for {chrom}")
         eqtl_table = process_table(
             table=import_table(paths=[str(p) for p in eqtls if f"_{chrom}_" in str(p)], schema=schema),
             reference=reference,
             is_esnp=False,
-        )
-        esnp_table = process_table(
-            table=import_table(paths=[str(p) for p in esnps if f"_{chrom}_" in str(p)], schema=schema),
-            reference=reference,
-            is_esnp=True,
+            verify=verify,
         )
 
-        association_table = eqtl_table.join(esnp_table)
+        # Set is_esnp to the value that the matching esnp row contains
+        esnps_for_chrom = esnp_table.filter(esnp_table.chrom == chrom.replace("chr", ""))
+        association_table = eqtl_table.annotate(is_esnp=hail.is_defined(esnps_for_chrom[eqtl_table.id]))
 
+        if verify:
+            # Check that rows have been joined correctly. Correctly means all ensps have been merged with their
+            # matching row in the eqtl_table and `is_esnp` is marked as `True`.
+            print("Verifying eSNP join")
+            # pylint: disable=singleton-comparison
+            count_left = association_table.filter(association_table.is_esnp == True).key_by("id").distinct().count()
+            count_right = esnps_for_chrom.key_by("id").distinct().count()
+            assert count_left == count_right, "some eSNPs have not been marked in the associations table"
+
+        output_path = f"{output_dir}/associations/{chrom}.tsv.gz"
         print(f"Writing output to '{output_path}'")
         association_table.export(
             output=output_path,
@@ -127,4 +152,6 @@ def prepare_associations():
 
 
 if __name__ == "__main__":
+    hail.init()
+
     prepare_associations()

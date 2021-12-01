@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# coding: utf-8
+
 import pandas as pd
 
 from data_pipeline.datasets.tob.helpers import build_analaysis_input_path, build_output_path
