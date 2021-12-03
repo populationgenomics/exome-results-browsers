@@ -172,6 +172,7 @@ def prepare_gene_models_helper(reference_genome):
 
     # Annotate genes with canonical transcript
     canonical_transcripts = load_canonical_transcripts(canonical_transcripts_path)
+    # pylint: disable=no-value-for-parameter
     genes = genes.annotate(
         canonical_transcript_id=hl.if_else(
             hl.all(
@@ -181,7 +182,7 @@ def prepare_gene_models_helper(reference_genome):
                 ]
             ),
             canonical_transcripts[genes.gene_id].transcript_id,
-            hl.missing(hl.tstr),
+            hl.null(hl.tstr),
         )
     )
 
@@ -225,6 +226,7 @@ def prepare_gene_models():
         )
     )
 
+    # pylint: disable=no-value-for-parameter
     genes = genes.transmute(
         alias_symbols=hl.if_else(
             hl.all(
@@ -234,7 +236,7 @@ def prepare_gene_models():
                 ]
             ),
             hl.str("|").join(genes.alias_symbols),
-            hl.missing(hl.tstr),
+            hl.null(hl.tstr),
         ),
         previous_symbols=hl.if_else(
             hl.all(
@@ -244,7 +246,7 @@ def prepare_gene_models():
                 ]
             ),
             hl.str("|").join(genes.previous_symbols),
-            hl.missing(hl.tstr),
+            hl.null(hl.tstr),
         ),
     )
 
