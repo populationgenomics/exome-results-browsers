@@ -1,10 +1,9 @@
-#!/usr/bin/env python3
-# coding: utf-8
-
 import json
-import csv
+import gzip
 
 import hail as hl
+
+from google.cloud import storage
 
 from data_pipeline.config import pipeline_config
 from data_pipeline.datasets.tob.helpers import (
@@ -13,6 +12,7 @@ from data_pipeline.datasets.tob.helpers import (
     build_gencode_path,
     build_hgnc_path,
     build_canonical_transcripts_path,
+    get_gcp_bucket_name,
 )
 
 
@@ -170,7 +170,19 @@ def prepare_gene_models_helper(reference_genome):
 
     # Annotate genes with canonical transcript
     canonical_transcripts = load_canonical_transcripts(canonical_transcripts_path)
-    genes = genes.annotate(canonical_transcript_id=canonical_transcripts[genes.gene_id].transcript_id)
+    # pylint: disable=no-value-for-parameter
+    genes = genes.annotate(
+        canonical_transcript_id=hl.if_else(
+            hl.all(
+                [
+                    hl.is_defined(canonical_transcripts[genes.gene_id].transcript_id),
+                    hl.str(canonical_transcripts[genes.gene_id].transcript_id).strip().length() > 0,
+                ]
+            ),
+            canonical_transcripts[genes.gene_id].transcript_id,
+            hl.null(hl.tstr),
+        )
+    )
 
     # Drop transcripts except for canonical
     genes = genes.annotate(
@@ -222,22 +234,53 @@ def prepare_gene_models():
         )
     )
 
+    # pylint: disable=no-value-for-parameter
     genes = genes.transmute(
-        alias_symbols=hl.str("|").join(hl.or_else(genes.alias_symbols, hl.empty_array(hl.tstr))),
-        previous_symbols=hl.str("|").join(hl.or_else(genes.previous_symbols, hl.empty_array(hl.tstr))),
+        alias_symbols=hl.if_else(
+            hl.all(
+                [
+                    hl.is_defined(genes.alias_symbols),
+                    genes.alias_symbols.length() > 0,
+                ]
+            ),
+            hl.str("|").join(genes.alias_symbols),
+            hl.null(hl.tstr),
+        ),
+        previous_symbols=hl.if_else(
+            hl.all(
+                [
+                    hl.is_defined(genes.previous_symbols),
+                    genes.previous_symbols.length() > 0,
+                ]
+            ),
+            hl.str("|").join(genes.previous_symbols),
+            hl.null(hl.tstr),
+        ),
     )
 
     dataframe = genes.to_pandas(flatten=False)
-    dataframe.canonical_transcript = dataframe.canonical_transcript.apply(jsonize_pyspark_row)
+    dataframe.canonical_transcript = dataframe.canonical_transcript.apply(pyspark_row_to_dict)
 
+    # GCP only supports new line delimited JSON files, so we will need to write one record per line.
+    tmp_file = "/tmp/gene_models.ndjson.gz"
+    with gzip.open(tmp_file, "wt", encoding="utf-8") as zipfile:
+        for record in dataframe.to_dict(orient="records"):
+            zipfile.write(f"{json.dumps(record, ensure_ascii=True)}\n")
+
+    # Push this file to Cloud Storage
     out_dir = build_output_path()
-    output_path = f"{out_dir}/metadata/gene_models.tsv.gz"
-    dataframe.to_csv(
-        output_path, mode="w", sep="\t", header=True, index=False, quoting=csv.QUOTE_NONE, compression="gzip"
-    )
+    output_path = f"{out_dir}/metadata/gene_models.ndjson.gz"
+
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(get_gcp_bucket_name())
+
+    blob = bucket.blob(output_path.replace(f"gs://{bucket.name}/", ""))
+    blob.upload_from_filename(tmp_file)
+
+    print(f"File {tmp_file} uploaded to {output_path}.")
 
 
-def jsonize_pyspark_row(record):
+def pyspark_row_to_dict(record):
     if record["transcript_id"] is None and record["exons"] is None:
         return None
 
@@ -252,7 +295,7 @@ def jsonize_pyspark_row(record):
             for value in exon.values():
                 assert value is not None
 
-    return json.dumps(record)
+    return record
 
 
 if __name__ == "__main__":
