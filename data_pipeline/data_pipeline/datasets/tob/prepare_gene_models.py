@@ -16,32 +16,32 @@ from data_pipeline.datasets.tob.helpers import (
 )
 
 
-def get_exons(gencode, reference_genome):
+def get_features(gencode, reference_genome):
     """
-    Filter Gencode table to exons and format fields.
+    Filter Gencode table to features and format fields.
     """
-    exons = gencode.filter(hl.set(["exon", "CDS", "UTR", "start_codon", "stop_codon"]).contains(gencode.feature))
-    exons = exons.select(
-        feature_type=exons.feature,
-        transcript_id=exons.transcript_id.split("\\.")[0],
-        gene_id=exons.gene_id.split("\\.")[0],
-        chrom=exons.interval.start.contig.replace("^chr", ""),
-        strand=exons.strand,
-        start=exons.interval.start.position,
-        stop=exons.interval.end.position,
+    features = gencode.filter(hl.set(["exon", "CDS", "UTR", "start_codon", "stop_codon"]).contains(gencode.feature))
+    features = features.select(
+        feature_type=features.feature,
+        transcript_id=features.transcript_id.split("\\.")[0],
+        gene_id=features.gene_id.split("\\.")[0],
+        chrom=features.interval.start.contig.replace("^chr", ""),
+        strand=features.strand,
+        start=features.interval.start.position,
+        stop=features.interval.end.position,
         global_start=hl.locus(
-            exons.interval.start.contig.replace("^chr", ""),
-            exons.interval.start.position,
+            features.interval.start.contig.replace("^chr", ""),
+            features.interval.start.position,
             reference_genome,
         ).global_position(),
         global_stop=hl.locus(
-            exons.interval.end.contig.replace("^chr", ""),
-            exons.interval.end.position,
+            features.interval.end.contig.replace("^chr", ""),
+            features.interval.end.position,
             reference_genome,
         ).global_position(),
     )
 
-    return exons
+    return features
 
 
 def get_genes(gencode, reference_genome):
@@ -111,18 +111,20 @@ def load_gencode_gene_models(gtf_path, reference_genome):
         force=gtf_path.endswith(".gz"),
     )
 
-    # Extract genes, transcripts, and exons from the GTF file
+    # Extract genes, transcripts, and features from the GTF file
     genes = get_genes(gencode, reference_genome)
     transcripts = get_transcripts(gencode, reference_genome)
-    exons = get_exons(gencode, reference_genome)
-    exons = exons.cache()
+    features = get_features(gencode, reference_genome)
+    features = features.cache()
 
-    # Annotate transcripts with their exons
-    transcript_exons = exons.group_by(exons.transcript_id).aggregate(exons=hl.agg.collect(exons.row_value))
+    # Annotate transcripts with their features
+    transcript_features = features.group_by(features.transcript_id).aggregate(
+        features=hl.agg.collect(features.row_value)
+    )
 
     transcripts = transcripts.annotate(
-        exons=transcript_exons[transcripts.transcript_id].exons.map(
-            lambda exon: exon.select("feature_type", "start", "stop", "global_start", "global_stop")
+        features=transcript_features[transcripts.transcript_id].features.map(
+            lambda f: f.select("feature_type", "start", "stop", "global_start", "global_stop")
         )
     )
 
@@ -170,7 +172,6 @@ def prepare_gene_models_helper(reference_genome):
 
     # Annotate genes with canonical transcript
     canonical_transcripts = load_canonical_transcripts(canonical_transcripts_path)
-    # pylint: disable=no-value-for-parameter
     genes = genes.annotate(
         canonical_transcript_id=hl.if_else(
             hl.all(
@@ -180,7 +181,7 @@ def prepare_gene_models_helper(reference_genome):
                 ]
             ),
             canonical_transcripts[genes.gene_id].transcript_id,
-            hl.null(hl.tstr),
+            hl.missing(hl.tstr),
         )
     )
 
@@ -190,16 +191,6 @@ def prepare_gene_models_helper(reference_genome):
             lambda transcript: transcript.transcript_id == genes.canonical_transcript_id
         ).head()
     )
-
-    # genes = genes.annotate(
-    #     canonical_transcript=genes.canonical_transcript.annotate(
-    #         exons=hl.cond(
-    #             genes.canonical_transcript.exons.any(lambda exon: exon.feature_type == "CDS"),
-    #             genes.canonical_transcript.exons.filter(lambda exon: exon.feature_type == "CDS"),
-    #             genes.canonical_transcript.exons.filter(lambda exon: exon.feature_type == "exon"),
-    #         )
-    #     )
-    # )
 
     genes = genes.drop("transcripts")
 
@@ -234,7 +225,6 @@ def prepare_gene_models():
         )
     )
 
-    # pylint: disable=no-value-for-parameter
     genes = genes.transmute(
         alias_symbols=hl.if_else(
             hl.all(
@@ -244,7 +234,7 @@ def prepare_gene_models():
                 ]
             ),
             hl.str("|").join(genes.alias_symbols),
-            hl.null(hl.tstr),
+            hl.missing(hl.tstr),
         ),
         previous_symbols=hl.if_else(
             hl.all(
@@ -254,7 +244,7 @@ def prepare_gene_models():
                 ]
             ),
             hl.str("|").join(genes.previous_symbols),
-            hl.null(hl.tstr),
+            hl.missing(hl.tstr),
         ),
     )
 
@@ -281,18 +271,18 @@ def prepare_gene_models():
 
 
 def pyspark_row_to_dict(record):
-    if record["transcript_id"] is None and record["exons"] is None:
+    if record["transcript_id"] is None and record["features"] is None:
         return None
 
     record = record.asDict()
     for value in record.values():
         assert value is not None
 
-    if record["exons"] is not None:
-        record["exons"] = [r.asDict() for r in record["exons"]]
+    if record["features"] is not None:
+        record["features"] = [r.asDict() for r in record["features"]]
 
-        for exon in record["exons"]:
-            for value in exon.values():
+        for feature in record["features"]:
+            for value in feature.values():
                 assert value is not None
 
     return record

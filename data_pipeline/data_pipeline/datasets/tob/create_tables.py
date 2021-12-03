@@ -73,7 +73,7 @@ def init_tables(delete_existing_tables=False, reference="grch37"):
                     bigquery.SchemaField("global_start", "INTEGER", mode="REQUIRED"),
                     bigquery.SchemaField("global_stop", "INTEGER", mode="REQUIRED"),
                     bigquery.SchemaField(
-                        "exons",
+                        "features",
                         "RECORD",
                         mode="REPEATED",
                         fields=[
