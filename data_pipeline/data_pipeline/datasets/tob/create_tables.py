@@ -1,18 +1,22 @@
+#!/usr/bin/env python3
+# coding: utf-8
+
 import math
+import json
 
 from google.cloud import storage, bigquery
 from google.api_core import exceptions
 
 from data_pipeline.config import pipeline_config
-from data_pipeline.datasets.tob.helpers import PROJECT, get_gcp_bucket_name, build_output_path
+from data_pipeline.datasets.tob.helpers import PROJECT, get_gcp_bucket_name
 
 
 def init_tables(delete_existing_tables=False, reference="grch37"):
     schemas = {
-        "associations": [
+        "association": [
             bigquery.SchemaField("id", "STRING", mode="REQUIRED"),
             bigquery.SchemaField("cell_type_id", "STRING", mode="REQUIRED"),
-            bigquery.SchemaField("cell_type", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("cell_type_name", "STRING", mode="REQUIRED"),
             bigquery.SchemaField("rsid", "STRING", mode="REQUIRED"),
             bigquery.SchemaField("snpid", "STRING", mode="REQUIRED"),
             bigquery.SchemaField("gene", "STRING", mode="REQUIRED"),
@@ -56,7 +60,7 @@ def init_tables(delete_existing_tables=False, reference="grch37"):
             bigquery.SchemaField("global_start", "INTEGER", mode="REQUIRED"),
             bigquery.SchemaField("global_stop", "INTEGER", mode="REQUIRED"),
             bigquery.SchemaField("gencode_gene_symbol", "STRING", mode="REQUIRED"),
-            bigquery.SchemaField("canonical_transcript_id", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("canonical_transcript_id", "STRING", mode="NULLABLE"),
             bigquery.SchemaField(
                 "canonical_transcript",
                 "RECORD",
@@ -179,6 +183,7 @@ def init_tables(delete_existing_tables=False, reference="grch37"):
 
         try:
             if delete_existing_tables:
+                print(f"Deleting existing table '{table.table_id}'")
                 bq_client.delete_table(table_ref, not_found_ok=True)
 
             table = bq_client.create_table(table_ref)
@@ -186,6 +191,7 @@ def init_tables(delete_existing_tables=False, reference="grch37"):
         except exceptions.GoogleAPIError as error:
             print(error)
             table = bq_client.get_table(table_id)
+            print(f"Retrieved existing table '{table.table_id}'")
 
         tables[table_name] = table
 
@@ -205,16 +211,18 @@ def populate_table(
     client = bigquery.Client()
     dataset = client.dataset(reference.lower())
 
-    job_config = bigquery.LoadJobConfig(
+    job_config_kwargs = dict(
         source_format=source_uri_format,
-        field_delimiter=delimiter,
         autodetect=False,
         schema=table.schema,
-        skip_leading_rows=skip_leading_rows,
         max_bad_records=max_bad_records,
         write_disposition=write_disposition,
     )
 
+    if source_uri_format == bigquery.SourceFormat.CSV:
+        job_config_kwargs = dict(skip_leading_rows=skip_leading_rows, field_delimiter=delimiter, **job_config_kwargs)
+
+    job_config = bigquery.LoadJobConfig(**job_config_kwargs)
     load_job = client.load_table_from_uri(source_uris=source_uris, destination=table, job_config=job_config)
 
     try:
@@ -226,21 +234,23 @@ def populate_table(
         print(f"Loaded {table.num_rows} rows into '{table.table_id}'")
 
         return table
+    except exceptions.BadRequest as error:
+        print(f"Bad request: {error}")
+        print(json.dumps(error.errors, indent=2))
     except exceptions.GoogleAPIError as error:
         print(f"Error: {error}")
 
 
-def create_tables():
+def create_tables(delete_existing_tables=True):
     client = storage.Client()
     bucket = client.get_bucket(get_gcp_bucket_name())
     reference = pipeline_config.get(PROJECT, "reference").lower()
 
-    tables = init_tables(delete_existing_tables=True, reference=reference)
-
-    processed_files_path = build_output_path()
-    blobs = list(bucket.list_blobs(processed_files_path))
+    tables = init_tables(delete_existing_tables=delete_existing_tables, reference=reference)
+    blobs = list(bucket.list_blobs())
 
     association_table = tables["association"]
+    print("Populating association table")
     populate_table(
         table=association_table,
         reference=reference,
@@ -254,6 +264,7 @@ def create_tables():
     )
 
     log_residual_table = tables["log_residual"]
+    print("Populating log residual table")
     populate_table(
         table=log_residual_table,
         reference=reference,
@@ -267,17 +278,19 @@ def create_tables():
     )
 
     gene_model_table = tables["gene_model"]
+    print("Populating gene model table")
     populate_table(
         table=gene_model_table,
         reference=reference,
         source_uris=[
-            f"gs://{bucket.name}/{blob.name}" for blob in blobs if "/metadata/gene_models.tsv.gz" in blob.name
+            f"gs://{bucket.name}/{blob.name}" for blob in blobs if "/metadata/gene_models.ndjson.gz" in blob.name
         ],
-        delimiter="\t",
-        source_uri_format=bigquery.SourceFormat.CSV,
+        max_bad_records=0,
+        source_uri_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
     )
 
     cell_types_table = tables["cell_type"]
+    print("Populating cell type table")
     populate_table(
         table=cell_types_table,
         reference=reference,
