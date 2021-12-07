@@ -85,7 +85,6 @@ const Menu = styled.ul`
 
 const TopBar = ({ title, links, backgroundColor, textColor }) => {
   const [isMenuExpanded, setIsMenuExpanded] = useState(false)
-  const [showOtherStudiesModal, setShowOtherStudiesModal] = useState(false)
 
   const closeMenu = () => {
     setIsMenuExpanded(false)
@@ -121,32 +120,7 @@ const TopBar = ({ title, links, backgroundColor, textColor }) => {
             </Link>
           </li>
         ))}
-        <li>
-          <Link
-            to="/other-studies"
-            onClick={(e) => {
-              setShowOtherStudiesModal(true)
-              closeMenu()
-              e.preventDefault()
-            }}
-          >
-            Other Studies
-          </Link>
-        </li>
       </Menu>
-
-      {showOtherStudiesModal && (
-        <Modal
-          id="other-studies"
-          size="large"
-          title="Other Studies"
-          onRequestClose={() => {
-            setShowOtherStudiesModal(false)
-          }}
-        >
-          <OtherStudies />
-        </Modal>
-      )}
     </TopBarWrapper>
   )
 }
