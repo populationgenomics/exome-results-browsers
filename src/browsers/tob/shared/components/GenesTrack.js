@@ -167,21 +167,6 @@ const GenesTrack = ({
               })
             )}
           </g>
-          {/* <g transform={`translate(0, ${innerHeight})`}>
-            <line x2={`${innerWidth}`} stroke="black" />
-
-            {xScale.ticks().map((tick) => (
-              <g key={tick} transform={`translate(${xScale(tick)}, 0)`}>
-                <text style={{ textAnchor: 'middle' }} dy=".71em" y={9}>
-                  {tick}
-                </text>
-                <line y2={6} stroke="black" />
-              </g>
-            ))}
-          </g>
-          <text x={innerWidth / 2} y={innerHeight + 50} textAnchor="middle">
-            Chromosomal Position
-          </text> */}
         </g>
       </svg>
     </>
