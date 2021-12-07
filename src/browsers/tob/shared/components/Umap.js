@@ -13,7 +13,7 @@ import {
 } from 'd3fc'
 import { annotationCallout } from 'd3-svg-annotation'
 
-import svgAnnotationSeries from './utilities/svgAnnotationSeries'
+import seriesSvgAnnotation from './utilities/seriesSvgAnnotation'
 
 const DEFAULT_COLORS = [
   '#332288',
@@ -179,7 +179,7 @@ const Umap = ({
       select('#chart').datum({ annotations, newData }).call(chart) // eslint-disable-line
     })
 
-    const annotationSeries = svgAnnotationSeries().notePadding(15).type(annotationCallout)
+    const annotationSeries = seriesSvgAnnotation().notePadding(15).type(annotationCallout)
 
     const chart = chartCartesian(xScale, yScale)
       .webglPlotArea(
