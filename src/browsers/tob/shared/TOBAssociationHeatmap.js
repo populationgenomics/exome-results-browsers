@@ -12,7 +12,7 @@ const TOBAssociationHeatmap = ({ query, round }) => {
   const [apiPath, setApiPath] = useState(null)
 
   useEffect(() => {
-    setApiPath(`/heatmap/?query=${query}&round=${round}`)
+    setApiPath(`/associations/aggregate/?query=${query}&round=${round}`)
   }, [query])
 
   if (!apiPath) {
