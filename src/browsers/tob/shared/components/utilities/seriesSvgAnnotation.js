@@ -4,7 +4,7 @@ import { annotation } from 'd3-svg-annotation'
 import { scaleLinear, select } from 'd3'
 import { dataJoin, rebindAll } from 'd3fc'
 
-const svgAnnotationSeries = () => {
+const seriesSvgAnnotation = () => {
   // the underlying component that we are wrapping
   const d3Annotation = annotation()
 
@@ -50,4 +50,4 @@ const svgAnnotationSeries = () => {
   return series
 }
 
-export default svgAnnotationSeries
+export default seriesSvgAnnotation
