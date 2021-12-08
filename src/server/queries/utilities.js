@@ -1,129 +1,81 @@
-class ReferenceGenome {
-  static GENOMES = {
-    grch37: 'grch37',
-    grch38: 'grch38',
-  }
+const _ = require('lodash')
+const { BigQuery } = require('@google-cloud/bigquery')
 
-  static referenceGenomeIds() {
-    return Array.from(Object.values(this.GENOMES))
-  }
+const { ReferenceGenome } = require('./genome')
 
-  static default() {
-    return this.grch37()
-  }
+const tableIds = {
+  association: 'association',
+  logResidual: 'log_residual',
+  cellType: 'cell_type',
+  geneModel: 'gene_model',
+}
 
-  static grch37() {
-    return this.GENOMES.grch37
-  }
+const datasetIds = {
+  grch37: ReferenceGenome.grch37(),
+  grch38: ReferenceGenome.grch38(),
+}
 
-  static grch38() {
-    return this.GENOMES.grch38
-  }
+const projectIds = {
+  tobWgsBrowser: 'tob-wgs-browser',
+}
 
-  static getReference(value) {
-    const id = value.toString().toLowerCase()
-
-    if (!this.referenceGenomeIds().includes(id)) {
-      const options = this.referenceGenomeIds()
-        .map((r) => `'${r}'`)
-        .join(', ')
-
-      throw new Error(`'${id}' is not a supported reference. Supported reference are ${options}`)
-    }
-
-    return id
+const defaultQueryOptions = () => {
+  return {
+    verbose: process.env.NODE_ENV === 'development',
+    datasetId: process.env.DATASET_ID || datasetIds.grch37,
+    projectId: process.env.PROJECT_ID || projectIds.tobWgsBrowser,
   }
 }
 
-const CHROM_LENGTHS = {
-  [ReferenceGenome.grch37()]: {
-    chr1: 249250621,
-    chr2: 243199373,
-    chr3: 198022430,
-    chr4: 191154276,
-    chr5: 180915260,
-    chr6: 171115067,
-    chr7: 159138663,
-    chr8: 146364022,
-    chr9: 141213431,
-    chr10: 135534747,
-    chr11: 135006516,
-    chr12: 133851895,
-    chr13: 115169878,
-    chr14: 107349540,
-    chr15: 102531392,
-    chr16: 90354753,
-    chr17: 81195210,
-    chr18: 78077248,
-    chr19: 59128983,
-    chr20: 63025520,
-    chr21: 48129895,
-    chr22: 51304566,
-    chrX: 155270560,
-    chrY: 59373566,
-  },
-  [ReferenceGenome.grch38()]: {
-    chr1: 248956422,
-    chr2: 242193529,
-    chr3: 198295559,
-    chr4: 190214555,
-    chr5: 181538259,
-    chr6: 170805979,
-    chr7: 159345973,
-    chr8: 145138636,
-    chr9: 138394717,
-    chr10: 133797422,
-    chr11: 135086622,
-    chr12: 133275309,
-    chr13: 114364328,
-    chr14: 107043718,
-    chr15: 101991189,
-    chr16: 90338345,
-    chr17: 83257441,
-    chr18: 80373285,
-    chr19: 58617616,
-    chr20: 64444167,
-    chr21: 46709983,
-    chr22: 50818468,
-    chrX: 156040895,
-    chrY: 57227415,
-  },
-}
+const parseConditioningRound = (value) => {
+  if (!value) return 1
 
-const getChromOffsets = () => {
-  const offsets = {
-    [ReferenceGenome.grch37()]: {},
-    [ReferenceGenome.grch38()]: {},
+  if (!Number.isInteger(value) && !_.range(1, 7).includes(parseInt(value, 10))) {
+    throw new Error('Conditioning round must be a number between 1 and 6')
   }
 
-  Object.keys(offsets).forEach((reference) => {
-    Object.keys(CHROM_LENGTHS[reference]).forEach((_, index) => {
-      const offset = Object.values(CHROM_LENGTHS[reference])
-        .slice(0, index)
-        .reduce((x, y) => x + y, 0)
+  return parseInt(value, 10)
+}
 
-      offsets[reference][index + 1] = offset
-    })
+const submitQuery = async ({ query, options }) => {
+  // For all options, see https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs/query
+  const client = new BigQuery()
+
+  const verbose = options.verbose || false
+  if (verbose) {
+    // eslint-disable-next-line no-console
+    console.debug(query)
+    // eslint-disable-next-line no-console
+    console.debug(options.params)
+  }
+
+  // Remove options that are not BigQuery options
+  const bigQueryOverrides = { ...options }
+  const nonBigQueryOptions = ['verobse', 'datasetId', 'projectId']
+  nonBigQueryOptions.forEach((prop) => {
+    delete bigQueryOverrides[prop]
   })
 
-  return offsets
-}
+  // Send job and await results. These methods return arrays.
+  const [job] = await client.createQueryJob({
+    query,
+    location: 'australia-southeast1',
+    useLegacySql: false, // Must be turned off to use parameterized queries.
+    allowLargeResults: true,
+    useQueryCache: true,
+    ...bigQueryOverrides,
+  })
 
-const convertPositionToGlobalPosition = ({
-  chrom,
-  start,
-  stop,
-  reference = ReferenceGenome.default(),
-}) => {
-  const refId = ReferenceGenome.getReference(reference)
+  const [rows] = await job.getQueryResults()
 
-  // Range end is not included
-  const offset = getChromOffsets()[refId][chrom] - 1
-
-  return { chrom, start: start + offset, stop: stop + offset }
+  return rows
 }
 
 module.exports = {
-  ReferenceGenome,
-  convertPositionToGlobalPosition,
+  tableIds,
+  datasetIds,
+  projectIds,
+  defaultQueryOptions,
+  parseConditioningRound,
+  submitQuery,
 }
