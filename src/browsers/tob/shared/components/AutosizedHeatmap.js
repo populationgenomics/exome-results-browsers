@@ -20,7 +20,7 @@ const Wrapper = styled.div`
 `
 
 const AutosizedHeatmap = withSize()(({ size, ...otherProps }) => {
-  const height = Math.min(800, 2 * (otherProps.rowNames?.length || 1))
+  const height = Math.min(800, 10 * (otherProps.rowNames?.length || 1))
   return (
     <Wrapper>
       {Boolean(size.width) && <HeatmapWrapper height={height} width={size.width} {...otherProps} />}
