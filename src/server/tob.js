@@ -1,15 +1,33 @@
 const path = require('path')
 const process = require('process')
 
-const _ = require('lodash')
 const compression = require('compression')
 const express = require('express')
 const morgan = require('morgan')
 const helmet = require('helmet')
 
-const { isRegionId, isVariantId, isRsId } = require('@gnomad/identifiers')
+const {
+  isRegionId,
+  isVariantId,
+  isRsId,
+  parseRegionId,
+  parseVariantId,
+} = require('@gnomad/identifiers')
 
-const { fetchGeneIdSuggestions, fetchAssociationHeatmap } = require('./queries/bigQuery')
+const {
+  fetchGenes,
+  fetchGenesAssociatedWithVariant,
+  fetchGenesById,
+  fetchGeneIdSuggestions,
+  fetchAssociationHeatmap,
+  fetchVariantsInRegion,
+  fetchVariantsById,
+  fetchCellTypes,
+  fetchCellTypesById,
+  fetchGenesInRegion,
+} = require('./queries')
+const { parseConditioningRound } = require('./queries/utilities')
+const { convertPositionToGlobalPosition } = require('./queries/genome')
 
 // ================================================================================================
 // Configuration
@@ -100,30 +118,91 @@ app.use('/config.js', (req, res) => {
 // ================================================================================================
 // Gene
 // ================================================================================================
+app.get('/api/genes', (req, res) => {
+  const { query } = req.query.query
+
+  if (isRegionId(query)) {
+    const region = convertPositionToGlobalPosition({ ...parseRegionId(query) })
+    return fetchGenesInRegion({ region })
+      .then((results) => res.status(200).json({ results }))
+      .catch((error) => res.status(400).json({ error: error.message }))
+  }
+
+  if (isVariantId(query)) {
+    const variant = parseVariantId(query)
+    return fetchGenesAssociatedWithVariant({ variant })
+      .then((results) => res.status(200).json({ results }))
+      .catch((error) => res.status(400).json({ error: error.message }))
+  }
+
+  return fetchGenes({ query })
+    .then((results) => res.status(200).json({ results }))
+    .catch((error) => res.status(400).json({ error: error.message }))
+})
+
+app.get('/api/genes/:id', (req, res) => {
+  return fetchGenesById({ ids: [req.params.id] })
+    .then((results) => res.status(200).json({ results }))
+    .catch((error) => res.status(400).json({ error: error.message }))
+})
 
 // ================================================================================================
 // Variants
 // ===============================================================================================
+app.get('/api/associations/', (req, res) => {
+  let round = 1
+  try {
+    round = parseConditioningRound(req.query.round)
+  } catch (error) {
+    return res.status(400).json({ error: error.message })
+  }
 
-// ================================================================================================
-// Association heatmap
-// ================================================================================================
+  const region = convertPositionToGlobalPosition({ ...parseRegionId(req.query.region) })
+  const genes = req.query.genes?.trim()?.split(',') || []
+  const cellTypes = req.query.cellTypes?.trim()?.split(',') || []
 
-app.get('/api/heatmap', (req, res) => {
+  return fetchVariantsInRegion({ region, genes, cellTypes, round })
+    .then((results) => res.status(200).json({ results }))
+    .catch((error) => res.status(400).json({ error: error.message }))
+})
+
+app.get('/api/associations/aggregate', (req, res) => {
   const { query } = req.query
-  let { round } = parseInt(req.query, 10)
 
   if (!isRegionId(query) && !isVariantId(query) && !isRsId(query)) {
     return res.status(400).json({ error: 'Query must be a region, variant ID or Rsid' })
   }
 
-  if (!round) round = 1
-  if (!Number.isInteger(round) && !_.range(1, 7).includes(parseInt(round, 10))) {
-    return res.status(400).json({ error: 'Round must be a number between 1 and 6' })
+  let round = 1
+  try {
+    round = parseConditioningRound(req.query.round)
+  } catch (error) {
+    return res.status(400).json({ error: error.message })
   }
 
-  return fetchAssociationHeatmap({ query, round: parseInt(round, 10) })
+  return fetchAssociationHeatmap({ query, round })
     .then((data) => res.status(200).json({ results: data }))
+    .catch((error) => res.status(400).json({ error: error.message }))
+})
+
+app.get('/api/associations/:id', (req, res) => {
+  return fetchVariantsById({ ids: [req.params.id] })
+    .then((results) => res.status(200).json({ results }))
+    .catch((error) => res.status(400).json({ error: error.message }))
+})
+
+// ================================================================================================
+// Cell types
+// ================================================================================================
+app.get('/api/cell-types/', (req, res) => {
+  return fetchCellTypes()
+    .then((results) => res.status(200).json({ results }))
+    .catch((error) => res.status(400).json({ error: error.message }))
+})
+
+app.get('/api/cell-types/:id', (req, res) => {
+  return fetchCellTypesById({ ids: [req.params.id] })
+    .then((results) => res.status(200).json({ results }))
     .catch((error) => res.status(400).json({ error: error.message }))
 })
 
