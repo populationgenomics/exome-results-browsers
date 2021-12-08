@@ -107,7 +107,7 @@ const generateVariantQuery = ({
 
   const params = {
     round,
-    chrom: parseInt(variant.chrom, 10),
+    chrom: variant.chrom,
     pos: variant.pos,
     ref: variant.ref,
     alt: variant.alt,
