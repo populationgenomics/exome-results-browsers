@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
 
+import { SizeMe } from 'react-sizeme'
+
 import Fetch from '../../base/Fetch'
 import StatusMessage from '../../base/StatusMessage'
 
-import { PlotWrapper } from '../utilities/styling'
-
-import AutosizedHeatmap from './components/AutosizedHeatmap'
+import { PlotWrapper } from './components/utilities/styling'
+import Heatmap from './components/Heatmap'
 
 const TOBAssociationHeatmap = ({ query, round }) => {
   const [apiPath, setApiPath] = useState(null)
@@ -55,26 +56,34 @@ const TOBAssociationHeatmap = ({ query, round }) => {
         return (
           <>
             <PlotWrapper>
-              <AutosizedHeatmap
-                id="association-heatmap"
-                results={filledData}
-                title={'Maximum -log\u2081\u2080(p) variant association'}
-                colNames={cellTypeIds}
-                rowNames={geneNames}
-                tileSpacing={0.01}
-                tileRowName={(d) => d.geneName}
-                tileColName={(d) => d.cellTypeId}
-                minValue={0}
-                maxValue={Math.min(4, -Math.log10(range.minValue))}
-                tileValue={(d) => Math.min(4, -Math.log10(d.value))}
-                tileIsDefined={(d) => Number.isFinite(d.value)}
-                tileTooltip={(d) => {
-                  if (!Number.isFinite(d.value)) {
-                    return `No associations found`
-                  }
-                  return `${d.geneName} - ${d.cellTypeId}: ${-Math.log(d.value).toFixed(2)}`
+              <SizeMe>
+                {({ size }) => {
+                  return (
+                    <Heatmap
+                      id="association-heatmap"
+                      width={size.width}
+                      height={Math.min(800, 10 * geneNames?.length) || 1}
+                      data={filledData}
+                      title={'Maximum -log\u2081\u2080(p) variant association'}
+                      colNames={cellTypeIds}
+                      rowNames={geneNames}
+                      tileSpacing={0.01}
+                      tileRowName={(d) => d.geneName}
+                      tileColName={(d) => d.cellTypeId}
+                      minValue={0}
+                      maxValue={Math.min(4, -Math.log10(range.minValue))}
+                      tileValue={(d) => Math.min(4, -Math.log10(d.value))}
+                      tileIsDefined={(d) => Number.isFinite(d.value)}
+                      tileTooltip={(d) => {
+                        if (!Number.isFinite(d.value)) {
+                          return `No associations found`
+                        }
+                        return `${d.geneName} - ${d.cellTypeId}: ${-Math.log(d.value).toFixed(2)}`
+                      }}
+                    />
+                  )
                 }}
-              />
+              </SizeMe>
             </PlotWrapper>
           </>
         )
@@ -92,5 +101,5 @@ TOBAssociationHeatmap.defaultProps = {
   round: 1,
 }
 
-export { TileEventType } from './components/AutosizedHeatmap'
+export { TileEventType } from './components/Heatmap'
 export default TOBAssociationHeatmap
