@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import PropTypes from 'prop-types'
 
-import { PlotWrapper } from '../utilities/styling'
 import TOBAssociationHeatmap from '../shared/TOBAssociationHeatmap'
 
 const TOBAssociationPage = ({ match }) => {
@@ -9,9 +8,7 @@ const TOBAssociationPage = ({ match }) => {
 
   return (
     <>
-      <PlotWrapper>
-        <TOBAssociationHeatmap query={search} />
-      </PlotWrapper>
+      <TOBAssociationHeatmap query={search} />
     </>
   )
 }
