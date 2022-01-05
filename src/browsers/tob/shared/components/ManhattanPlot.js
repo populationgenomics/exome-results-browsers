@@ -3,20 +3,16 @@ import PropTypes from 'prop-types'
 
 import { scaleLinear, extent, zoom, select, pointer, brushX } from 'd3'
 
-const ManhattanPlot = ({
-  dataPoints,
-  margin,
-  height,
-  width,
-  onChange,
-  innerRegion,
-  setInnerRegion,
-}) => {
+const numberWithCommas = (x) => {
+  return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+}
+
+const ManhattanPlot = ({ data, margin, height, width, onChange, innerRegion, setInnerRegion }) => {
   // console.log(innerRegion)
-  const xAccessor = (d) => d.pos
-  const yAccessor = (d) => d.pval
+  const xAccessor = (d) => d.bp
+  const yAccessor = (d) => d.p_value
   const keyAccessor = (_, i) => i
-  // const [innerRegion, setInnerRegion] = useState(region)
+
   const svg = useRef()
   const brushRef = useRef()
 
@@ -27,7 +23,7 @@ const ManhattanPlot = ({
 
   const yScale = scaleLinear()
     .domain(
-      extent(dataPoints, yAccessor)
+      extent(data, yAccessor)
         .map((p) => -Math.log10(p))
         .reverse()
     )
@@ -63,6 +59,7 @@ const ManhattanPlot = ({
           start: Math.round(xScale.invert(e.selection[0])),
           stop: Math.round(xScale.invert(e.selection[1])),
         })
+        // eslint-disable-next-line no-use-before-define
         select(brushRef.current).call(brushBehaviour.move, null)
       }
     }
@@ -96,11 +93,11 @@ const ManhattanPlot = ({
           </tr>
           <tr>
             <td><b>Gene ID: </b></td>
-            <td>${d.gene_id} </td>
+            <td>${d.gene} </td>
           </tr>
           <tr>
-            <td><b>P-value: </b></td>
-            <td>${d.pval} </td>
+            <td><b>p-value: </b></td>
+            <td>${yAccessor(d)} </td>
           </tr>
           <tr>
             <td><b>-log10 P-value: </b></td>
@@ -137,7 +134,7 @@ const ManhattanPlot = ({
             {xScale.ticks().map((tick) => (
               <g key={tick} transform={`translate(${xScale(tick)}, 0)`}>
                 <text style={{ textAnchor: 'middle' }} dy=".71em" y={9}>
-                  {tick}
+                  {numberWithCommas(tick)}
                 </text>
                 <line y2={6} stroke="black" />
               </g>
@@ -155,7 +152,7 @@ const ManhattanPlot = ({
           ))}
           <g ref={brushRef} />
           <g clipPath="url(#clip)">
-            {dataPoints.map((d, i) => (
+            {data.map((d, i) => (
               <circle
                 key={keyAccessor(d, i)}
                 cx={xScale(xAccessor(d))}
@@ -208,7 +205,7 @@ const ManhattanPlot = ({
 }
 
 ManhattanPlot.propTypes = {
-  dataPoints: PropTypes.arrayOf(PropTypes.object).isRequired,
+  data: PropTypes.arrayOf(PropTypes.object).isRequired,
   margin: PropTypes.shape({
     left: PropTypes.number,
     right: PropTypes.number,
