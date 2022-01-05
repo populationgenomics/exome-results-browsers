@@ -26,7 +26,7 @@ const cancelable = (promise) => {
   }
 }
 
-const useRequest = (makeRequest) => {
+export const useRequest = (makeRequest) => {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [response, setResponse] = useState(null)
