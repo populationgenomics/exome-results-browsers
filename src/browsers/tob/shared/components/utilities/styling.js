@@ -6,7 +6,7 @@ export const TooltipWrapper = styled.div`
 
 export const PlotWrapper = styled.div`
   margin: 1em 0;
-  overflow: hidden;
+  overflow: visible;
   width: 100%;
 `
 
