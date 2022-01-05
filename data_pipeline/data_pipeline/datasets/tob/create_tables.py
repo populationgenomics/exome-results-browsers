@@ -241,6 +241,46 @@ def populate_table(
         print(f"Error: {error}")
 
 
+def create_gene_lookup_table(association_table, gene_model_table, table_id="gene_lookup", reference="grch37"):
+    client = bigquery.Client()
+    dataset = client.dataset(reference.lower())
+
+    sql_query = f"""
+    CREATE OR REPLACE TABLE
+        `{dataset.project}.{dataset.dataset_id}.{table_id}` (
+            gene_id STRING NOT NULL OPTIONS(description="Ensembl gene ID"), 
+            symbol STRING NOT NULL OPTIONS(description="HGNC gene symbol")
+        )
+    AS (
+        SELECT
+            gene_id,
+            symbol
+        FROM
+            `{dataset.project}.{dataset.dataset_id}.{gene_model_table.table_id}` AS X
+        INNER JOIN
+            `{dataset.project}.{dataset.dataset_id}.{association_table.table_id}` AS Y
+            ON X.gene_id = Y.ensembl_gene_id
+        GROUP BY 
+            X.gene_id, X.symbol
+        ORDER BY 
+            X.gene_id ASC
+    )
+    CLUSTER BY [symbol]
+    """
+
+    job_config = bigquery.QueryJobConfig(
+        use_legacy_sql=False,
+    )
+
+    try:
+        return client.query(sql_query, job_config=job_config)
+    except exceptions.BadRequest as error:
+        print(f"Bad request: {error}")
+        print(json.dumps(error.errors, indent=2))
+    except exceptions.GoogleAPIError as error:
+        print(f"Error: {error}")
+
+
 def create_tables(delete_existing_tables=True):
     client = storage.Client()
     bucket = client.get_bucket(get_gcp_bucket_name())
@@ -297,6 +337,13 @@ def create_tables(delete_existing_tables=True):
         source_uris=[f"gs://{bucket.name}/{blob.name}" for blob in blobs if "/metadata/cell_types.tsv" in blob.name],
         delimiter="\t",
         source_uri_format=bigquery.SourceFormat.CSV,
+    )
+
+    print("Creating gene lookup table")
+    create_gene_lookup_table(
+        association_table=association_table,
+        gene_model_table=gene_model_table,
+        reference=reference,
     )
 
 
