@@ -4,28 +4,23 @@ const { tableIds, defaultQueryOptions, submitQuery } = require('./utilities')
 const fetchGeneIdSuggestions = async ({ query, options }) => {
   const queryOptions = { ...defaultQueryOptions(), ...options }
 
-  let labelColumn = 'gene'
+  let labelColumn = 'symbol'
   if (new RegExp('^ENSG').test(query)) {
-    labelColumn = 'ensembl_gene_id'
+    labelColumn = 'gene_id'
   }
 
   const sqlQuery = `
   SELECT
     ${labelColumn} AS label, 
-    CONCAT('/gene/', ensembl_gene_id) AS url
+    CONCAT('/gene/', gene_id) AS url
   FROM
-    ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.association} 
+    ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneLookup} 
   WHERE
-      UPPER(gene) LIKE CONCAT(UPPER(@query), '%')
-    OR
-      UPPER(ensembl_gene_id) LIKE CONCAT(UPPER(@query), '%')
-  GROUP BY
-    ${labelColumn},
-    ensembl_gene_id
+    REGEXP_CONTAINS(UPPER(${labelColumn}), CONCAT('^', @query))
   LIMIT
     10
 `
-  const queryParams = { query }
+  const queryParams = { query: query?.toUpperCase() }
 
   const rows = await submitQuery({
     query: sqlQuery,
