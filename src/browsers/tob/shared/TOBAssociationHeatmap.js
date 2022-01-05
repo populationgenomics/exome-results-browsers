@@ -9,7 +9,7 @@ import StatusMessage from '../../base/StatusMessage'
 import { PlotWrapper } from './components/utilities/styling'
 import Heatmap from './components/Heatmap'
 
-const TOBAssociationHeatmap = ({ query, round }) => {
+const TOBAssociationHeatmap = ({ query, round, onChange }) => {
   const [apiPath, setApiPath] = useState(null)
 
   useEffect(() => {
@@ -21,10 +21,10 @@ const TOBAssociationHeatmap = ({ query, round }) => {
   }
 
   return (
-    <Fetch path={apiPath} params>
+    <Fetch path={apiPath}>
       {({ data, error, loading }) => {
         if (loading) {
-          return <StatusMessage>Loading results...</StatusMessage>
+          return <StatusMessage>Loading</StatusMessage>
         }
 
         if (error || !(data || {}).results) {
@@ -71,6 +71,7 @@ const TOBAssociationHeatmap = ({ query, round }) => {
                       tileRowName={(d) => d.geneName}
                       tileColName={(d) => d.cellTypeId}
                       minValue={0}
+                      onClickTile={onChange}
                       maxValue={Math.min(4, -Math.log10(range.minValue))}
                       tileValue={(d) => Math.min(4, -Math.log10(d.value))}
                       tileIsDefined={(d) => Number.isFinite(d.value)}
@@ -95,10 +96,12 @@ const TOBAssociationHeatmap = ({ query, round }) => {
 TOBAssociationHeatmap.propTypes = {
   query: PropTypes.string.isRequired,
   round: PropTypes.number,
+  onChange: PropTypes.func,
 }
 
 TOBAssociationHeatmap.defaultProps = {
   round: 1,
+  onChange: () => {},
 }
 
 export { TileEventType } from './components/Heatmap'
