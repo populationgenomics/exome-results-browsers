@@ -60,38 +60,38 @@ const TOBLocusZoomPlot = ({ query, onChange, genes, cellTypes }) => {
     return `/genes/?query=${region}`
   }, [query])
 
+  if (!innerRegion) {
+    return <StatusMessage>Search for a region ID or variant ID</StatusMessage>
+  }
+
   return (
     <>
-      <PlotWrapper>
-        <SizeMe>
-          {({ size }) => {
-            if (!innerRegion) {
-              return <StatusMessage>Search for a region ID or variant ID</StatusMessage>
+      <div>
+        <Fetch path={manhattanPlotApiPath()}>
+          {({ data, error, loading }) => {
+            if (loading) {
+              return <StatusMessage>Loading</StatusMessage>
+            }
+
+            if (error || !(data || {}).results) {
+              return (
+                <StatusMessage>
+                  Unable to load results
+                  <div>
+                    <small>{error.toString().replace('Error:', '')}</small>
+                  </div>
+                </StatusMessage>
+              )
             }
 
             return (
-              <>
-                <Fetch path={manhattanPlotApiPath()}>
-                  {({ data, error, loading }) => {
-                    if (loading) {
-                      return <StatusMessage>Loading</StatusMessage>
-                    }
-
-                    if (error || !(data || {}).results) {
-                      return (
-                        <StatusMessage>
-                          Unable to load results
-                          <div>
-                            <small>{error.toString().replace('Error:', '')}</small>
-                          </div>
-                        </StatusMessage>
-                      )
-                    }
-
+              <PlotWrapper>
+                <SizeMe>
+                  {({ size }) => {
                     return (
                       <ManhattanPlot
                         data={data.results}
-                        width={size.width * 2}
+                        width={size.width}
                         pointColor={(d) => d.color}
                         onChange={onChange}
                         innerRegion={innerRegion}
@@ -99,39 +99,35 @@ const TOBLocusZoomPlot = ({ query, onChange, genes, cellTypes }) => {
                       />
                     )
                   }}
-                </Fetch>
-              </>
+                </SizeMe>
+              </PlotWrapper>
             )
           }}
-        </SizeMe>
-      </PlotWrapper>
+        </Fetch>
+      </div>
 
-      <PlotWrapper>
-        <SizeMe>
-          {({ size }) => {
-            if (!innerRegion) {
-              return <StatusMessage>Search for a region ID or variant ID</StatusMessage>
+      <div>
+        <Fetch path={geneTrackApiPath()}>
+          {({ data, error, loading }) => {
+            if (loading) {
+              return <StatusMessage>Loading</StatusMessage>
+            }
+
+            if (error || !(data || {}).results) {
+              return (
+                <StatusMessage>
+                  Unable to load results
+                  <div>
+                    <small>{error.toString().replace('Error:', '')}</small>
+                  </div>
+                </StatusMessage>
+              )
             }
 
             return (
-              <>
-                <Fetch path={geneTrackApiPath()}>
-                  {({ data, error, loading }) => {
-                    if (loading) {
-                      return <StatusMessage>Loading</StatusMessage>
-                    }
-
-                    if (error || !(data || {}).results) {
-                      return (
-                        <StatusMessage>
-                          Unable to load results
-                          <div>
-                            <small>{error.toString().replace('Error:', '')}</small>
-                          </div>
-                        </StatusMessage>
-                      )
-                    }
-
+              <PlotWrapper>
+                <SizeMe>
+                  {({ size }) => {
                     return (
                       <div style={{ margin: '1em 0' }}>
                         <div style={{ float: 'right', marginBottom: '2em', marginRight: '1em' }}>
@@ -139,7 +135,7 @@ const TOBLocusZoomPlot = ({ query, onChange, genes, cellTypes }) => {
                         </div>
                         <GenesTrack
                           genes={data.results.genes}
-                          width={size.width * 2}
+                          width={size.width}
                           onChange={onChange}
                           innerRegion={innerRegion}
                           setInnerRegion={setInnerRegion}
@@ -147,12 +143,12 @@ const TOBLocusZoomPlot = ({ query, onChange, genes, cellTypes }) => {
                       </div>
                     )
                   }}
-                </Fetch>
-              </>
+                </SizeMe>
+              </PlotWrapper>
             )
           }}
-        </SizeMe>
-      </PlotWrapper>
+        </Fetch>
+      </div>
     </>
   )
 }
