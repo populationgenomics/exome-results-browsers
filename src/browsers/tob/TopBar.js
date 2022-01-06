@@ -3,10 +3,9 @@ import React, { useState } from 'react'
 import { withRouter } from 'react-router-dom'
 import styled from 'styled-components'
 
-import { Button, Modal } from '@gnomad/ui'
+import { Button } from '@gnomad/ui'
 
 import Link from '../base/Link'
-import OtherStudies from '../base/OtherStudies'
 
 import Searchbox from './shared/components/Searchbox'
 

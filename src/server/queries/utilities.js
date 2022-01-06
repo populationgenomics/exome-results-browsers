@@ -8,6 +8,7 @@ const tableIds = {
   logResidual: 'log_residual',
   cellType: 'cell_type',
   geneModel: 'gene_model',
+  geneLookup: 'gene_lookup',
 }
 
 const datasetIds = {

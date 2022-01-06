@@ -6,7 +6,7 @@ import Select from 'react-select'
 import Fetch from '../../base/Fetch'
 import AutosizedUmapPlot from './components/AutosizedUmapPlot'
 import StatusMessage from '../../base/StatusMessage'
-import { TooltipWrapper, PlotWrapper } from '../utilities/styling'
+import { TooltipWrapper, PlotWrapper } from './components/utilities/styling'
 
 const TOBUmapPlot = () => {
   const [apiPath, setApiPath] = useState(null)

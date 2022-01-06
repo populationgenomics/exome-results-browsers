@@ -45,7 +45,8 @@ const Heatmap = ({
     const minScaleValue = minValue == null ? minBy(data, (d) => d.value).value : minValue
     const maxScaleValue = maxValue == null ? maxBy(data, (d) => d.value).value : maxValue
 
-    const colNamesOrdered = colNames?.legnth ? colNames : data.map((d) => tileColName(d))
+    const colNamesOrdered = colNames?.legnth ? colNames : data.map((d) => tileColName(d)).sort()
+
     const xScale = scaleBand()
       .range([margin.left, width - margin.right])
       .domain(colNamesOrdered)

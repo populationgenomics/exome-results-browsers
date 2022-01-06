@@ -48,12 +48,22 @@ const featureAttributes = {
     fill: '#424242',
     height: 6,
   },
+  start_codon: {
+    fill: '#424242',
+    height: 4,
+  },
+  stop_codon: {
+    fill: '#424242',
+    height: 4,
+  },
 }
 
 const featureTypeOrder = {
   exon: 0,
   UTR: 1,
   CDS: 2,
+  start_codon: 3,
+  stop_codon: 4,
 }
 
 const featureTypeCompareFn = (r1, r2) =>
@@ -129,7 +139,7 @@ const GenesTrack = ({
             {rows.map((track, trackNumber) =>
               track.map((gene) => {
                 const labelY = rowHeight * trackNumber + 33
-                const exonsYPosition = rowHeight * trackNumber + 8
+                const featuresYPosition = rowHeight * trackNumber + 8
                 const geneStart = xScale(gene.start)
                 const geneStop = xScale(gene.stop)
                 return (
@@ -140,28 +150,30 @@ const GenesTrack = ({
                     <line
                       x1={geneStart}
                       x2={geneStop}
-                      y1={exonsYPosition}
-                      y2={exonsYPosition}
+                      y1={featuresYPosition}
+                      y2={featuresYPosition}
                       stroke="#424242"
                       strokeWidth={1}
                     />
-                    {[...gene.exons].sort(featureTypeCompareFn).map((exon) => {
-                      const exonStart = xScale(exon.start)
-                      const exonStop = xScale(exon.stop)
-                      const { fill, height: exonHeight } = featureAttributes[exon.feature_type]
+                    {[...(gene.canonical_transcript?.features || [])]
+                      .sort(featureTypeCompareFn)
+                      .map((f) => {
+                        const featureStart = xScale(f.start)
+                        const featureStop = xScale(f.stop)
+                        const { fill, height: featureHeight } = featureAttributes[f.feature_type]
 
-                      return (
-                        <rect
-                          key={`${gene.gene_id}-${exon.feature_type}-${exon.start}-${exon.stop}`}
-                          x={exonStart}
-                          y={rowHeight * trackNumber + (16 - exonHeight) / 2}
-                          width={exonStop - exonStart}
-                          height={exonHeight}
-                          fill={fill}
-                          stroke={fill}
-                        />
-                      )
-                    })}
+                        return (
+                          <rect
+                            key={`${gene.gene_id}-${f.feature_type}-${f.start}-${f.stop}`}
+                            x={featureStart}
+                            y={rowHeight * trackNumber + (16 - featureHeight) / 2}
+                            width={featureStop - featureStart}
+                            height={featureHeight}
+                            fill={fill}
+                            stroke={fill}
+                          />
+                        )
+                      })}
                   </g>
                 )
               })

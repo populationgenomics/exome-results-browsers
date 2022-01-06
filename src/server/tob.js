@@ -119,24 +119,35 @@ app.use('/config.js', (req, res) => {
 // Gene
 // ================================================================================================
 app.get('/api/genes', (req, res) => {
-  const { query } = req.query.query
+  const { query } = req.query
 
   if (isRegionId(query)) {
-    const region = convertPositionToGlobalPosition({ ...parseRegionId(query) })
+    const region = parseRegionId(query)
     return fetchGenesInRegion({ region })
-      .then((results) => res.status(200).json({ results }))
+      .then((results) => res.status(200).json({ results: { genes: results, region } }))
       .catch((error) => res.status(400).json({ error: error.message }))
   }
 
   if (isVariantId(query)) {
     const variant = parseVariantId(query)
     return fetchGenesAssociatedWithVariant({ variant })
-      .then((results) => res.status(200).json({ results }))
+      .then((results) =>
+        res.status(200).json({
+          results: {
+            genes: results,
+            region: {
+              chrom: variant.chrom,
+              start: Math.min(...results.map((r) => r.start)),
+              stop: Math.max(...results.map((r) => r.stop)),
+            },
+          },
+        })
+      )
       .catch((error) => res.status(400).json({ error: error.message }))
   }
 
   return fetchGenes({ query })
-    .then((results) => res.status(200).json({ results }))
+    .then((results) => res.status(200).json({ results: { genes: results, region: null } }))
     .catch((error) => res.status(400).json({ error: error.message }))
 })
 

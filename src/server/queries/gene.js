@@ -4,28 +4,23 @@ const { tableIds, defaultQueryOptions, submitQuery } = require('./utilities')
 const fetchGeneIdSuggestions = async ({ query, options }) => {
   const queryOptions = { ...defaultQueryOptions(), ...options }
 
-  let labelColumn = 'gene'
+  let labelColumn = 'symbol'
   if (new RegExp('^ENSG').test(query)) {
-    labelColumn = 'ensembl_gene_id'
+    labelColumn = 'gene_id'
   }
 
   const sqlQuery = `
   SELECT
     ${labelColumn} AS label, 
-    CONCAT('/gene/', ensembl_gene_id) AS url
+    CONCAT('/gene/', gene_id) AS url
   FROM
-    ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.association} 
+    ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneLookup} 
   WHERE
-      UPPER(gene) LIKE CONCAT(UPPER(@query), '%')
-    OR
-      UPPER(ensembl_gene_id) LIKE CONCAT(UPPER(@query), '%')
-  GROUP BY
-    ${labelColumn},
-    ensembl_gene_id
+    REGEXP_CONTAINS(UPPER(${labelColumn}), CONCAT('^', @query))
   LIMIT
     10
 `
-  const queryParams = { query }
+  const queryParams = { query: query?.toUpperCase() }
 
   const rows = await submitQuery({
     query: sqlQuery,
@@ -38,7 +33,6 @@ const fetchGeneIdSuggestions = async ({ query, options }) => {
 const fetchGenesInRegion = async ({ region, options }) => {
   const queryOptions = { ...defaultQueryOptions(), ...options }
 
-  // TODO: finish this query
   const sqlQuery = `
   SELECT
     *
@@ -48,10 +42,9 @@ const fetchGenesInRegion = async ({ region, options }) => {
     chrom = @chrom
     AND (
       (start >= @start AND stop <= @stop)
-      OR (start <= @start)
-      OR
-      OR
-      OR
+        OR (start <= @start AND stop >= @start AND stop <= @stop)
+        OR (start >= @start AND start <= @stop AND stop >= @stop)
+        OR (start <= @start AND stop >= @stop)
     )
   `
 
@@ -74,25 +67,26 @@ const fetchGenesAssociatedWithVariant = async ({ variant, options }) => {
 
   const sqlQuery = `
   SELECT
-    *
+    *,
   FROM
-    ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneModel} 
-  LEFT JOIN (
+    ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneModel} AS X
+  INNER JOIN (
     SELECT
-      ensembl_gene_id AS gene_id
+      DISTINCT ensembl_gene_id
     FROM
       ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.association} 
     WHERE
       bp = @bp
       AND chrom = @chrom
-      AND ref = @ref
-      AND alt = @alt
-  ) ON gene_id
+      AND a1 = @ref
+      AND a2 = @alt
+  ) AS Y
+  ON X.gene_id = Y.ensembl_gene_id
   `
 
   const queryParams = {
     chrom: variant.chrom,
-    bp: variant.bp,
+    bp: variant.pos,
     ref: variant.ref,
     alt: variant.alt,
   }
