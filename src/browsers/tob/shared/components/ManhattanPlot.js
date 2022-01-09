@@ -3,6 +3,23 @@ import PropTypes from 'prop-types'
 
 import { scaleLinear, extent, zoom, select, pointer, brushX } from 'd3'
 
+const CELL_COLOURS = {
+  bin: '#332288',
+  bmem: '#6699cc',
+  cd4et: '#88ccee',
+  cd4nc: '#44aa99',
+  cd4sox4: '#117733',
+  cd8nc: '#999933',
+  cd8et: '#ddcc77',
+  cd8s100b: '#661100',
+  plasma: '#cc6677',
+  dc: '#aa4466',
+  nk: '#882255',
+  nkr: '#aa4499',
+  monoc: '#1e1e1e',
+  mononc: '#cc0000',
+}
+
 const numberWithCommas = (x) => {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 }
@@ -65,7 +82,8 @@ const ManhattanPlot = ({ data, margin, height, width, onChange, innerRegion, set
     }
 
     const zoomBehaviour = zoom()
-      // .scaleExtent([0.5, 20]) // This control how much you can unzoom (x0.5) and zoom (x20)
+      // FIXME: Zooming disabled until we fix responsiveness
+      .scaleExtent([1, 1]) // This control how much you can unzoom (x0.5) and zoom (x20)
       .on('zoom', (e) => updateChart(e))
       .on('end', (e) => Emit(e)) // emit region update here
     zoomBehaviour(select(svg.current))
@@ -88,20 +106,24 @@ const ManhattanPlot = ({ data, margin, height, width, onChange, innerRegion, set
       .html(
         `<table>
           <tr>
-            <td><b>ID: </b></td> 
-            <td> ${d.id} </td>
+            <td><b>Id: </b></td> 
+            <td>${d.chrom}:${d.bp}:${d.a1}:${d.a2}</td>
           </tr>
           <tr>
-            <td><b>Gene ID: </b></td>
+            <td><b>Gene: </b></td>
             <td>${d.gene} </td>
           </tr>
           <tr>
-            <td><b>p-value: </b></td>
-            <td>${yAccessor(d)} </td>
+            <td><b>Cell type: </b></td>
+            <td>${d.cell_type_name} </td>
           </tr>
           <tr>
-            <td><b>-log10 P-value: </b></td>
-            <td> ${-Math.log10(yAccessor(d)).toFixed(5)} </td>
+            <td><b>P-value: </b></td>
+            <td>${yAccessor(d).toPrecision(2)} </td>
+          </tr>
+          <tr>
+            <td><b>-log\u2081\u2080(p): </b></td>
+            <td> ${-Math.log10(yAccessor(d)).toFixed(2)} </td>
           </tr>
         </table>`
       )
@@ -158,7 +180,7 @@ const ManhattanPlot = ({ data, margin, height, width, onChange, innerRegion, set
                 cx={xScale(xAccessor(d))}
                 cy={yScale(-Math.log10(yAccessor(d)))}
                 r={5}
-                fill={d.color}
+                fill={CELL_COLOURS[d.cell_type_id]}
                 onMouseOver={() => onMouseOver()}
                 onFocus={() => onMouseOver()}
                 onMouseMove={(e) => onMouseMove(e, d)}
@@ -196,6 +218,7 @@ const ManhattanPlot = ({ data, margin, height, width, onChange, innerRegion, set
           borderRadius: '5px',
           padding: '5px',
           position: 'absolute',
+          zIndex: 1,
         }}
       >
         HI
