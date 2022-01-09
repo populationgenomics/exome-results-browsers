@@ -6,38 +6,47 @@ import TOBLocusZoomPlot from '../shared/TOBLocusZoomPlot'
 
 const TOBAssociationPage = ({ match }) => {
   const [search, setSearch] = useState(match.params.query || '22:37966255-37978623')
-  const [genes, setGenes] = useState(new Set())
-  const [cellTypes, setCellTypes] = useState(new Set())
+  const [selectedTiles, setSelectedTiles] = useState(new Map())
 
-  const updateSelectedTiles = useCallback((tile) => {
-    const updatedGenes = new Set(genes)
-    const updatedCellTypes = new Set(cellTypes)
+  const updateSelectedTiles = useCallback(
+    (tile) => {
+      const newSelectedTiles = new Map(selectedTiles)
+      const tileId = `${tile.geneName}:${tile.cellTypeId}`
 
-    if (updatedGenes.has(tile.geneName)) {
-      updatedGenes.delete(tile.geneName)
-    } else {
-      updatedGenes.add(tile.geneName)
-    }
+      if (newSelectedTiles.has(tileId)) {
+        newSelectedTiles.delete(tileId)
+      } else {
+        newSelectedTiles.set(tileId, tile)
+      }
 
-    if (updatedCellTypes.has(tile.cellTypeId)) {
-      updatedCellTypes.delete(tile.cellTypeId)
-    } else {
-      updatedCellTypes.add(tile.cellTypeId)
-    }
+      // Render one gene at a time
+      const uniqueGenes = new Set(Array.from(newSelectedTiles.values()).map((d) => d.geneName))
+      if (uniqueGenes.size > 1) {
+        newSelectedTiles.clear()
+        newSelectedTiles.set(tileId, tile)
+        setSelectedTiles(newSelectedTiles)
 
-    setGenes(updatedGenes)
-    setCellTypes(updatedCellTypes)
-  }, [])
+        return
+      }
+
+      setSelectedTiles(newSelectedTiles)
+    },
+    [selectedTiles]
+  )
 
   return (
     <>
       <TOBLocusZoomPlot
         query={search}
-        genes={Array.from(genes)}
-        cellTypes={Array.from(cellTypes)}
+        genes={Array.from(selectedTiles.values()).map((t) => t.geneName)}
+        cellTypes={Array.from(selectedTiles.values()).map((t) => t.cellTypeId)}
         onChange={(r) => setSearch(`${r.chrom}-${r.start}-${r.stop}`)}
       />
-      <TOBAssociationHeatmap query={search} onChange={updateSelectedTiles} />
+      <TOBAssociationHeatmap
+        query={search}
+        selectedTiles={Array.from(selectedTiles.values())}
+        onChange={updateSelectedTiles}
+      />
     </>
   )
 }
