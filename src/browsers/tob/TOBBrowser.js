@@ -28,22 +28,24 @@ const TOBBrowser = () => (
       />
     )}
 
-    <ErrorBoundary>
-      <Switch>
-        <Route path="/" exact component={TOBHomePage} />
+    <div style={{ margin: '0 1em' }}>
+      <ErrorBoundary>
+        <Switch>
+          <Route path="/" exact component={TOBHomePage} />
 
-        <Route path="/results/:query?" component={TOBAssociationPage} />
+          <Route path="/results/:query?" component={TOBAssociationPage} />
 
-        <Route path="/gene/:geneId" render={({ match }) => <TOBGenePage gene={match.gene} />} />
+          <Route path="/gene/:geneId" render={({ match }) => <TOBGenePage gene={match.gene} />} />
 
-        <Route
-          path="/variant/:variantId"
-          render={({ match }) => <TOBVariantPage variant={match.variant} />}
-        />
+          <Route
+            path="/variant/:variantId"
+            render={({ match }) => <TOBVariantPage variant={match.variant} />}
+          />
 
-        <Route component={PageNotFoundPage} />
-      </Switch>
-    </ErrorBoundary>
+          <Route component={PageNotFoundPage} />
+        </Switch>
+      </ErrorBoundary>
+    </div>
   </Router>
 )
 
