@@ -5,7 +5,7 @@ import TOBAssociationHeatmap from '../shared/TOBAssociationHeatmap'
 import TOBLocusZoomPlot from '../shared/TOBLocusZoomPlot'
 
 const TOBAssociationPage = ({ match }) => {
-  const [search, setSearch] = useState(match.params.query || '22:37966255-37978623')
+  const [search, setSearch] = useState(match.params.query || '22:37200000-39900000')
   const [selectedTiles, setSelectedTiles] = useState(new Map())
 
   const updateSelectedTiles = useCallback(
