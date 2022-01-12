@@ -133,13 +133,7 @@ const GenesTrack = ({
         <g transform={`translate(${margin.left}, ${margin.top})`}>
           <defs>
             <clipPath id="clipGeneTrack">
-              <rect
-                width={innerWidth}
-                height={innerHeight}
-                fill="blue"
-                stroke="black"
-                pointerEvents="all"
-              />
+              <rect width={innerWidth} height={innerHeight} fill="none" pointerEvents="all" />
             </clipPath>
           </defs>
           {/* <rect width={innerWidth} height={innerHeight} fill="none" stroke="black" /> */}
