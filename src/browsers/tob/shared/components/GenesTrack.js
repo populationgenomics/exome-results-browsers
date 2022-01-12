@@ -20,7 +20,8 @@ const layoutRows = (genes, scalePosition) => {
     let newRow = true
     for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
       const lastGeneInRow = rows[rowIndex][rows[rowIndex].length - 1]
-      if (scalePosition(gene.start) - scalePosition(lastGeneInRow.stop) > 30) {
+      if (scalePosition(gene.start) - scalePosition(lastGeneInRow.stop) > 100) {
+        //! Change this number to increase spacing between gene track elements.
         rows[rowIndex].push(gene)
         newRow = false
         break
@@ -131,12 +132,18 @@ const GenesTrack = ({
         {/* <rect width={width} height={height} fill="none" stroke="black" /> */}
         <g transform={`translate(${margin.left}, ${margin.top})`}>
           <defs>
-            <clipPath id="clip">
-              <rect width={innerWidth} height={innerHeight} fill="none" pointerEvents="all" />
+            <clipPath id="clipGeneTrack">
+              <rect
+                width={innerWidth}
+                height={innerHeight}
+                fill="blue"
+                stroke="black"
+                pointerEvents="all"
+              />
             </clipPath>
           </defs>
           {/* <rect width={innerWidth} height={innerHeight} fill="none" stroke="black" /> */}
-          <g clipPath="url(#clip)">
+          <g clipPath="url(#clipGeneTrack)">
             {rows.map((track, trackNumber) =>
               track.map((gene) => {
                 const labelY = rowHeight * trackNumber + 33
@@ -162,7 +169,6 @@ const GenesTrack = ({
                         const featureStart = xScale(f.start)
                         const featureStop = xScale(f.stop)
                         const { fill, height: featureHeight } = featureAttributes[f.feature_type]
-
                         return (
                           <rect
                             key={`${gene.gene_id}-${f.feature_type}-${f.start}-${f.stop}`}

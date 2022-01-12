@@ -145,7 +145,7 @@ const ManhattanPlot = ({ data, margin, height, width, onChange, innerRegion, set
         {/* <rect width={width} height={height} fill="none" stroke="black" /> */}
         <g transform={`translate(${margin.left}, ${margin.top})`}>
           <defs>
-            <clipPath id="clip">
+            <clipPath id="clipManhattanPlot">
               <rect width={innerWidth} height={innerHeight} fill="none" pointerEvents="all" />
             </clipPath>
           </defs>
@@ -173,7 +173,7 @@ const ManhattanPlot = ({ data, margin, height, width, onChange, innerRegion, set
             </g>
           ))}
           <g ref={brushRef} />
-          <g clipPath="url(#clip)">
+          <g clipPath="url(#clipManhattanPlot)">
             {data.map((d, i) => (
               <circle
                 key={keyAccessor(d, i)}
