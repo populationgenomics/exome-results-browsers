@@ -117,7 +117,8 @@ const GenesTrack = ({
     }
 
     const zoomBehaviour = zoom()
-      // .scaleExtent([0.5, 20]) // This control how much you can unzoom (x0.5) and zoom (x20)
+      // FIXME: Zooming disabled until we fix responsiveness
+      .scaleExtent([1, 1]) // This control how much you can unzoom (x0.5) and zoom (x20)
       .on('zoom', (e) => updateChart(e))
       .on('end', (e) => Emit(e)) // emit region update here
 

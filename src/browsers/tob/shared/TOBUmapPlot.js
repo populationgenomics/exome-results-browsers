@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react'
 
+import { SizeMe } from 'react-sizeme'
 import { Button, TooltipAnchor, TooltipHint } from '@gnomad/ui'
 import Select from 'react-select'
 
 import Fetch from '../../base/Fetch'
-import AutosizedUmapPlot from './components/AutosizedUmapPlot'
 import StatusMessage from '../../base/StatusMessage'
+import Umap from './components/Umap'
 import { TooltipWrapper, PlotWrapper } from './components/utilities/styling'
 
 const TOBUmapPlot = () => {
@@ -77,7 +78,18 @@ const TOBUmapPlot = () => {
               }}
             />
             <PlotWrapper>
-              <AutosizedUmapPlot id="gene-results-umap-plot" results={data.results.data} />
+              <SizeMe>
+                {({ size }) => {
+                  return (
+                    <Umap
+                      width={size.width}
+                      height={1200}
+                      id="umap-plot"
+                      data={data.results.data}
+                    />
+                  )
+                }}
+              </SizeMe>
             </PlotWrapper>
             <Button
               style={{ margin: '1em', float: 'right' }}

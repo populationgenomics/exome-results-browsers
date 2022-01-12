@@ -32,6 +32,20 @@ export default () => (
       Or <Link to="/results">view all results</Link>
     </p>
 
+    <h2>Examples</h2>
+    <ul>
+      <li>
+        <Link to="/results/22:37200000-39200000">22:37200000-39200000</Link>
+      </li>
+      <li>
+        <Link to="/results/22:37966255-37978623">22:37966255-37978623</Link>
+      </li>
+      <li>
+        <Link to="/results/2-42752280-A-G">2-42752280-A-G</Link>
+      </li>
+    </ul>
+
+    <h2>Project information</h2>
     <p>
       This project will involve analysis of 1,000 samples from the Tasmanian Ophthalmic Biobank.
     </p>
