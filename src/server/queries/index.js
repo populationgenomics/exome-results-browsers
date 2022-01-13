@@ -3,6 +3,7 @@ const {
   fetchGeneIdSuggestions,
   fetchGenesById,
   fetchGenes,
+  fetchGeneExpression,
   fetchGenesAssociatedWithVariant,
 } = require('./gene')
 const { fetchVariantsInRegion, fetchVariantsById } = require('./variant')
@@ -15,6 +16,7 @@ module.exports = {
   fetchGenesById,
   fetchGenes,
   fetchGenesAssociatedWithVariant,
+  fetchGeneExpression,
   fetchVariantsInRegion,
   fetchVariantsById,
   fetchAssociationHeatmap,

@@ -25,6 +25,7 @@ const {
   fetchCellTypes,
   fetchCellTypesById,
   fetchGenesInRegion,
+  fetchGeneExpression,
 } = require('./queries')
 const { parseConditioningRound } = require('./queries/utilities')
 const { convertPositionToGlobalPosition } = require('./queries/genome')
@@ -153,6 +154,16 @@ app.get('/api/genes', (req, res) => {
 
 app.get('/api/genes/:id', (req, res) => {
   return fetchGenesById({ ids: [req.params.id] })
+    .then((results) => res.status(200).json({ results }))
+    .catch((error) => res.status(400).json({ error: error.message }))
+})
+
+app.get('/api/genes/:gene/residuals', (req, res) => {
+  return fetchGeneExpression({
+    gene: req.params.gene,
+    cellTypesIds: req.query.cellTypeIds?.split(',') || [],
+    chroms: req.query.chroms?.split(',') || [],
+  })
     .then((results) => res.status(200).json({ results }))
     .catch((error) => res.status(400).json({ error: error.message }))
 })

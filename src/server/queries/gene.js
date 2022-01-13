@@ -1,3 +1,5 @@
+const { groupBy, mapValues } = require('lodash')
+
 const { tableIds, defaultQueryOptions, submitQuery } = require('./utilities')
 
 // TODO: This is slow, put gene names and ids in separate table.
@@ -169,10 +171,56 @@ const fetchGenesById = async ({ ids, options }) => {
   return rows
 }
 
+const fetchGeneExpression = async ({ gene, cellTypesIds, chroms, options }) => {
+  const queryOptions = { ...defaultQueryOptions(), ...options }
+
+  const formattedCellTypeIds = cellTypesIds
+    ?.filter((q) => q?.trim() != null)
+    ?.map((q) => q.toLowerCase())
+
+  const formattedChroms = chroms?.filter((q) => q?.trim() != null)?.map((q) => q.toLowerCase())
+
+  let sqlQuery = `
+  SELECT
+    gene,
+    chrom,
+    cell_type_id,
+    residual
+  FROM
+    ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.logResidual}
+  WHERE
+    LOWER(gene) = LOWER(@gene)
+    
+  `
+
+  const queryParams = { gene }
+
+  if (formattedCellTypeIds.length) {
+    sqlQuery += `AND LOWER(cell_type_id) IN UNNEST(@cellTypeIds)`
+    queryParams.cellTypeIds = formattedCellTypeIds
+  }
+
+  if (formattedChroms.length) {
+    sqlQuery += `AND LOWER(chrom) IN UNNEST(@chroms)`
+    queryParams.chroms = formattedChroms
+  }
+
+  const rows = await submitQuery({
+    query: sqlQuery,
+    options: { ...queryOptions, params: queryParams },
+  })
+
+  return mapValues(
+    groupBy(rows, (r) => r.cell_type_id),
+    (a) => a.map((r) => r.residual)
+  )
+}
+
 module.exports = {
   fetchGeneIdSuggestions,
   fetchGenesInRegion,
   fetchGenes,
   fetchGenesAssociatedWithVariant,
   fetchGenesById,
+  fetchGeneExpression,
 }
