@@ -6,6 +6,8 @@ const express = require('express')
 const morgan = require('morgan')
 const helmet = require('helmet')
 
+const { OAuth2Client } = require('google-auth-library')
+
 const {
   isRegionId,
   isVariantId,
@@ -39,6 +41,8 @@ const config = {
   enableHttpsRedirect: JSON.parse(process.env.ENABLE_HTTPS_REDIRECT || 'false'),
   port: process.env.PORT || 8000,
   trustProxy: JSON.parse(process.env.TRUST_PROXY || 'false'),
+  iapAudience: process.env.IAP_AUDIENCE,
+  oAuthClient: new OAuth2Client(),
 }
 
 // ================================================================================================
@@ -69,6 +73,34 @@ if (config.enableHttpsRedirect) {
     } else {
       next()
     }
+  })
+}
+
+// ================================================================================================
+// JWT Token Verification
+// ================================================================================================
+
+if (config.iapAudience) {
+  // Verify JWT token from IAP authentication
+  app.use('/', async (req, res, next) => {
+    const token = req.header('X-Goog-IAP-JWT-Assertion')
+    try {
+      // Verify the id_token, and access the claims.
+      const response = await config.oAuthClient.getIapPublicKeysAsync()
+      const ticket = await config.oAuthClient.verifySignedJwtWithCertsAsync(
+        token,
+        response.pubkeys,
+        config.iapAudience,
+        ['https://cloud.google.com/iap']
+      )
+
+      // eslint-disable-next-line no-console
+      console.info(ticket.getPayload())
+    } catch (error) {
+      res.status(error.status).send('<h1>Forbidden</h1>').end()
+    }
+
+    next()
   })
 }
 
@@ -118,6 +150,7 @@ app.use('/config.js', (req, res) => {
 // ================================================================================================
 // Gene
 // ================================================================================================
+
 app.get('/api/genes', (req, res) => {
   const { query } = req.query
 
