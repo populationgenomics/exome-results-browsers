@@ -83,7 +83,10 @@ if (config.enableHttpsRedirect) {
 if (config.iapAudience) {
   // Verify JWT token from IAP authentication
   app.use('/', async (req, res, next) => {
-    const token = req.header('X-Goog-IAP-JWT-Assertion')
+    const token = req.header('X-Goog-IAP-JWT-Assertion') || req.header('x-goog-iap-jwt-assertion')
+
+    if (!token) return next()
+
     try {
       // Verify the id_token, and access the claims.
       const response = await config.oAuthClient.getIapPublicKeysAsync()
@@ -97,10 +100,12 @@ if (config.iapAudience) {
       // eslint-disable-next-line no-console
       console.info(ticket.getPayload())
     } catch (error) {
-      res.status(error.status).send('<h1>Forbidden</h1>').end()
+      // eslint-disable-next-line no-console
+      console.error(error)
+      res.status(403).send('<h1>Forbidden</h1>').end()
     }
 
-    next()
+    return next()
   })
 }
 
