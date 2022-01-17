@@ -98,7 +98,7 @@ if (config.iapAudience) {
       )
 
       // eslint-disable-next-line no-console
-      console.info(ticket.getPayload())
+      console.debug(`${ticket.getPayload().email} has logged in.`)
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error(error)
