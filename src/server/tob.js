@@ -87,14 +87,11 @@ if (config.iapAudience) {
 
     if (!token) return next()
 
-    // eslint-disable-next-line no-console
-    console.debug(token)
-
     try {
       // Verify the id_token, and access the claims.
       const response = await config.oAuthClient.getIapPublicKeysAsync()
       const ticket = await config.oAuthClient.verifySignedJwtWithCertsAsync(
-        token,
+        token.toString(),
         response.pubkeys,
         config.iapAudience,
         ['https://cloud.google.com/iap']
@@ -105,7 +102,7 @@ if (config.iapAudience) {
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error(error)
-      res.status(403).send('<h1>Forbidden</h1>').end()
+      res.status(403).send('<h1>Forbidden</h1><p>Unable to verify authentication token.</p>').end()
     }
 
     return next()
