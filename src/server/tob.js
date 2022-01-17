@@ -87,6 +87,9 @@ if (config.iapAudience) {
 
     if (!token) return next()
 
+    // eslint-disable-next-line no-console
+    console.debug(token)
+
     try {
       // Verify the id_token, and access the claims.
       const response = await config.oAuthClient.getIapPublicKeysAsync()
