@@ -59,7 +59,7 @@ jobs:
           --memory=1Gi \
           --region=australia-southeast1 \
           --platform=managed \
-          --set-env-vars=RESULTS_DATA_DIRECTORY=${{ secrets.GCP_BUCKET }} \
+          --set-env-vars=IAP_AUDIENCE=${{ secrets.GCP_IAP_AUDIENCE }} \
           --service-account=${{ secrets.GCP_CLOUD_RUN_SA }} \
           --image=$DOCKER_IMAGE \
           --no-allow-unauthenticated
