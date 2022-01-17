@@ -1,1 +1,3 @@
 hail
+google-cloud-storage
+google-cloud-bigquery
