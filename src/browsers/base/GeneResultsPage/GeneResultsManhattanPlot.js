@@ -3,18 +3,9 @@ import React from 'react'
 import { withSize } from 'react-sizeme'
 import styled from 'styled-components'
 
-// import { ManhattanPlot } from '@gnomad/manhattan-plot'
-import ManhattanPlot from '../components/ManhattanPlot'
+import { ManhattanPlot } from '@gnomad/manhattan-plot'
 
-const GeneResultsManhattanPlot = ({
-  pValueColumn,
-  pointLabel,
-  pointColor,
-  onClickPoint,
-  results,
-  region,
-  ...otherProps
-}) => {
+const GeneResultsManhattanPlot = ({ pValueColumn, results, ...otherProps }) => {
   const renderedDataPoints = results
     .filter((r) => r.chrom && r.pos && r[pValueColumn])
     .map((r) => ({ ...r, pval: r[pValueColumn] }))
@@ -23,11 +14,11 @@ const GeneResultsManhattanPlot = ({
     <ManhattanPlot
       {...otherProps}
       dataPoints={renderedDataPoints}
-      region={region}
-      // pointLabel={pointLabel}
-      // pointColor={pointColor}
-      // yLabel={'-log\u2081\u2080(p)'}
-      // onClickPoint={onClickPoint}
+      pointLabel={(d) => `${d.gene_symbol || d.gene_id} (p = ${d.pval.toExponential(3)})`}
+      yLabel={'-log\u2081\u2080(p)'}
+      onClickPoint={(d) => {
+        window.open(`/gene/${d.gene_id}`)
+      }}
     />
   )
 }
@@ -35,32 +26,21 @@ const GeneResultsManhattanPlot = ({
 GeneResultsManhattanPlot.propTypes = {
   pValueColumn: PropTypes.string,
   results: PropTypes.arrayOf(PropTypes.object).isRequired,
-  pointLabel: PropTypes.func,
-  pointColor: PropTypes.func,
-  onClickPoint: PropTypes.func,
-  region: PropTypes.shape({
-    chrom: PropTypes.string.isRequired,
-    start: PropTypes.number.isRequired,
-    stop: PropTypes.number.isRequired,
-  }).isRequired,
 }
 
 GeneResultsManhattanPlot.defaultProps = {
   pValueColumn: 'pval',
-  pointLabel: (d) => `${d.id} ${d.gene_symbol || d.gene_id} (p = ${d.pval.toExponential(3)})`,
-  pointColor: (d) => d.color || '#1e1e1e',
-  onClickPoint: (d) => window.open(`/gene/${d.gene_symbol || d.gene_id}`),
 }
 
 const Wrapper = styled.div`
-  overflow: visible;
+  overflow: hidden;
   width: 100%;
 `
 
 const AutosizedGeneResultsManhattanPlot = withSize()(({ size, ...otherProps }) => (
   <Wrapper>
     {Boolean(size.width) && (
-      <GeneResultsManhattanPlot height={400} width={size.width} {...otherProps} />
+      <GeneResultsManhattanPlot height={500} width={size.width} {...otherProps} />
     )}
   </Wrapper>
 ))

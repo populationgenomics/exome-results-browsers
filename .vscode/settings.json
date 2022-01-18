@@ -68,8 +68,5 @@
   "python.formatting.provider": "black",
   "python.linting.pylintEnabled": true,
   "python.linting.pylintCategorySeverity.convention": "Warning",
-  // ----------- Schemas
-  "yaml.schemas": {
-    "https://json.schemastore.org/github-workflow": ["gcp-deploy.yml", "ci.yml"]
-  }
+  "python.pythonPath": "/Users/daniel/miniforge3/envs/exome-results-browsers/bin/python"
 }

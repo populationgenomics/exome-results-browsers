@@ -3,11 +3,11 @@ import React, { useState } from 'react'
 import { withRouter } from 'react-router-dom'
 import styled from 'styled-components'
 
-import { Button, Modal } from '@gnomad/ui'
+import { Button } from '@gnomad/ui'
 
-import Link from './Link'
-import OtherStudies from './OtherStudies'
-import Searchbox from './Searchbox'
+import Link from '../base/Link'
+
+import Searchbox from './shared/components/Searchbox'
 
 const TitleWrapper = styled.div``
 
@@ -84,7 +84,6 @@ const Menu = styled.ul`
 
 const TopBar = ({ title, links, backgroundColor, textColor }) => {
   const [isMenuExpanded, setIsMenuExpanded] = useState(false)
-  const [showOtherStudiesModal, setShowOtherStudiesModal] = useState(false)
 
   const closeMenu = () => {
     setIsMenuExpanded(false)
@@ -105,7 +104,7 @@ const TopBar = ({ title, links, backgroundColor, textColor }) => {
         </ToggleMenuButton>
       </TitleWrapper>
 
-      <Searchbox id="navbar-search" width="320px" />
+      <Searchbox id="navbar-search" width="50%" />
 
       <Menu isExpanded={isMenuExpanded}>
         <li>
@@ -120,32 +119,7 @@ const TopBar = ({ title, links, backgroundColor, textColor }) => {
             </Link>
           </li>
         ))}
-        <li>
-          <Link
-            to="/other-studies"
-            onClick={(e) => {
-              setShowOtherStudiesModal(true)
-              closeMenu()
-              e.preventDefault()
-            }}
-          >
-            Other Studies
-          </Link>
-        </li>
       </Menu>
-
-      {showOtherStudiesModal && (
-        <Modal
-          id="other-studies"
-          size="large"
-          title="Other Studies"
-          onRequestClose={() => {
-            setShowOtherStudiesModal(false)
-          }}
-        >
-          <OtherStudies />
-        </Modal>
-      )}
     </TopBarWrapper>
   )
 }

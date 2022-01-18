@@ -55,4 +55,4 @@ COPY --chown=node:node --from=0 /home/node/app/src/server/public ./public
 COPY --chown=node:node src/server .
 
 # Run
-CMD ["node", "server.js"]
+CMD ["node", "tob.js"]

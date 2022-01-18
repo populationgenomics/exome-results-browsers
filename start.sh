@@ -53,12 +53,18 @@ if [ ! -f "./src/browsers/${BROWSER_DIRECTORY}/${BROWSER}Browser.js" ]; then
   exit 1
 fi
 
+if [ "$BROWSER" == "TOB" ] || [ "$BROWSER" == "tob" ]; then
+  SERVER_ENTRYPOINT="tob.js"
+else
+  SERVER_ENTRYPOINT="server.js"
+fi
+
 export NODE_ENV="development"
 
 if [ "${USE_REMOTE_API:-false}" = "true" ]; then
   yarn run webpack-dev-server --config=./src/browsers/webpack.config.js --hot --port "$WDS_PORT"
 else
-  yarn run nodemon src/server/server.js &
+  yarn run nodemon src/server/$SERVER_ENTRYPOINT &
   SERVER_PID=$!
 
   yarn run webpack-dev-server --config=./src/browsers/webpack.config.js --hot --port "$WDS_PORT" &

@@ -1,44 +1,52 @@
 import React from 'react'
+import { BrowserRouter as Router, Route, Switch } from 'react-router-dom'
 
-import Browser from '../base/Browser'
-import { renderCount } from '../base/tableCells'
-import datasetConfig from '../datasetConfig'
+import ErrorBoundary from '../base/ErrorBoundary'
+import PageNotFoundPage from '../base/PageNotFoundPage'
 
-import TOBHomePage from './TOBHomePage'
-import TOBUmapPlot from './TOBUmapPlot'
-import TOBAssociationPage from './TOBAssociationPage'
+import TopBar from './TopBar'
+
+import TOBHomePage from './pages/TOBHomePage'
+import TOBAssociationPage from './pages/TOBAssociationPage'
+import TOBGenePage from './pages/TOBGenePage'
+import TOBVariantPage from './pages/TOBVariantPage'
 
 const TOBBrowser = () => (
-  <Browser
-    browserTitle="Tasmanian Ophthalmic Biobank Project"
-    navBarBackgroundColor="#23509c"
-    homePage={TOBHomePage}
-    geneResultsPageHeading="Results"
-    geneResultAnalysisGroupOptions={['All']}
-    defaultGeneResultAnalysisGroup="All"
-    geneResultColumns={datasetConfig.gene_group_result_field_names.map((cellLabel) => {
-      const humanReadable = datasetConfig.gene_results_table_headings[cellLabel]
-      return {
-        key: cellLabel,
-        heading: humanReadable,
-        tooltip: `Number of eQTL variants associated with cells labelled '${humanReadable}'`,
-        minWidth: 75,
-        render: renderCount,
-      }
-    })}
-    geneResultTabs={[
-      {
-        id: 'heatmap-tab',
-        label: 'Association heatmap',
-        render: () => <TOBAssociationPage />,
-      },
-      {
-        id: 'umap-tab',
-        label: 'Expression UMAP',
-        render: () => <TOBUmapPlot />,
-      },
-    ]}
-  />
+  <Router>
+    <TopBar title="TOB-WGS Project" backgroundColor="#000000" />
+
+    {window.gtag && (
+      <Route
+        path="/"
+        render={({ location }) => {
+          window.gtag('config', window.gaTrackingId, {
+            anonymize_ip: true,
+            page_path: location.pathname,
+          })
+          return null
+        }}
+      />
+    )}
+
+    <div style={{ margin: '0 1em' }}>
+      <ErrorBoundary>
+        <Switch>
+          <Route path="/" exact component={TOBHomePage} />
+
+          <Route path="/results/:query?" component={TOBAssociationPage} />
+
+          <Route path="/gene/:geneId" render={({ match }) => <TOBGenePage gene={match.gene} />} />
+
+          <Route
+            path="/variant/:variantId"
+            render={({ match }) => <TOBVariantPage variant={match.variant} />}
+          />
+
+          <Route component={PageNotFoundPage} />
+        </Switch>
+      </ErrorBoundary>
+    </div>
+  </Router>
 )
 
 export default TOBBrowser

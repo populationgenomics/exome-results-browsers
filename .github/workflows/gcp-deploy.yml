@@ -27,8 +27,12 @@ jobs:
         run: |
           if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
             echo "DEPLOYMENT_TYPE=prod" >> $GITHUB_ENV
+            echo "CLOUD_RUN_SA=${{ secrets.GCP_CLOUD_RUN_SA_PROD }}" >> $GITHUB_ENV
+            echo "IAP_AUDIENCE=${{ secrets.GCP_IAP_AUDIENCE_PROD }}" >> $GITHUB_ENV
           else
             echo "DEPLOYMENT_TYPE=dev" >> $GITHUB_ENV
+            echo "CLOUD_RUN_SA=${{ secrets.GCP_CLOUD_RUN_SA_DEV }}" >> $GITHUB_ENV
+            echo "IAP_AUDIENCE=${{ secrets.GCP_IAP_AUDIENCE_DEV }}" >> $GITHUB_ENV
           fi
           echo "Setting up a ${DEPLOYMENT_TYPE} deployment"
           echo "RELEASE_TAG=${GITHUB_SHA}" >> $GITHUB_ENV
@@ -59,7 +63,7 @@ jobs:
           --memory=1Gi \
           --region=australia-southeast1 \
           --platform=managed \
-          --set-env-vars=RESULTS_DATA_DIRECTORY=${{ secrets.GCP_BUCKET }} \
-          --service-account=${{ secrets.GCP_CLOUD_RUN_SA }} \
+          --set-env-vars=IAP_AUDIENCE="$IAP_AUDIENCE" \
+          --service-account="$CLOUD_RUN_SA" \
           --image=$DOCKER_IMAGE \
           --no-allow-unauthenticated
