@@ -43,6 +43,9 @@ export default () => (
       <li>
         <Link to="/results/2-42752280-A-G">2-42752280-A-G</Link>
       </li>
+      <li>
+        <Link to="/violin">Violin Plots</Link>
+      </li>
     </ul>
 
     <h2>Project information</h2>
