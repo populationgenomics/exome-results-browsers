@@ -1,6 +1,5 @@
-import React from 'react'
+import React, { useState } from 'react'
 import PropTypes from 'prop-types'
-
 import {
   scaleLinear,
   extent,
@@ -11,6 +10,7 @@ import {
   ascending,
   quantile,
   max,
+  pointer,
 } from 'd3'
 
 const CELL_COLOURS = {
@@ -35,6 +35,8 @@ const ViolinPlot = ({ width, data, height, margin }) => {
   const innerHeight = height - margin.top - margin.bottom
   const padding = 0.05
   const numBins = 30
+  // const [isHovered, setIsHovered] = useState(false)
+  const [hoveredData, setHoveredData] = useState(null)
 
   const cellLines = Object.keys(data)
 
@@ -137,11 +139,95 @@ const ViolinPlot = ({ width, data, height, margin }) => {
                 y1={yScale(item.median)}
                 y2={yScale(item.median)}
                 stroke="black"
+                onMouseOver={(e) => {
+                  setHoveredData({
+                    value: item.median.toFixed(3),
+                    x: xScale(cellLines[i]) + margin.left,
+                    y: pointer(e)[1],
+                  })
+                }}
+                onMouseLeave={() => setHoveredData(null)}
+              />
+              <line
+                x1={(xScale.bandwidth() * 3) / 8}
+                x2={(xScale.bandwidth() * 5) / 8}
+                y1={yScale(item.q1)}
+                y2={yScale(item.q1)}
+                onMouseOver={(e) => {
+                  setHoveredData({
+                    value: item.q1.toFixed(3),
+                    x: xScale(cellLines[i]) + margin.left,
+                    y: pointer(e)[1],
+                  })
+                }}
+                onMouseLeave={() => setHoveredData(null)}
+                stroke="black"
+              />
+              <line
+                x1={(xScale.bandwidth() * 3) / 8}
+                x2={(xScale.bandwidth() * 5) / 8}
+                y1={yScale(item.q3)}
+                y2={yScale(item.q3)}
+                onMouseOver={(e) => {
+                  setHoveredData({
+                    value: item.q3.toFixed(3),
+                    x: xScale(cellLines[i]) + margin.left,
+                    y: pointer(e)[1],
+                  })
+                }}
+                onMouseLeave={() => setHoveredData(null)}
+                stroke="black"
+              />
+              <line
+                x1={(xScale.bandwidth() * 7) / 16}
+                x2={(xScale.bandwidth() * 9) / 16}
+                y1={yScale(item.minimum)}
+                y2={yScale(item.minimum)}
+                stroke="black"
+                onMouseOver={(e) => {
+                  setHoveredData({
+                    value: item.minimum.toFixed(3),
+                    x: xScale(cellLines[i]) + margin.left,
+                    y: pointer(e)[1],
+                  })
+                }}
+                onMouseLeave={() => setHoveredData(null)}
+              />
+              <line
+                x1={(xScale.bandwidth() * 7) / 16}
+                x2={(xScale.bandwidth() * 9) / 16}
+                y1={yScale(item.maximum)}
+                y2={yScale(item.maximum)}
+                stroke="black"
+                onMouseOver={(e) => {
+                  setHoveredData({
+                    value: item.maximum.toFixed(3),
+                    x: xScale(cellLines[i]) + margin.left,
+                    y: pointer(e)[1],
+                  })
+                }}
+                onMouseLeave={() => setHoveredData(null)}
               />
             </g>
           ))}
         </g>
       </svg>
+      {hoveredData && (
+        <div
+          style={{
+            left: hoveredData.x,
+            top: hoveredData.y,
+            backgroundColor: 'white',
+            border: 'solid',
+            borderWidth: 1,
+            borderRadius: 5,
+            padding: 5,
+            position: 'absolute',
+          }}
+        >
+          {hoveredData.value}
+        </div>
+      )}
     </>
   )
 }
