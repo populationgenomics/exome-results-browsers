@@ -11,7 +11,6 @@ import {
   ascending,
   quantile,
   max,
-  min,
 } from 'd3'
 
 const CELL_COLOURS = {
