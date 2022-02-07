@@ -10,6 +10,7 @@ import TOBHomePage from './pages/TOBHomePage'
 import TOBAssociationPage from './pages/TOBAssociationPage'
 import TOBGenePage from './pages/TOBGenePage'
 import TOBVariantPage from './pages/TOBVariantPage'
+import TOBViolinPage from './pages/TOBViolinPage'
 
 const TOBBrowser = () => (
   <Router>
@@ -32,16 +33,10 @@ const TOBBrowser = () => (
       <ErrorBoundary>
         <Switch>
           <Route path="/" exact component={TOBHomePage} />
-
           <Route path="/results/:query?" component={TOBAssociationPage} />
-
-          <Route path="/gene/:geneId" render={({ match }) => <TOBGenePage gene={match.gene} />} />
-
-          <Route
-            path="/variant/:variantId"
-            render={({ match }) => <TOBVariantPage variant={match.variant} />}
-          />
-
+          <Route path="/gene/:gene" component={TOBGenePage} />
+          <Route path="/violin/:gene" component={TOBViolinPage} />
+          <Route path="/variant/:variant" component={TOBVariantPage} />
           <Route component={PageNotFoundPage} />
         </Switch>
       </ErrorBoundary>
