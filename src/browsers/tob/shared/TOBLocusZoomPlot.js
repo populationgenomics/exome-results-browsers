@@ -9,6 +9,7 @@ import RegionControls from './components/RegionControls'
 import { PlotWrapper } from './components/utilities/styling'
 import StatusMessage from '../../base/StatusMessage'
 import LoadingOverlay from './components/LoadingOverlay'
+import { defaultCellTypeColors } from '../utilities/constants'
 
 const stringifyRegion = ({ chrom, start, stop }) => {
   return `${chrom}-${start}-${stop}`
@@ -130,6 +131,7 @@ const TOBLocusZoomPlot = ({ query, onChange, genes, cellTypes }) => {
                   onChange={onChange}
                   innerRegion={innerRegion}
                   setInnerRegion={setInnerRegion}
+                  categoryColors={defaultCellTypeColors()}
                 />
               )
             }}
