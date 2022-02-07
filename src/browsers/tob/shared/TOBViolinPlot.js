@@ -1,21 +1,23 @@
 import React, { useEffect, useState } from 'react'
-// import PropTypes from 'prop-types'
+import PropTypes from 'prop-types'
 import { SizeMe } from 'react-sizeme'
+import { isEmpty } from 'lodash'
 
 import StatusMessage from '../../base/StatusMessage'
+import { defaultCellTypeColors } from '../utilities/constants'
 
 import LoadingOverlay from './components/LoadingOverlay'
 import { PlotWrapper } from './components/utilities/styling'
 import ViolinPlot from './components/ViolinPlot'
 
-const TOBViolinPlot = () => {
+const TOBViolinPlot = ({ gene }) => {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [response, setResponse] = useState(null)
 
   useEffect(() => {
     setIsLoading(true)
-    const apiPath = `/api/genes/BRCA1/residuals/`
+    const apiPath = `/api/genes/${gene}/residuals/`
 
     fetch(apiPath, { method: 'GET' })
       .then((r) => {
@@ -55,13 +57,17 @@ const TOBViolinPlot = () => {
         <PlotWrapper>
           <SizeMe>
             {({ size }) => {
-              // if (!response?.data?.length > 0) {
-              //   return (
-              //     <StatusMessage>{`No associations were found for query '${query}'`}</StatusMessage>
-              //   )
-              // }
+              if (isEmpty(response)) {
+                return <StatusMessage>{`No data found for gene '${gene}'`}</StatusMessage>
+              }
 
-              return <ViolinPlot width={size.width} data={response || {}} />
+              return (
+                <ViolinPlot
+                  width={size.width}
+                  data={response || {}}
+                  categoryColors={defaultCellTypeColors()}
+                />
+              )
             }}
           </SizeMe>
         </PlotWrapper>
@@ -71,21 +77,11 @@ const TOBViolinPlot = () => {
 }
 
 TOBViolinPlot.propTypes = {
-  // query: PropTypes.string.isRequired,
-  // selectedTiles: PropTypes.arrayOf(
-  //   PropTypes.shape({
-  //     geneName: PropTypes.string.isRequired,
-  //     cellTypeId: PropTypes.string.isRequired,
-  //   })
-  // ),
-  // round: PropTypes.number,
-  // onChange: PropTypes.func,
+  gene: PropTypes.string,
 }
 
 TOBViolinPlot.defaultProps = {
-  // round: 1,
-  // selectedTiles: [],
-  // onChange: () => {},
+  gene: 'BRCA1',
 }
 
 export default TOBViolinPlot
