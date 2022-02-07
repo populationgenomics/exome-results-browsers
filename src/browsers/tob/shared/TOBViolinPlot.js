@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
 import { SizeMe } from 'react-sizeme'
-import { isEmpty } from 'lodash'
+// import { isEmpty } from 'lodash'
 
 import StatusMessage from '../../base/StatusMessage'
 import { defaultCellTypeColors } from '../utilities/constants'
@@ -57,9 +57,13 @@ const TOBViolinPlot = ({ gene }) => {
         <PlotWrapper>
           <SizeMe>
             {({ size }) => {
-              if (isEmpty(response)) {
-                return <StatusMessage>{`No data found for gene '${gene}'`}</StatusMessage>
-              }
+              // if (isEmpty(response)) {
+              //   return (
+              //     <div style={{ width: size.width }}>
+              //       <StatusMessage>{`No data found for gene '${gene}'`}</StatusMessage>
+              //     </div>
+              //   )
+              // }
 
               return (
                 <ViolinPlot
