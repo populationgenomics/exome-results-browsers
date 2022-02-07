@@ -3,28 +3,20 @@ import PropTypes from 'prop-types'
 
 import { scaleLinear, extent, zoom, select, pointer, brushX } from 'd3'
 
-const CELL_COLOURS = {
-  bin: '#332288',
-  bmem: '#6699cc',
-  cd4et: '#88ccee',
-  cd4nc: '#44aa99',
-  cd4sox4: '#117733',
-  cd8nc: '#999933',
-  cd8et: '#ddcc77',
-  cd8s100b: '#661100',
-  plasma: '#cc6677',
-  dc: '#aa4466',
-  nk: '#882255',
-  nkr: '#aa4499',
-  monoc: '#1e1e1e',
-  mononc: '#cc0000',
-}
-
 const numberWithCommas = (x) => {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 }
 
-const ManhattanPlot = ({ data, margin, height, width, onChange, innerRegion, setInnerRegion }) => {
+const ManhattanPlot = ({
+  data,
+  margin,
+  height,
+  width,
+  onChange,
+  innerRegion,
+  setInnerRegion,
+  categoryColors,
+}) => {
   // console.log(innerRegion)
   const xAccessor = (d) => d.bp
   const yAccessor = (d) => d.p_value
@@ -180,7 +172,7 @@ const ManhattanPlot = ({ data, margin, height, width, onChange, innerRegion, set
                 cx={xScale(xAccessor(d))}
                 cy={yScale(-Math.log10(yAccessor(d)))}
                 r={5}
-                fill={CELL_COLOURS[d.cell_type_id]}
+                fill={categoryColors[d.cell_type_id]}
                 onMouseOver={() => onMouseOver()}
                 onFocus={() => onMouseOver()}
                 onMouseMove={(e) => onMouseMove(e, d)}
@@ -244,12 +236,14 @@ ManhattanPlot.propTypes = {
   }).isRequired,
   onChange: PropTypes.func.isRequired,
   setInnerRegion: PropTypes.func.isRequired,
+  categoryColors: PropTypes.shape({ [PropTypes.symbol]: PropTypes.string }),
 }
 
 ManhattanPlot.defaultProps = {
   width: 500,
   height: 500,
   margin: { left: 60, right: 40, top: 20, bottom: 60 },
+  categoryColors: {},
 }
 
 export default ManhattanPlot
