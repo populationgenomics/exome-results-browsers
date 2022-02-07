@@ -44,7 +44,10 @@ export default () => (
         <Link to="/results/2-42752280-A-G">2-42752280-A-G</Link>
       </li>
       <li>
-        <Link to="/violin">Violin Plots</Link>
+        <Link to="/violin/BRCA1">BRCA1 Violin Plots</Link>
+      </li>
+      <li>
+        <Link to="/violin/IL8">IL8 Violin Plots</Link>
       </li>
     </ul>
 
