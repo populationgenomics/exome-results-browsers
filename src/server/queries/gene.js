@@ -189,8 +189,7 @@ const fetchGeneExpression = async ({ gene, cellTypesIds, chroms, options }) => {
   FROM
     ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.logResidual}
   WHERE
-    LOWER(gene) = LOWER(@gene)
-    
+    LOWER(gene) = LOWER(@gene) 
   `
 
   const queryParams = { gene }
