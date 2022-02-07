@@ -35,23 +35,9 @@ const ViolinPlot = ({ width, data, height, margin }) => {
   const innerHeight = height - margin.top - margin.bottom
   const padding = 0.05
   const numBins = 30
-  // const [isHovered, setIsHovered] = useState(false)
   const [hoveredData, setHoveredData] = useState(null)
 
   const cellLines = Object.keys(data)
-
-  const yScale = scaleLinear()
-    .domain(extent(Object.values(data).flat()))
-    .range([innerHeight, 0])
-
-  const xScale = scaleBand().range([0, innerWidth]).domain(cellLines).padding(padding)
-
-  const histogram = bin()
-    .domain(yScale.domain())
-    .thresholds(yScale.ticks(numBins))
-    .value((d) => d)
-
-  const sumstat = Object.values(data).map((value) => histogram(value))
 
   const boxplotStats = Object.values(data).map((item) => {
     const q1 = quantile(item.sort(ascending), 0.25)
@@ -69,6 +55,25 @@ const ViolinPlot = ({ width, data, height, margin }) => {
       maximum,
     }
   })
+
+  const globalMax = Math.max(...boxplotStats.map((item) => item.maximum))
+  const globalMin = Math.min(...boxplotStats.map((item) => item.minimum))
+
+  const dataExtent = extent(Object.values(data).flat())
+
+  const yScale = scaleLinear()
+    .domain([Math.min(dataExtent[0], globalMin), Math.max(dataExtent[1], globalMax)])
+    .range([innerHeight, 0])
+    .nice()
+
+  const xScale = scaleBand().range([0, innerWidth]).domain(cellLines).padding(padding)
+
+  const histogram = bin()
+    .domain(yScale.domain())
+    .thresholds(yScale.ticks(numBins))
+    .value((d) => d)
+
+  const sumstat = Object.values(data).map((value) => histogram(value))
 
   const maxNum = max(sumstat.map((i) => max(i.map((j) => j.length))))
 
@@ -110,7 +115,7 @@ const ViolinPlot = ({ width, data, height, margin }) => {
               <path
                 d={linesGenerator(item)}
                 style={{
-                  stroke: CELL_COLOURS[cellLines[i]],
+                  // stroke: CELL_COLOURS[cellLines[i]],
                   fill: CELL_COLOURS[cellLines[i]],
                   fillOpacity: 0.5,
                 }}
@@ -127,15 +132,15 @@ const ViolinPlot = ({ width, data, height, margin }) => {
                 stroke="black"
               />
               <rect
-                x={(xScale.bandwidth() * 3) / 8}
+                x={(xScale.bandwidth() * 7) / 16}
                 y={yScale(item.q3)}
                 height={yScale(item.q1) - yScale(item.q3)}
-                width={xScale.bandwidth() / 4}
+                width={xScale.bandwidth() / 8}
                 style={{ stroke: 'black', fill: 'white' }}
               />
               <line
-                x1={(xScale.bandwidth() * 3) / 8}
-                x2={(xScale.bandwidth() * 5) / 8}
+                x1={(xScale.bandwidth() * 7) / 16}
+                x2={(xScale.bandwidth() * 9) / 16}
                 y1={yScale(item.median)}
                 y2={yScale(item.median)}
                 stroke="black"
@@ -149,8 +154,8 @@ const ViolinPlot = ({ width, data, height, margin }) => {
                 onMouseLeave={() => setHoveredData(null)}
               />
               <line
-                x1={(xScale.bandwidth() * 3) / 8}
-                x2={(xScale.bandwidth() * 5) / 8}
+                x1={(xScale.bandwidth() * 7) / 16}
+                x2={(xScale.bandwidth() * 9) / 16}
                 y1={yScale(item.q1)}
                 y2={yScale(item.q1)}
                 onMouseOver={(e) => {
@@ -164,8 +169,8 @@ const ViolinPlot = ({ width, data, height, margin }) => {
                 stroke="black"
               />
               <line
-                x1={(xScale.bandwidth() * 3) / 8}
-                x2={(xScale.bandwidth() * 5) / 8}
+                x1={(xScale.bandwidth() * 7) / 16}
+                x2={(xScale.bandwidth() * 9) / 16}
                 y1={yScale(item.q3)}
                 y2={yScale(item.q3)}
                 onMouseOver={(e) => {
@@ -177,36 +182,6 @@ const ViolinPlot = ({ width, data, height, margin }) => {
                 }}
                 onMouseLeave={() => setHoveredData(null)}
                 stroke="black"
-              />
-              <line
-                x1={(xScale.bandwidth() * 7) / 16}
-                x2={(xScale.bandwidth() * 9) / 16}
-                y1={yScale(item.minimum)}
-                y2={yScale(item.minimum)}
-                stroke="black"
-                onMouseOver={(e) => {
-                  setHoveredData({
-                    value: item.minimum.toFixed(3),
-                    x: xScale(cellLines[i]) + margin.left,
-                    y: pointer(e)[1],
-                  })
-                }}
-                onMouseLeave={() => setHoveredData(null)}
-              />
-              <line
-                x1={(xScale.bandwidth() * 7) / 16}
-                x2={(xScale.bandwidth() * 9) / 16}
-                y1={yScale(item.maximum)}
-                y2={yScale(item.maximum)}
-                stroke="black"
-                onMouseOver={(e) => {
-                  setHoveredData({
-                    value: item.maximum.toFixed(3),
-                    x: xScale(cellLines[i]) + margin.left,
-                    y: pointer(e)[1],
-                  })
-                }}
-                onMouseLeave={() => setHoveredData(null)}
               />
             </g>
           ))}
