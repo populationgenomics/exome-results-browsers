@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import PropTypes from 'prop-types'
 import {
   scaleLinear,
@@ -13,29 +13,15 @@ import {
   pointer,
 } from 'd3'
 
-const CELL_COLOURS = {
-  bin: '#332288',
-  bmem: '#6699cc',
-  cd4et: '#88ccee',
-  cd4nc: '#44aa99',
-  cd4sox4: '#117733',
-  cd8nc: '#999933',
-  cd8et: '#ddcc77',
-  cd8s100b: '#661100',
-  plasma: '#cc6677',
-  dc: '#aa4466',
-  nk: '#882255',
-  nkr: '#aa4499',
-  monoc: '#1e1e1e',
-  mononc: '#cc0000',
-}
-
-const ViolinPlot = ({ width, data, height, margin }) => {
+const ViolinPlot = ({ width, data, height, margin, categoryColors }) => {
   const innerWidth = width - margin.left - margin.right
   const innerHeight = height - margin.top - margin.bottom
   const padding = 0.05
   const numBins = 30
   const [hoveredData, setHoveredData] = useState(null)
+
+  const xAxisArea = useRef()
+  const yAxisArea = useRef()
 
   const cellLines = Object.keys(data)
 
@@ -89,34 +75,43 @@ const ViolinPlot = ({ width, data, height, margin }) => {
     <>
       <svg width={width} height={height}>
         <g transform={`translate(${margin.left}, ${margin.top})`}>
-          <g transform={`translate(0, ${innerHeight})`}>
+          <g id="x-axis" transform={`translate(0, ${innerHeight})`} ref={xAxisArea}>
             <line x2={`${innerWidth}`} stroke="black" />
             {xScale.domain().map((tick) => (
               <g key={tick} transform={`translate(${xScale(tick) + xScale.bandwidth() / 2}, 0)`}>
-                <text style={{ textAnchor: 'middle' }} dy=".71em" y={9}>
+                <text
+                  style={{ textAnchor: 'middle' }}
+                  dy=".71em"
+                  y={9}
+                  transform="rotate(45) translate(20,10)"
+                >
                   {tick}
                 </text>
                 <line y2={6} stroke="black" />
               </g>
             ))}
           </g>
-          <line y2={`${innerHeight}`} stroke="black" />
-          {yScale.ticks().map((tick) => (
-            <g key={tick} transform={`translate(0, ${yScale(tick)})`}>
-              <text key={tick} style={{ textAnchor: 'end' }} x={-6} dy=".32em">
-                {tick}
-              </text>
-              <line x2={-3} stroke="black" />
-              <line x2={innerWidth} stroke={yScale(tick) === innerHeight ? 'none' : 'lightgrey'} />
-            </g>
-          ))}
+          <g id="y-axis" ref={yAxisArea}>
+            <line y2={`${innerHeight}`} stroke="black" />
+            {yScale.ticks().map((tick) => (
+              <g key={tick} transform={`translate(0, ${yScale(tick)})`}>
+                <text key={tick} style={{ textAnchor: 'end' }} x={-6} dy=".32em">
+                  {tick}
+                </text>
+                <line x2={-3} stroke="black" />
+                <line
+                  x2={innerWidth}
+                  stroke={yScale(tick) === innerHeight ? 'none' : 'lightgrey'}
+                />
+              </g>
+            ))}
+          </g>
           {sumstat.map((item, i) => (
             <g key={`SumStat${cellLines[i]}`} transform={`translate(${xScale(cellLines[i])}, 0)`}>
               <path
                 d={linesGenerator(item)}
                 style={{
-                  // stroke: CELL_COLOURS[cellLines[i]],
-                  fill: CELL_COLOURS[cellLines[i]],
+                  fill: categoryColors[cellLines[i]],
                   fillOpacity: 0.5,
                 }}
               />
@@ -209,6 +204,7 @@ const ViolinPlot = ({ width, data, height, margin }) => {
 
 ViolinPlot.propTypes = {
   data: PropTypes.objectOf(PropTypes.arrayOf(PropTypes.number)).isRequired,
+  categoryColors: PropTypes.shape({ [PropTypes.symbol]: PropTypes.string }),
   margin: PropTypes.shape({
     left: PropTypes.number,
     right: PropTypes.number,
@@ -223,6 +219,7 @@ ViolinPlot.defaultProps = {
   width: 500,
   height: 500,
   margin: { left: 60, right: 40, top: 20, bottom: 60 },
+  categoryColors: {},
 }
 
 export default ViolinPlot
