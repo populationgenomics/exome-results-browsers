@@ -34,7 +34,7 @@ const TOBAssociationPage = ({ match }) => {
     } else {
       setQuery(search)
     }
-  }, [search])
+  }, [search, setQuery, setError])
 
   const updateSelectedTiles = useCallback(
     (tile) => {
