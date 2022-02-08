@@ -14,6 +14,7 @@ const {
   submitQuery,
 } = require('./utilities')
 const { convertPositionToGlobalPosition } = require('./genome')
+const { isGene } = require('../identifiers')
 
 const generateRegionQuery = ({
   query,
@@ -116,6 +117,54 @@ const generateVariantQuery = ({
   return { query: sqlQuery, params }
 }
 
+const generateGeneQuery = ({
+  query,
+  round = 1,
+  aggregateBy = 'q_value',
+  projectId = projectIds.tobWgsBrowser,
+  datasetId = datasetIds.grch37,
+}) => {
+  const gene = query?.toString()?.toUpperCase() || ''
+
+  const sqlQuery = `
+      DECLARE start DEFAULT (
+        SELECT global_start 
+        FROM ${projectId}.${datasetId}.${tableIds.geneModel}
+        WHERE gene_id = @gene
+        LIMIT 1
+      );
+
+      DECLARE stop DEFAULT (
+        SELECT global_stop 
+        FROM ${projectId}.${datasetId}.${tableIds.geneModel}
+        WHERE gene_id = @gene
+        LIMIT 1
+      );
+
+      SELECT
+        DISTINCT gene AS geneName, cell_type_id AS cellTypeId,
+        ${aggregateBy} AS value
+      FROM
+        (
+          SELECT
+            *,
+            MIN(${aggregateBy}) OVER (PARTITION BY gene, cell_type_id) AS minValue
+          FROM
+            ${projectId}.${datasetId}.${tableIds.association} AS association
+          WHERE
+              global_bp >= start
+              AND global_bp <= stop
+              AND round = @round
+        )
+      WHERE
+        ${aggregateBy} = minValue
+    `
+
+  const params = { gene, round }
+
+  return { query: sqlQuery, params }
+}
+
 const generateRsidQuery = ({
   query,
   round = 1,
@@ -170,8 +219,10 @@ const fetchAssociationHeatmap = async ({ query, round = 1, aggregateBy = 'q_valu
     generator = generateVariantQuery
   } else if (isRsId(query)) {
     generator = generateRsidQuery
+  } else if (isGene(query)) {
+    generator = generateGeneQuery
   } else {
-    throw new Error('Query must be a region, variant ID or Rsid')
+    throw new Error('Query must be a gene, region, variant ID or rsid')
   }
 
   const sqlQuery = generator({
