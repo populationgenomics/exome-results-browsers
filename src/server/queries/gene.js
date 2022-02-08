@@ -125,7 +125,7 @@ const fetchGenes = async ({ query, options }) => {
       OR canonical_transcript_id IN UNNEST(@listQuery)
       OR UPPER(symbol) IN UNNEST(@listQuery)
       OR REGEXP_CONTAINS(UPPER(search_terms), CONCAT('".*', @textQuery, '.*"'))
-      OR REGEXP_CONTAINS(UPPER(name), CONCAT('.*', @textQuery), '.*'))
+      OR REGEXP_CONTAINS(UPPER(name), CONCAT('.*', @textQuery, '.*'))
     `
 
     queryParams = {
