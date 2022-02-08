@@ -3,7 +3,6 @@ import PropTypes from 'prop-types'
 
 import TOBAssociationHeatmap from '../shared/TOBAssociationHeatmap'
 import TOBLocusZoomPlot from '../shared/TOBLocusZoomPlot'
-import { isEnsemblGeneId } from '../../../server/identifiers'
 import StatusMessage from '../../base/StatusMessage'
 
 const TOBAssociationPage = ({ match }) => {
@@ -15,7 +14,7 @@ const TOBAssociationPage = ({ match }) => {
   useEffect(() => {
     setQuery(null)
 
-    if (isEnsemblGeneId(search)) {
+    if (/^ENSG\d{11}$/i.test(search.toString())) {
       fetch(`/api/genes/${search}`, { method: 'GET' })
         .then((r) => {
           if (r.ok) {
