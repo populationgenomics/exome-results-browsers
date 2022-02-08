@@ -14,7 +14,7 @@ const fetchGeneIdSuggestions = async ({ query, options }) => {
   const sqlQuery = `
   SELECT
     ${labelColumn} AS label, 
-    CONCAT('/gene/', gene_id) AS url
+    CONCAT('/results/', gene_id) AS url
   FROM
     ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneLookup} 
   WHERE
