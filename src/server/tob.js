@@ -31,6 +31,7 @@ const {
 } = require('./queries')
 const { parseConditioningRound } = require('./queries/utilities')
 const { convertPositionToGlobalPosition } = require('./queries/genome')
+const { isGene, isEnsemblGeneId } = require('./identifiers')
 
 // ================================================================================================
 // Configuration
@@ -167,6 +168,23 @@ app.get('/api/genes', (req, res) => {
       .catch((error) => res.status(400).json({ error: error.message }))
   }
 
+  if (isEnsemblGeneId(query)) {
+    return fetchGenesById({ ids: [query] })
+      .then((results) =>
+        res.status(200).json({
+          results: {
+            genes: results,
+            region: {
+              chrom: results[0].chrom,
+              start: results[0].global_start,
+              stop: results[0].global_stop,
+            },
+          },
+        })
+      )
+      .catch((error) => res.status(400).json({ error: error.message }))
+  }
+
   if (isVariantId(query)) {
     const variant = parseVariantId(query)
     return fetchGenesAssociatedWithVariant({ variant })
@@ -186,13 +204,20 @@ app.get('/api/genes', (req, res) => {
   }
 
   return fetchGenes({ query })
-    .then((results) => res.status(200).json({ results: { genes: results, region: null } }))
+    .then((results) =>
+      res.status(200).json({
+        results: {
+          genes: results,
+          region: null,
+        },
+      })
+    )
     .catch((error) => res.status(400).json({ error: error.message }))
 })
 
 app.get('/api/genes/:id', (req, res) => {
   return fetchGenesById({ ids: [req.params.id] })
-    .then((results) => res.status(200).json({ results }))
+    .then((results) => res.status(200).json({ results: results[0] }))
     .catch((error) => res.status(400).json({ error: error.message }))
 })
 
@@ -229,8 +254,8 @@ app.get('/api/associations/', (req, res) => {
 app.get('/api/associations/aggregate', (req, res) => {
   const { query } = req.query
 
-  if (!isRegionId(query) && !isVariantId(query) && !isRsId(query)) {
-    return res.status(400).json({ error: 'Query must be a region, variant ID or Rsid' })
+  if (!(isRegionId(query) || isVariantId(query) || isRsId(query) || isGene(query))) {
+    return res.status(400).json({ error: 'Query must be a gene, region, variant ID or rsid' })
   }
 
   let round = 1

@@ -14,7 +14,7 @@ const fetchGeneIdSuggestions = async ({ query, options }) => {
   const sqlQuery = `
   SELECT
     ${labelColumn} AS label, 
-    CONCAT('/gene/', gene_id) AS url
+    CONCAT('/results/', gene_id) AS url
   FROM
     ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneLookup} 
   WHERE
@@ -125,7 +125,7 @@ const fetchGenes = async ({ query, options }) => {
       OR canonical_transcript_id IN UNNEST(@listQuery)
       OR UPPER(symbol) IN UNNEST(@listQuery)
       OR REGEXP_CONTAINS(UPPER(search_terms), CONCAT('".*', @textQuery, '.*"'))
-      OR REGEXP_CONTAINS(UPPER(name), CONCAT('.*', @textQuery), '.*'))
+      OR REGEXP_CONTAINS(UPPER(name), CONCAT('.*', @textQuery, '.*'))
     `
 
     queryParams = {
