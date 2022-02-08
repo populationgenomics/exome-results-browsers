@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react'
 import PropTypes from 'prop-types'
 
-import { ExternalLink } from '@gnomad/ui'
+import { ExternalLink, Link } from '@gnomad/ui'
 
 import { scaleLinear, zoom, select } from 'd3'
 
@@ -71,11 +71,11 @@ const featureTypeCompareFn = (r1, r2) =>
   featureTypeOrder[r1.feature_type] - featureTypeOrder[r2.feature_type]
 
 const renderGeneLabel = (gene) => (
-  <ExternalLink href={`https://gnomad.broadinstitute.org/gene/${gene.symbol}`}>
+  <Link href={`/gene/${gene.gene_id}`}>
     <text fill="#1173bb" textAnchor="middle">
       {gene.symbol}
     </text>
-  </ExternalLink>
+  </Link>
 )
 
 const GenesTrack = ({
