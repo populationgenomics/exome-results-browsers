@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react'
 import PropTypes from 'prop-types'
 
-import { ExternalLink, Link } from '@gnomad/ui'
+import { Link } from '@gnomad/ui'
 
 import { scaleLinear, zoom, select } from 'd3'
 
