@@ -1,26 +1,29 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import PropTypes from 'prop-types'
+import { useParams } from 'react-router-dom'
 
-import TOBAssociationHeatmap from '../shared/TOBAssociationHeatmap'
-import TOBLocusZoomPlot from '../shared/TOBLocusZoomPlot'
-import StatusMessage from '../../base/StatusMessage'
+import TOBAssociationHeatmap from '../components/TOBAssociationHeatmap'
+import TOBLocusZoomPlot from '../components/TOBLocusZoomPlot'
 
-const TOBAssociationPage = ({ match }) => {
-  const [search, setSearch] = useState(match.params.query || '22:37200000-39900000')
-  const [query, setQuery] = useState(null)
+import StatusMessage from '../shared/components/StatusMessage'
+
+const TOBAssociationPage = () => {
+  const { query } = useParams({ query: '22:37200000-39900000' })
+
+  const [apiQuery, setApiQuery] = useState(null)
   const [error, setError] = useState(null)
   const [selectedTiles, setSelectedTiles] = useState(new Map())
 
+  // Resolve ensembl id to region first
   useEffect(() => {
-    setQuery(null)
+    setApiQuery(null)
 
-    if (/^ENSG\d{11}$/i.test(search.toString())) {
-      fetch(`/api/genes/${search}`, { method: 'GET' })
+    if (/^ENSG\d{11}$/i.test(query.toString())) {
+      fetch(`/api/genes/${query}`, { method: 'GET' })
         .then((r) => {
           if (r.ok) {
             r.json().then(
               ({ results: { chrom, start, stop } }) => {
-                setQuery(`${chrom}:${start - 1e3}-${stop + 1e3}`)
+                setApiQuery(`${chrom}:${start - 1e3}-${stop + 1e3}`)
                 setError(null)
               },
               () => setError('Could not parse result')
@@ -31,9 +34,9 @@ const TOBAssociationPage = ({ match }) => {
         })
         .catch((e) => setError(e.toString()))
     } else {
-      setQuery(search)
+      setApiQuery(query)
     }
-  }, [search, setQuery, setError])
+  }, [query, setApiQuery, setError])
 
   const updateSelectedTiles = useCallback(
     (tile) => {
@@ -65,20 +68,20 @@ const TOBAssociationPage = ({ match }) => {
     return <StatusMessage>{error}</StatusMessage>
   }
 
-  if (query == null) {
+  if (apiQuery == null) {
     return <StatusMessage>Fetching region</StatusMessage>
   }
 
   return (
     <>
       <TOBLocusZoomPlot
-        query={query}
+        query={apiQuery}
         genes={Array.from(selectedTiles.values()).map((t) => t.geneName)}
         cellTypes={Array.from(selectedTiles.values()).map((t) => t.cellTypeId)}
-        onChange={(r) => setSearch(`${r.chrom}-${r.start}-${r.stop}`)}
+        onChange={(r) => setApiQuery(`${r.chrom}-${r.start}-${r.stop}`)}
       />
       <TOBAssociationHeatmap
-        query={query}
+        query={apiQuery}
         selectedTiles={Array.from(selectedTiles.values())}
         onChange={updateSelectedTiles}
       />
@@ -86,9 +89,6 @@ const TOBAssociationPage = ({ match }) => {
   )
 }
 
-TOBAssociationPage.propTypes = {
-  // eslint-disable-next-line react/forbid-prop-types
-  match: PropTypes.object.isRequired,
-}
+TOBAssociationPage.propTypes = {}
 
 export default TOBAssociationPage

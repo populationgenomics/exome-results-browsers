@@ -1,13 +1,11 @@
 import PropTypes from 'prop-types'
 import React, { useState } from 'react'
-import { withRouter } from 'react-router-dom'
 import styled from 'styled-components'
 
 import { Button } from '@gnomad/ui'
 
-import Link from '../base/Link'
-
-import Searchbox from './shared/components/Searchbox'
+import Link from '../shared/components/Link'
+import Searchbox from '../shared/components/Searchbox'
 
 const TitleWrapper = styled.div``
 
@@ -134,9 +132,6 @@ TopBar.propTypes = {
   ),
   backgroundColor: PropTypes.string,
   textColor: PropTypes.string,
-  history: PropTypes.shape({
-    push: PropTypes.func.isRequired,
-  }).isRequired,
 }
 
 TopBar.defaultProps = {
@@ -145,4 +140,4 @@ TopBar.defaultProps = {
   textColor: '#fff',
 }
 
-export default withRouter(TopBar)
+export default TopBar

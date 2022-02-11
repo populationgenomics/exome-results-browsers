@@ -1,7 +1,7 @@
 import React from 'react'
-import { withRouter } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 
-import { Searchbox } from '@gnomad/ui'
+import { Searchbox as SearchboxInput } from '@gnomad/ui'
 
 const fetchSearchResults = (query) =>
   fetch(`/api/search?q=${query}`)
@@ -16,18 +16,20 @@ const fetchSearchResults = (query) =>
     })
     .then((data) => data.results.map(({ label, url }) => ({ label, value: url })))
 
-export default withRouter((props) => {
-  const { history, location, match, ...rest } = props
+const Searchbox = (props) => {
+  const location = useLocation()
+  const navigate = useNavigate()
+
   return (
-    <Searchbox
+    <SearchboxInput
       // Clear input when URL changes
-      key={history.location.pathname}
+      key={location.pathname}
       placeholder="Search results by gene, variant or region"
-      {...rest}
       fetchSearchResults={fetchSearchResults}
-      onSelect={(url) => {
-        history.push({ pathname: url })
-      }}
+      onSelect={(url) => navigate(url)}
+      {...props}
     />
   )
-})
+}
+
+export default Searchbox

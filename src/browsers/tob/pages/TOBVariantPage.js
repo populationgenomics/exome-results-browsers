@@ -1,11 +1,12 @@
-import PropTypes from 'prop-types'
 import React from 'react'
+import { useParams } from 'react-router-dom'
 
-const TOBVariantPage = ({ match }) => <div>{match.params.variant}</div>
+const TOBVariantPage = () => {
+  const { variant } = useParams()
 
-TOBVariantPage.propTypes = {
-  // eslint-disable-next-line react/forbid-prop-types
-  match: PropTypes.object.isRequired,
+  return <div>Variant page for {variant}</div>
 }
+
+TOBVariantPage.propTypes = {}
 
 export default TOBVariantPage

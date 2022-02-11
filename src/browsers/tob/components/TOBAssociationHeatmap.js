@@ -2,11 +2,10 @@ import React, { useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
 import { SizeMe } from 'react-sizeme'
 
-import StatusMessage from '../../base/StatusMessage'
-
-import LoadingOverlay from './components/LoadingOverlay'
-import { PlotWrapper } from './components/utilities/styling'
-import Heatmap from './components/Heatmap'
+import StatusMessage from '../shared/components/StatusMessage'
+import LoadingOverlay from '../shared/components/LoadingOverlay'
+import { PlotWrapper } from '../shared/utilities/styling'
+import Heatmap from '../shared/components/Heatmap'
 
 const TOBAssociationHeatmap = ({ query, round, selectedTiles, onChange }) => {
   const [isLoading, setIsLoading] = useState(true)
@@ -130,5 +129,5 @@ TOBAssociationHeatmap.defaultProps = {
   onChange: () => {},
 }
 
-export { TileEventType } from './components/Heatmap'
+export { TileEventType } from '../shared/components/Heatmap'
 export default TOBAssociationHeatmap

@@ -1,11 +1,12 @@
-import PropTypes from 'prop-types'
 import React from 'react'
+import { useParams } from 'react-router-dom'
 
-const TOBGenePage = ({ match }) => <div>Gene page for {match.params.gene}</div>
+const TOBGenePage = () => {
+  const { gene } = useParams()
 
-TOBGenePage.propTypes = {
-  // eslint-disable-next-line react/forbid-prop-types
-  match: PropTypes.object.isRequired,
+  return <div>Gene page for {gene}</div>
 }
+
+TOBGenePage.propTypes = {}
 
 export default TOBGenePage

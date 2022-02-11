@@ -34,5 +34,12 @@
     "react-sizeme": "^2.5.2",
     "react-split-pane": "^0.1.92",
     "styled-components": "^4.2.0"
+  },
+  "devDependencies": {
+    "@storybook/addon-actions": "^6.4.18",
+    "@storybook/addon-essentials": "^6.4.18",
+    "@storybook/addon-links": "^6.4.18",
+    "@storybook/react": "^6.4.18",
+    "babel-loader": "^8.2.3"
   }
 }

@@ -13,7 +13,7 @@ import {
 } from 'd3fc'
 import { annotationCallout } from 'd3-svg-annotation'
 
-import seriesSvgAnnotation from './utilities/seriesSvgAnnotation'
+import seriesSvgAnnotation from '../utilities/seriesSvgAnnotation'
 
 const DEFAULT_COLORS = [
   '#332288',

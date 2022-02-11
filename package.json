@@ -11,7 +11,10 @@
     "start": "./start.sh",
     "build": "webpack --config=src/browsers/webpack.config.js",
     "lint:js": "eslint .",
-    "lint:css": "stylelint 'src/**/*.js'"
+    "lint:css": "stylelint 'src/**/*.js'",
+    "clean": "rm -rf ./node_modules ./src/browsers/node_modules && yarn cache clean",
+    "storybook": "start-storybook -p 6006 -c ./src/browsers/.storybook/",
+    "build-storybook": "build-storybook -c ./src/browsers/.storybook/ -o ./dist/storybook"
   },
   "devDependencies": {
     "@babel/core": "^7.9.0",

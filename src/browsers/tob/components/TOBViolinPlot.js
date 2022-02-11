@@ -3,12 +3,12 @@ import PropTypes from 'prop-types'
 import { SizeMe } from 'react-sizeme'
 // import { isEmpty } from 'lodash'
 
-import StatusMessage from '../../base/StatusMessage'
-import { defaultCellTypeColors } from '../utilities/constants'
+import StatusMessage from '../shared/components/StatusMessage'
+import LoadingOverlay from '../shared/components/LoadingOverlay'
+import { defaultCellTypeColors } from '../shared/utilities/constants'
 
-import LoadingOverlay from './components/LoadingOverlay'
-import { PlotWrapper } from './components/utilities/styling'
-import ViolinPlot from './components/ViolinPlot'
+import { PlotWrapper } from '../shared/utilities/styling'
+import ViolinPlot from '../shared/components/ViolinPlot'
 
 const TOBViolinPlot = ({ gene }) => {
   const [isLoading, setIsLoading] = useState(true)

@@ -1,15 +1,14 @@
 import React from 'react'
-import PropTypes from 'prop-types'
+import { useParams } from 'react-router-dom'
 
-import TOBViolinPlot from '../shared/TOBViolinPlot'
+import TOBViolinPlot from '../components/TOBViolinPlot'
 
-const TOBViolinPage = ({ match }) => {
-  return <TOBViolinPlot gene={match.params.gene} />
+const TOBViolinPage = () => {
+  const { gene } = useParams()
+
+  return <TOBViolinPlot gene={gene} />
 }
 
-TOBViolinPage.propTypes = {
-  // eslint-disable-next-line react/forbid-prop-types
-  match: PropTypes.object.isRequired,
-}
+TOBViolinPage.propTypes = {}
 
 export default TOBViolinPage

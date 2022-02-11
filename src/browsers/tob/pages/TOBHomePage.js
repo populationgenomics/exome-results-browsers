@@ -3,9 +3,8 @@ import styled from 'styled-components'
 
 import { Page, PageHeading } from '@gnomad/ui'
 
-import DocumentTitle from '../../base/DocumentTitle'
-import Link from '../../base/Link'
-
+import DocumentTitle from '../shared/components/DocumentTitle'
+import Link from '../shared/components/Link'
 import Searchbox from '../shared/components/Searchbox'
 
 const HomePageHeading = styled(PageHeading)`
