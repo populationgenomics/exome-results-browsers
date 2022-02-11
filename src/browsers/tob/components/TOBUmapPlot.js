@@ -4,10 +4,11 @@ import { SizeMe } from 'react-sizeme'
 import { Button, TooltipAnchor, TooltipHint } from '@gnomad/ui'
 import Select from 'react-select'
 
-import Fetch from '../../base/Fetch'
-import StatusMessage from '../../base/StatusMessage'
-import Umap from './components/Umap'
-import { TooltipWrapper, PlotWrapper } from './components/utilities/styling'
+import Fetch from '../shared/components/Fetch'
+import StatusMessage from '../shared/components/StatusMessage'
+import Umap from '../shared/components/Umap'
+
+import { TooltipWrapper, PlotWrapper } from '../shared/utilities/styling'
 
 const TOBUmapPlot = () => {
   const [apiPath, setApiPath] = useState(null)

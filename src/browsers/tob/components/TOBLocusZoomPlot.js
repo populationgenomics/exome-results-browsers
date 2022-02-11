@@ -3,13 +3,14 @@ import PropTypes from 'prop-types'
 import { SizeMe } from 'react-sizeme'
 import { isRegionId, isVariantId, parseRegionId, parseVariantId } from '@gnomad/identifiers'
 
-import ManhattanPlot from './components/ManhattanPlot'
-import GenesTrack from './components/GenesTrack'
-import RegionControls from './components/RegionControls'
-import { PlotWrapper } from './components/utilities/styling'
-import StatusMessage from '../../base/StatusMessage'
-import LoadingOverlay from './components/LoadingOverlay'
-import { defaultCellTypeColors } from '../utilities/constants'
+import ManhattanPlot from '../shared/components/ManhattanPlot'
+import GenesTrack from '../shared/components/GenesTrack'
+import RegionControls from '../shared/components/RegionControls'
+import LoadingOverlay from '../shared/components/LoadingOverlay'
+import StatusMessage from '../shared/components/StatusMessage'
+
+import { PlotWrapper } from '../shared/utilities/styling'
+import { defaultCellTypeColors } from '../shared/utilities/constants'
 
 const stringifyRegion = ({ chrom, start, stop }) => {
   return `${chrom}-${start}-${stop}`

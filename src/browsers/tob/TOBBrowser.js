@@ -1,10 +1,10 @@
 import React from 'react'
-import { BrowserRouter as Router, Route, Switch } from 'react-router-dom'
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom'
 
-import ErrorBoundary from '../base/ErrorBoundary'
-import PageNotFoundPage from '../base/PageNotFoundPage'
+import ErrorBoundary from './shared/components/ErrorBoundary'
+import PageNotFoundPage from './shared/components/PageNotFoundPage'
 
-import TopBar from './TopBar'
+import TopBar from './components/TopBar'
 
 import TOBHomePage from './pages/TOBHomePage'
 import TOBAssociationPage from './pages/TOBAssociationPage'
@@ -31,14 +31,18 @@ const TOBBrowser = () => (
 
     <div style={{ margin: '0 1em' }}>
       <ErrorBoundary>
-        <Switch>
-          <Route path="/" exact component={TOBHomePage} />
-          <Route path="/results/:query?" component={TOBAssociationPage} />
-          <Route path="/gene/:gene" component={TOBGenePage} />
-          <Route path="/violin/:gene" component={TOBViolinPage} />
-          <Route path="/variant/:variant" component={TOBVariantPage} />
-          <Route component={PageNotFoundPage} />
-        </Switch>
+        <Routes>
+          <Route path="/results" element={<TOBAssociationPage />}>
+            <Route path=":query" element={<TOBAssociationPage />} />
+          </Route>
+
+          <Route path="/gene/:gene" element={<TOBGenePage />} />
+          <Route path="/violin/:gene" element={<TOBViolinPage />} />
+          <Route path="/variant/:variant" element={<TOBVariantPage />} />
+
+          <Route path="/" element={<TOBHomePage />} />
+          <Route path="*" element={<PageNotFoundPage />} />
+        </Routes>
       </ErrorBoundary>
     </div>
   </Router>
