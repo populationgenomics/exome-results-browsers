@@ -52,7 +52,7 @@ jobs:
           gcloud auth configure-docker australia-southeast1-docker.pkg.dev
       - name: 'build image'
         run: |
-          docker build --tag $DOCKER_IMAGE .
+          docker build --tag $DOCKER_IMAGE . --no-cache
       - name: 'push image'
         run: |
           docker push $DOCKER_IMAGE
