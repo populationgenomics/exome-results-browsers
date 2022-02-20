@@ -265,7 +265,7 @@ app.get('/api/associations/aggregate', (req, res) => {
     return res.status(400).json({ error: error.message })
   }
 
-  return fetchAssociationHeatmap({ query, round })
+  return fetchAssociationHeatmap({ query, round, aggregateBy: 'p_value' })
     .then((data) => res.status(200).json({ results: data }))
     .catch((error) => res.status(400).json({ error: error.message }))
 })
