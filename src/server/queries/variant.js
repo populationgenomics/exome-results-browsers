@@ -46,13 +46,11 @@ const fetchVariantsInRegion = async ({
   FROM
     ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.association}
   WHERE
-      global_bp >= @start
-    AND 
-      global_bp <= @stop
+    global_bp >= @start
+    AND global_bp <= @stop
     ${matchGenes}
     ${matchCellTypes} 
-    AND 
-      round = @round
+    AND round = @round
   `
   const sqlParams = {
     start: region.start,
