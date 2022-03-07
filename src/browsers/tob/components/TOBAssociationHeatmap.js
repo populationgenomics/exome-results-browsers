@@ -22,34 +22,22 @@ const TOBAssociationHeatmap = ({ query, gene, round, selectedTiles, onChange }) 
         if (r.ok) {
           r.json().then(
             ({ results }) => {
-              const filledData = [...results.data]
-
-              if (filledData.length > 0) {
-                results.cell_type_ids.forEach((cell_type_id) => {
-                  results.gene_names.forEach((g) => {
-                    if (!filledData.find((d) => d.gene === g && d.cell_type_id === cell_type_id)) {
-                      filledData.push({ gene: g, cell_type_id, value: NaN })
-                    }
-                  })
-                })
-              }
-
               // Pre-select first row for a gene search or first cell for other searches
               if (!selectedTiles?.length) {
-                const firstGene = filledData
-                  .filter((d) => !Number.isNaN(d.value))
+                const firstGene = results.data
+                  .filter((d) => Number.isFinite(d.value))
                   .sort((a, b) => a.gene > b.gene)[0]?.gene
 
-                const firstRow = filledData
+                const firstRow = results.data
                   .filter((d) => firstGene && d.gene === firstGene)
-                  .filter((d) => !Number.isNaN(d.value))
+                  .filter((d) => Number.isFinite(d.value))
 
                 onChange(
                   gene ? firstRow : [firstRow.sort((a, b) => a.cell_type_id > b.cell_type_id)[0]]
                 )
               }
 
-              setResponse({ ...results, data: filledData })
+              setResponse({ ...results })
             },
             () => setError('Could not parse result')
           )
