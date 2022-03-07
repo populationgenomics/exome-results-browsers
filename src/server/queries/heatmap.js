@@ -19,7 +19,7 @@ const { isGene } = require('../identifiers')
 const generateRegionQuery = ({
   query,
   round = 1,
-  aggregateBy = 'q_value',
+  aggregateBy = 'p_value',
   projectId = projectIds.tobWgsBrowser,
   datasetId = datasetIds.grch37,
 }) => {
@@ -27,28 +27,23 @@ const generateRegionQuery = ({
 
   const sqlQuery = `
     SELECT
-      DISTINCT
-        gene AS geneName,
-        cell_type_id AS cellTypeId,
-      q_value AS value
+      DISTINCT gene, cell_type_id,
+      ${aggregateBy} AS value
     FROM
       (
         SELECT
           *,
-          MIN(${aggregateBy}) OVER (PARTITION BY gene, cell_type_id) AS minValue
+          MIN(${aggregateBy}) OVER (PARTITION BY gene, cell_type_id) AS min_value
         FROM
           ${projectId}.${datasetId}.${tableIds.association}
         WHERE
-            global_bp >= @start
-          AND
-            global_bp <= @stop
-          AND
-            chrom = @chrom
-          AND
-            round = @round
+          global_bp >= @start
+          AND global_bp <= @stop
+          AND chrom = @chrom
+          AND round = @round
       )
     WHERE
-      q_value = minValue
+      ${aggregateBy} = min_value
   `
 
   const params = {
@@ -64,7 +59,7 @@ const generateRegionQuery = ({
 const generateVariantQuery = ({
   query,
   round = 1,
-  aggregateBy = 'q_value',
+  aggregateBy = 'p_value',
   projectId = projectIds.tobWgsBrowser,
   datasetId = datasetIds.grch37,
 }) => {
@@ -72,15 +67,13 @@ const generateVariantQuery = ({
 
   const sqlQuery = `
     SELECT
-      DISTINCT
-        gene AS geneName,
-        cell_type_id AS cellTypeId,
+      DISTINCT gene, cell_type_id,
       ${aggregateBy} AS value
     FROM
       (
         SELECT
           *,
-          MIN(${aggregateBy}) OVER (PARTITION BY gene, cell_type_id) AS minValue
+          MIN(${aggregateBy}) OVER (PARTITION BY gene, cell_type_id) AS min_value
         FROM
           (
             SELECT
@@ -91,19 +84,15 @@ const generateVariantQuery = ({
             FROM
               ${projectId}.${datasetId}.${tableIds.association}
             WHERE
-                round = @round
-              AND
-                chrom = @chrom
-              AND
-                bp = @pos
-              AND
-                a1 = @ref
-              AND
-                a2 = @alt
+              round = @round
+              AND chrom = @chrom
+              AND bp = @pos
+              AND a1 = @ref
+              AND a2 = @alt
           )
       )
     WHERE
-      ${aggregateBy} = minValue
+      ${aggregateBy} = min_value
   `
 
   const params = {
@@ -120,7 +109,7 @@ const generateVariantQuery = ({
 const generateGeneQuery = ({
   query,
   round = 1,
-  aggregateBy = 'q_value',
+  aggregateBy = 'p_value',
   projectId = projectIds.tobWgsBrowser,
   datasetId = datasetIds.grch37,
 }) => {
@@ -128,36 +117,37 @@ const generateGeneQuery = ({
 
   const sqlQuery = `
       DECLARE start DEFAULT (
-        SELECT global_start 
-        FROM ${projectId}.${datasetId}.${tableIds.geneModel}
-        WHERE gene_id = @gene
-        LIMIT 1
-      );
+         SELECT global_start 
+         FROM ${projectId}.${datasetId}.${tableIds.geneModel}
+         WHERE gene_id = @gene
+         LIMIT 1
+       );
 
-      DECLARE stop DEFAULT (
-        SELECT global_stop 
-        FROM ${projectId}.${datasetId}.${tableIds.geneModel}
-        WHERE gene_id = @gene
-        LIMIT 1
-      );
+       DECLARE stop DEFAULT (
+         SELECT global_stop 
+         FROM ${projectId}.${datasetId}.${tableIds.geneModel}
+         WHERE gene_id = @gene
+         LIMIT 1
+       );
 
       SELECT
-        DISTINCT gene AS geneName, cell_type_id AS cellTypeId,
+        DISTINCT gene, cell_type_id,
         ${aggregateBy} AS value
       FROM
         (
           SELECT
             *,
-            MIN(${aggregateBy}) OVER (PARTITION BY gene, cell_type_id) AS minValue
+            MIN(${aggregateBy}) OVER (PARTITION BY ensembl_gene_id, cell_type_id) AS min_value
           FROM
-            ${projectId}.${datasetId}.${tableIds.association} AS association
+            ${projectId}.${datasetId}.${tableIds.association}
           WHERE
               global_bp >= start
               AND global_bp <= stop
+              AND ensembl_gene_id = @gene
               AND round = @round
         )
       WHERE
-        ${aggregateBy} = minValue
+        ${aggregateBy} = min_value
     `
 
   const params = { gene, round }
@@ -168,7 +158,7 @@ const generateGeneQuery = ({
 const generateRsidQuery = ({
   query,
   round = 1,
-  aggregateBy = 'q_value',
+  aggregateBy = 'p_value',
   projectId = projectIds.tobWgsBrowser,
   datasetId = datasetIds.grch37,
 }) => {
@@ -176,15 +166,13 @@ const generateRsidQuery = ({
 
   const sqlQuery = `
       SELECT
-        DISTINCT
-          gene AS geneName,
-          cell_type_id AS cellTypeId,
+        DISTINCT gene, cell_type_id,
         ${aggregateBy} AS value
       FROM
         (
           SELECT
             *,
-            MIN(${aggregateBy}) OVER (PARTITION BY gene, cell_type_id) AS minValue
+            MIN(${aggregateBy}) OVER (PARTITION BY gene, cell_type_id) AS min_value
           FROM
             (
               SELECT
@@ -195,13 +183,12 @@ const generateRsidQuery = ({
               FROM
                 ${projectId}.${datasetId}.${tableIds.association}
               WHERE
-                  round = @round
-                AND
-                  rsid = @rsid
+                round = @round
+                AND rsid = @rsid
             )
         )
       WHERE
-        ${aggregateBy} = minValue
+        ${aggregateBy} = min_value
     `
 
   const params = { rsid: variant, round }
@@ -209,7 +196,7 @@ const generateRsidQuery = ({
   return { query: sqlQuery, params }
 }
 
-const fetchAssociationHeatmap = async ({ query, round = 1, aggregateBy = 'q_value', options }) => {
+const fetchAssociationHeatmap = async ({ query, round = 1, aggregateBy = 'p_value', options }) => {
   const queryOptions = { ...defaultQueryOptions(), ...options }
 
   let generator = null
@@ -240,10 +227,15 @@ const fetchAssociationHeatmap = async ({ query, round = 1, aggregateBy = 'q_valu
 
   const minValue = rows.reduce((min, r) => Math.min(min, r.value), Number.MAX_SAFE_INTEGER)
   const maxValue = rows.reduce((max, r) => Math.max(max, r.value), Number.MIN_SAFE_INTEGER)
-  const geneNames = rows.map((r) => r.geneName)
-  const cellTypeIds = Array.from(new Set(rows.map((r) => r.cellTypeId))).sort()
+  const geneNames = Array.from(new Set(rows.map((r) => r.gene))).sort()
+  const cellTypeIds = Array.from(new Set(rows.map((r) => r.cell_type_id))).sort()
 
-  return { geneNames, cellTypeIds, range: { minValue, maxValue }, data: rows }
+  return {
+    gene_names: geneNames,
+    cell_type_ids: cellTypeIds,
+    range: { min: minValue, max: maxValue },
+    data: rows,
+  }
 }
 
 module.exports = {
