@@ -1,4 +1,5 @@
 import React from 'react'
+import styled from 'styled-components'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom'
 
 import ErrorBoundary from './shared/components/ErrorBoundary'
@@ -12,9 +13,23 @@ import TOBGenePage from './pages/TOBGenePage'
 import TOBVariantPage from './pages/TOBVariantPage'
 import TOBViolinPage from './pages/TOBViolinPage'
 
+const TopBarWrapper = styled.div`
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.23);
+  @media print {
+    display: none;
+  }
+`
+
+const MainContentWrapper = styled.main`
+  margin: 0 15px;
+  padding: 0 175px;
+`
+
 const TOBBrowser = () => (
   <Router>
-    <TopBar title="TOB-WGS Project" backgroundColor="#000000" />
+    <TopBarWrapper>
+      <TopBar title="TOB-WGS Project" backgroundColor="#000000" />
+    </TopBarWrapper>
 
     {window.gtag && (
       <Route
@@ -29,7 +44,7 @@ const TOBBrowser = () => (
       />
     )}
 
-    <div style={{ margin: '0 1em' }}>
+    <MainContentWrapper>
       <ErrorBoundary>
         <Routes>
           <Route path="/results" element={<TOBAssociationPage />}>
@@ -44,7 +59,7 @@ const TOBBrowser = () => (
           <Route path="*" element={<PageNotFoundPage />} />
         </Routes>
       </ErrorBoundary>
-    </div>
+    </MainContentWrapper>
   </Router>
 )
 
