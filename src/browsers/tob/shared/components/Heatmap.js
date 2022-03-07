@@ -193,13 +193,6 @@ const Heatmap = ({
       .text(minScaleValue)
 
     svg
-      .select('.legend-content-mid-label')
-      .attr('font-size', 10)
-      .attr('x', width - margin.right + 40 + 10)
-      .attr('y', height / 2)
-      .text(((minScaleValue + maxScaleValue) / 2).toString())
-
-    svg
       .select('.legend-content-max-label')
       .attr('font-size', 10)
       .attr('x', width - margin.right + 40 + 10)
@@ -287,7 +280,6 @@ const Heatmap = ({
           <g className="legend">
             <rect className="legend-content" />
             <text className="legend-content-min-label" />
-            <text className="legend-content-mid-label" />
             <text className="legend-content-max-label" />
           </g>
         </svg>
@@ -343,7 +335,7 @@ Heatmap.defaultProps = {
   tileSpacing: 0.01,
   tileSelectBorderWidth: 1,
   tileSelectBorderColor: '#1e1e1e',
-  margin: { left: 80, right: 80, top: 80, bottom: 80 },
+  margin: { left: 100, right: 80, top: 80, bottom: 80 },
   onClickTile: () => {},
   onHoverTile: () => {},
   tileTooltip: (d) => d.value,
