@@ -228,13 +228,13 @@ const fetchAssociationHeatmap = async ({ query, round = 1, aggregateBy = 'p_valu
   const cellTypeIds = (
     await submitQuery({
       query: `
-      SELECT DISTINCT id 
-      FROM ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.cellType}
+      SELECT DISTINCT cell_type_id
+      FROM ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.association}
     `,
       options: { ...queryOptions },
     })
   )
-    .map((d) => d.id)
+    .map((d) => d.cell_type_id)
     .sort()
 
   const minValue = rows.reduce((min, r) => Math.min(min, r.value), Number.MAX_SAFE_INTEGER)
