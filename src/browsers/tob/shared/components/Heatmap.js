@@ -45,17 +45,22 @@ const Heatmap = ({
     const minScaleValue = minValue == null ? minBy(data, (d) => d.value).value : minValue
     const maxScaleValue = maxValue == null ? maxBy(data, (d) => d.value).value : maxValue
 
-    const colNamesOrdered = colNames?.legnth ? colNames : data.map((d) => tileColName(d)).sort()
+    const colNamesOrdered = colNames?.legnth
+      ? colNames
+      : Array.from(new Set(data.map((d) => tileColName(d)))).sort()
 
     const xScale = scaleBand()
       .range([margin.left, width - margin.right])
       .domain(colNamesOrdered)
       .padding(tileSpacing)
 
-    const rowNamesOrdered = rowNames?.legnth ? rowNames : data.map((d) => tileRowName(d))
+    const rowNamesOrdered = rowNames?.legnth
+      ? rowNames
+      : Array.from(new Set(data.map((d) => tileRowName(d)))).sort()
+
     const yScale = scaleBand()
       .range([height - margin.bottom, margin.top])
-      .domain(rowNamesOrdered)
+      .domain(rowNamesOrdered.reverse())
       .padding(tileSpacing)
 
     const xAxis = axisTop(xScale).tickSize(0)
@@ -73,6 +78,22 @@ const Heatmap = ({
       .call(yAxis)
       .select('.domain')
       .remove()
+
+    svg
+      .selectAll('.y-axis .tick > text')
+      .on('mouseover', (e) => {
+        const element = select(e.target)
+        element.style('font-size', '12px').style('font-weight', '800').style('cursor', 'pointer')
+      })
+      .on('mouseleave', (e) => {
+        const element = select(e.target)
+        element.style('font-size', '10px').style('font-weight', '400').style('cursor', 'default')
+      })
+      .on('click', (e) => {
+        const element = select(e.target)
+        const tiles = data.filter((d) => tileRowName(d) === element.text() && tileIsDefined(d))
+        onClickTile(tiles, TileEventType.SELECT)
+      })
 
     const colorScale = scaleSequential()
       .interpolator(interpolateRgb(minValueColor, maxValueColor))
@@ -146,9 +167,9 @@ const Heatmap = ({
 
         const element = select(e.target)
         if (element.attr('class')?.includes('selected')) {
-          onClickTile(d, TileEventType.DESELECT)
+          onClickTile([d], TileEventType.DESELECT)
         } else {
-          onClickTile(d, TileEventType.SELECT)
+          onClickTile([d], TileEventType.SELECT)
         }
       })
 
