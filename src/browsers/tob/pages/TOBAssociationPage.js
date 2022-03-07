@@ -9,7 +9,7 @@ import TOBLocusZoomPlot from '../components/TOBLocusZoomPlot'
 import StatusMessage from '../shared/components/StatusMessage'
 
 const QueryInformationWrapper = styled.div`
-  padding: 0 4rem;
+  padding: 0 1.5rem;
 `
 
 const Grid = styled.div`
