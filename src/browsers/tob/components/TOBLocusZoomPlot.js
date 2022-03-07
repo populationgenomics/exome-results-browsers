@@ -26,8 +26,8 @@ const parseQueryToRegion = (query) => {
     return parseRegionId(
       stringifyRegion({
         chrom: variant.chrom,
-        start: Math.max(1, variant.pos - 2e6),
-        stop: variant.pos + 2e6,
+        start: Math.max(1, variant.pos - 1e6),
+        stop: variant.pos + 1e6,
       })
     )
   }
@@ -73,6 +73,10 @@ const TOBLocusZoomPlot = ({ query, onChange, genes, cellTypes }) => {
             },
             () => setManhattanPlotError('Could not parse result')
           )
+        } else if (r.status === 400) {
+          r.json()
+            .then((result) => setManhattanPlotError(result.error))
+            .catch(() => setManhattanPlotError('Could not parse result'))
         } else {
           setManhattanPlotError(`${r.status}: ${r.statusText}`)
         }
@@ -96,6 +100,10 @@ const TOBLocusZoomPlot = ({ query, onChange, genes, cellTypes }) => {
             },
             () => setGeneTrackError('Could not parse result')
           )
+        } else if (r.status === 400) {
+          r.json()
+            .then((result) => setGeneTrackError(result.error))
+            .catch(() => setGeneTrackError('Could not parse result'))
         } else {
           setGeneTrackError(`${r.status}: ${r.statusText}`)
         }
@@ -112,10 +120,7 @@ const TOBLocusZoomPlot = ({ query, onChange, genes, cellTypes }) => {
     if (manhattanPlotError) {
       return (
         <StatusMessage>
-          Unable to load results
-          <div>
-            <small>{manhattanPlotError.toString().replace('Error:', '')}</small>
-          </div>
+          <small>{manhattanPlotError.toString().replace('Error:', '')}</small>
         </StatusMessage>
       )
     }
@@ -129,6 +134,7 @@ const TOBLocusZoomPlot = ({ query, onChange, genes, cellTypes }) => {
                 <ManhattanPlot
                   data={manhattanPlotResponse?.results || []}
                   width={size.width}
+                  height={400}
                   onChange={onChange}
                   innerRegion={innerRegion}
                   setInnerRegion={setInnerRegion}
@@ -157,10 +163,7 @@ const TOBLocusZoomPlot = ({ query, onChange, genes, cellTypes }) => {
     if (geneTrackError) {
       return (
         <StatusMessage>
-          Unable to load results
-          <div>
-            <small>{geneTrackError.toString().replace('Error:', '')}</small>
-          </div>
+          <small>{geneTrackError.toString().replace('Error:', '')}</small>
         </StatusMessage>
       )
     }
@@ -196,10 +199,10 @@ const TOBLocusZoomPlot = ({ query, onChange, genes, cellTypes }) => {
   }
 
   return (
-    <>
+    <div style={{ marginTop: '4em' }}>
       {renderManhattanPlot()}
       {renderGeneTrack()}
-    </>
+    </div>
   )
 }
 
