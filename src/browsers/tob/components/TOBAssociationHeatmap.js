@@ -40,16 +40,12 @@ const TOBAssociationHeatmap = ({ query, gene, round, selectedTiles, onChange }) 
                   .filter((d) => !Number.isNaN(d.value))
                   .sort((a, b) => a.gene > b.gene)[0]?.gene
 
-                const firstRow = filledData.filter((d) => firstGene && d.gene === firstGene)
+                const firstRow = filledData
+                  .filter((d) => firstGene && d.gene === firstGene)
+                  .filter((d) => !Number.isNaN(d.value))
 
                 onChange(
-                  gene
-                    ? firstRow
-                    : [
-                        firstRow
-                          .filter((d) => !Number.isNaN(d.value))
-                          .sort((a, b) => a.cell_type_id > b.cell_type_id)[0],
-                      ]
+                  gene ? firstRow : [firstRow.sort((a, b) => a.cell_type_id > b.cell_type_id)[0]]
                 )
               }
 
