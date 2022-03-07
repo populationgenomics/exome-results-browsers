@@ -225,16 +225,38 @@ const fetchAssociationHeatmap = async ({ query, round = 1, aggregateBy = 'p_valu
     options: { ...queryOptions, params: sqlQuery.params },
   })
 
+  const cellTypeIds = (
+    await submitQuery({
+      query: `
+      SELECT DISTINCT id 
+      FROM ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.cellType}
+    `,
+      options: { ...queryOptions },
+    })
+  )
+    .map((d) => d.id)
+    .sort()
+
   const minValue = rows.reduce((min, r) => Math.min(min, r.value), Number.MAX_SAFE_INTEGER)
   const maxValue = rows.reduce((max, r) => Math.max(max, r.value), Number.MIN_SAFE_INTEGER)
   const geneNames = Array.from(new Set(rows.map((r) => r.gene))).sort()
-  const cellTypeIds = Array.from(new Set(rows.map((r) => r.cell_type_id))).sort()
+
+  const squareData = [...rows]
+  if (squareData.length > 0) {
+    cellTypeIds.forEach((id) => {
+      geneNames.forEach((name) => {
+        if (!squareData.find((d) => d.gene === name && d.cell_type_id === id)) {
+          squareData.push({ gene: name, cell_type_id: id, value: null })
+        }
+      })
+    })
+  }
 
   return {
     gene_names: geneNames,
-    cell_type_ids: cellTypeIds,
+    cell_type_ids: Array.from(new Set(cellTypeIds)).sort(),
     range: { min: minValue, max: maxValue },
-    data: rows,
+    data: squareData,
   }
 }
 
