@@ -71,6 +71,12 @@ const Heatmap = ({
       .select('.domain')
       .remove()
 
+    svg
+      .select('.x-axis')
+      .selectAll('text')
+      .style('text-anchor', 'start')
+      .attr('transform', 'rotate(-45)')
+
     const yAxis = axisLeft(yScale).tickSize(0)
     svg
       .select('.y-axis')
@@ -204,7 +210,7 @@ const Heatmap = ({
       .select('.title')
       .attr('font-size', 16)
       .attr('x', '50%')
-      .attr('y', margin.top - 50)
+      .attr('y', margin.top - 75)
       .attr('text-anchor', 'middle')
       .text(title)
   }, [
@@ -335,7 +341,7 @@ Heatmap.defaultProps = {
   tileSpacing: 0.01,
   tileSelectBorderWidth: 1,
   tileSelectBorderColor: '#1e1e1e',
-  margin: { left: 100, right: 80, top: 80, bottom: 80 },
+  margin: { left: 100, right: 80, top: 100, bottom: 80 },
   onClickTile: () => {},
   onHoverTile: () => {},
   tileTooltip: (d) => d.value,
