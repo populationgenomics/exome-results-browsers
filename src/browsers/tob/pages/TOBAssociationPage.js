@@ -15,7 +15,7 @@ const QueryInformationWrapper = styled.div`
 const Grid = styled.div`
   display: grid;
   gap: 8px;
-  grid-template-columns: 8fr 16fr;
+  grid-template-columns: 10fr 16fr;
 `
 
 const isEnsemblGeneId = (value) => {
