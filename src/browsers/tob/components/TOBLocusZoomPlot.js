@@ -199,7 +199,7 @@ const TOBLocusZoomPlot = ({ query, onChange, genes, cellTypes }) => {
   }
 
   return (
-    <div style={{ marginTop: '4em' }}>
+    <div style={{ marginTop: '5em' }}>
       {renderManhattanPlot()}
       {renderGeneTrack()}
     </div>
