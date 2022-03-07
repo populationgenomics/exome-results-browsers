@@ -1,15 +1,34 @@
+import { PageHeading } from '@gnomad/ui'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import styled from 'styled-components'
 
 import TOBAssociationHeatmap from '../components/TOBAssociationHeatmap'
 import TOBLocusZoomPlot from '../components/TOBLocusZoomPlot'
 
 import StatusMessage from '../shared/components/StatusMessage'
 
+const QueryInformationWrapper = styled.div`
+  padding: 0 4rem;
+`
+
+const Grid = styled.div`
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 4fr 8fr;
+`
+
+const isEnsemblGeneId = (value) => {
+  if (!value?.toString()) return false
+  return /^ENSG\d{11}$/i.test(value.toString())
+}
+
 const TOBAssociationPage = () => {
-  const { query } = useParams({ query: '22:37200000-39900000' })
+  let { query } = useParams()
+  if (!query) query = '22:37200000-37900000'
 
   const [apiQuery, setApiQuery] = useState(null)
+  const [isGene, setIsGene] = useState(isEnsemblGeneId(query))
   const [error, setError] = useState(null)
   const [selectedTiles, setSelectedTiles] = useState(new Map())
 
@@ -17,7 +36,8 @@ const TOBAssociationPage = () => {
   useEffect(() => {
     setApiQuery(null)
 
-    if (/^ENSG\d{11}$/i.test(query.toString())) {
+    if (isEnsemblGeneId(query)) {
+      setIsGene(true)
       fetch(`/api/genes/${query}`, { method: 'GET' })
         .then((r) => {
           if (r.ok) {
@@ -34,29 +54,40 @@ const TOBAssociationPage = () => {
         })
         .catch((e) => setError(e.toString()))
     } else {
+      setIsGene(false)
       setApiQuery(query)
     }
-  }, [query, setApiQuery, setError])
+  }, [query])
 
   const updateSelectedTiles = useCallback(
-    (tile) => {
-      const newSelectedTiles = new Map(selectedTiles)
-      const tileId = `${tile.geneName}:${tile.cellTypeId}`
+    (tiles) => {
+      if (!tiles?.length) return
 
-      if (newSelectedTiles.has(tileId)) {
-        newSelectedTiles.delete(tileId)
-      } else {
-        newSelectedTiles.set(tileId, tile)
-      }
+      const newSelectedTiles = tiles.length > 1 ? new Map() : new Map(selectedTiles)
+
+      tiles.forEach((tile) => {
+        const tileId = `${tile.gene}:${tile.cell_type_id}`
+
+        if (newSelectedTiles.has(tileId)) {
+          newSelectedTiles.delete(tileId)
+        } else {
+          newSelectedTiles.set(tileId, tile)
+        }
+      })
 
       // Render one gene at a time
-      const uniqueGenes = new Set(Array.from(newSelectedTiles.values()).map((d) => d.geneName))
-      if (uniqueGenes.size > 1) {
-        newSelectedTiles.clear()
-        newSelectedTiles.set(tileId, tile)
-        setSelectedTiles(newSelectedTiles)
+      if (tiles.length === 1) {
+        const tile = tiles[0]
+        const tileId = `${tile.gene_name}:${tile.cell_type_id}`
 
-        return
+        const uniqueGenes = new Set(Array.from(newSelectedTiles.values()).map((d) => d.gene))
+        if (uniqueGenes.size > 1) {
+          newSelectedTiles.clear()
+          newSelectedTiles.set(tileId, tile)
+          setSelectedTiles(newSelectedTiles)
+
+          return
+        }
       }
 
       setSelectedTiles(newSelectedTiles)
@@ -74,17 +105,24 @@ const TOBAssociationPage = () => {
 
   return (
     <>
-      <TOBLocusZoomPlot
-        query={apiQuery}
-        genes={Array.from(selectedTiles.values()).map((t) => t.geneName)}
-        cellTypes={Array.from(selectedTiles.values()).map((t) => t.cellTypeId)}
-        onChange={(r) => setApiQuery(`${r.chrom}-${r.start}-${r.stop}`)}
-      />
-      <TOBAssociationHeatmap
-        query={apiQuery}
-        selectedTiles={Array.from(selectedTiles.values())}
-        onChange={updateSelectedTiles}
-      />
+      <QueryInformationWrapper>
+        <PageHeading>{query}</PageHeading>
+      </QueryInformationWrapper>
+
+      <Grid>
+        <TOBAssociationHeatmap
+          query={apiQuery}
+          gene={isGene ? query : null}
+          selectedTiles={Array.from(selectedTiles.values())}
+          onChange={updateSelectedTiles}
+        />
+        <TOBLocusZoomPlot
+          query={apiQuery}
+          genes={Array.from(selectedTiles.values()).map((t) => t.gene)}
+          cellTypes={Array.from(selectedTiles.values()).map((t) => t.cell_type_id)}
+          onChange={(r) => setApiQuery(`${r.chrom}-${r.start}-${r.stop}`)}
+        />
+      </Grid>
     </>
   )
 }
