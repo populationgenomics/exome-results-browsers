@@ -34,6 +34,9 @@ export default () => (
     <h2>Examples</h2>
     <ul>
       <li>
+        <Link to="/results/ENSG00000012048">BRCA1</Link>
+      </li>
+      <li>
         <Link to="/results/22:37200000-39200000">22:37200000-39200000</Link>
       </li>
       <li>
