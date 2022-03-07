@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react'
 import PropTypes from 'prop-types'
 
-import { scaleLinear, extent, zoom, select, pointer, brushX } from 'd3'
+import { scaleLinear, zoom, select, pointer, brushX } from 'd3'
 
 const numberWithCommas = (x) => {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
@@ -28,13 +28,17 @@ const ManhattanPlot = ({
   const innerWidth = width - margin.left - margin.right
   const innerHeight = height - margin.top - margin.bottom
 
+  const FDR = 0.05
   const xScale = scaleLinear().domain([innerRegion.start, innerRegion.stop]).range([0, innerWidth])
 
   const yScale = scaleLinear()
     .domain(
-      extent(data, yAccessor)
-        .map((p) => -Math.log10(p))
-        .reverse()
+      [0, 4.5]
+      // data?.length
+      //   ? extent(data, yAccessor)
+      //       .map((p) => -Math.log10(p))
+      //       .reverse()
+      //   : [0, 4]
     )
     .range([height - margin.bottom - margin.top, 0])
     .nice()
@@ -117,6 +121,11 @@ const ManhattanPlot = ({
             <td><b>-log\u2081\u2080(p): </b></td>
             <td> ${-Math.log10(yAccessor(d)).toFixed(2)} </td>
           </tr>
+          </tr>
+          <tr>
+            <td><b>Functional annotation: </b></td>
+            <td> ${d.functional_annotation ?? '?'} </td>
+          </tr>
         </table>`
       )
       .style('left', `${pointer(e)[0] + 70}px`)
@@ -155,7 +164,7 @@ const ManhattanPlot = ({
             ))}
           </g>
           <line y2={`${innerHeight}`} stroke="black" />
-          {yScale.ticks().map((tick) => (
+          {yScale.ticks(4).map((tick) => (
             <g key={tick} transform={`translate(0, ${yScale(tick)})`}>
               <text key={tick} style={{ textAnchor: 'end' }} x={-6} dy=".32em">
                 {tick}
@@ -170,7 +179,7 @@ const ManhattanPlot = ({
               <circle
                 key={keyAccessor(d, i)}
                 cx={xScale(xAccessor(d))}
-                cy={yScale(-Math.log10(yAccessor(d)))}
+                cy={yScale(Math.min(4, -Math.log10(yAccessor(d))))}
                 r={5}
                 fill={categoryColors[d.cell_type_id]}
                 onMouseOver={() => onMouseOver()}
@@ -181,6 +190,23 @@ const ManhattanPlot = ({
               />
             ))}
           </g>
+          {/* FDR line */}
+          <text
+            x={4}
+            y={yScale(-Math.log10(FDR)) - 4}
+            stroke="black"
+            opacity="0.5"
+            fontSize={12}
+          >{`FDR < ${FDR}`}</text>
+          <line
+            x1={0}
+            x2={innerWidth}
+            y1={yScale(-Math.log10(FDR))}
+            y2={yScale(-Math.log10(FDR))}
+            strokeDasharray={12}
+            stroke="black"
+            opacity="0.5"
+          />
           <text x={innerWidth / 2} y={innerHeight + 50} textAnchor="middle">
             Chromosomal Position
           </text>
