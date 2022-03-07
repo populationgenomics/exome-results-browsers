@@ -15,14 +15,15 @@ import TOBViolinPage from './pages/TOBViolinPage'
 
 const TopBarWrapper = styled.div`
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.23);
+
   @media print {
     display: none;
   }
 `
 
 const MainContentWrapper = styled.main`
-  margin: 0 15px;
   padding: 0 175px;
+  margin: 0 15px;
 `
 
 const TOBBrowser = () => (
