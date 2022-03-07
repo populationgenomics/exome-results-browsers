@@ -38,8 +38,6 @@ const fetchVariantsInRegion = async ({
     ? 'AND (gene IN UNNEST(@genes) OR ensembl_gene_id IN UNNEST(@genes))'
     : ''
 
-  // isEsnp is a dummy virtual column, set variants from eqtl table as false and variants from
-  // the esnp table to true.
   const sqlQuery = `
   SELECT
     *
