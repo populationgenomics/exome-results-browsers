@@ -123,8 +123,8 @@ const ViolinPlot = ({ width, data, height, margin, categoryColors }) => {
               onMouseEnter={(e) => {
                 setHoveredData({
                   value: item,
-                  x: e.screenX - 125,
-                  y: e.screenY - 250,
+                  x: e.clientX - 175,
+                  y: e.clientY - 125,
                 })
               }}
               onMouseLeave={() => {
