@@ -134,7 +134,7 @@ const TOBLocusZoomPlot = ({ query, onChange, genes, cellTypes }) => {
                 <ManhattanPlot
                   data={manhattanPlotResponse?.results || []}
                   width={size.width}
-                  height={400}
+                  height={200}
                   onChange={onChange}
                   innerRegion={innerRegion}
                   setInnerRegion={setInnerRegion}

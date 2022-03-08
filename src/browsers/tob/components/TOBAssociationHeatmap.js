@@ -81,7 +81,7 @@ const TOBAssociationHeatmap = ({ query, gene, round, selectedTiles, onChange }) 
                 <Heatmap
                   id="association-heatmap"
                   width={size.width}
-                  height={gene ? 250 : 1000}
+                  height={gene ? 200 : 800}
                   data={response.data}
                   title={'Maximum -log\u2081\u2080(p) variant association'}
                   colNames={response.cell_type_ids.sort()}
