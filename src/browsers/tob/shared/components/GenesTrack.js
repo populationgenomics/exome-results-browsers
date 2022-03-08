@@ -71,7 +71,7 @@ const featureTypeCompareFn = (r1, r2) =>
   featureTypeOrder[r1.feature_type] - featureTypeOrder[r2.feature_type]
 
 const renderGeneLabel = (gene) => (
-  <Link href={`/gene/${gene.gene_id}`}>
+  <Link href={`/results/${gene.gene_id}`}>
     <text fill="#1173bb" textAnchor="middle">
       {gene.symbol}
     </text>
