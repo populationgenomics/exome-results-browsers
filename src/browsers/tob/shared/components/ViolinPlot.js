@@ -10,7 +10,6 @@ import {
   ascending,
   quantile,
   max,
-  pointer,
 } from 'd3'
 
 const ViolinPlot = ({ width, data, height, margin, categoryColors }) => {
@@ -118,7 +117,20 @@ const ViolinPlot = ({ width, data, height, margin, categoryColors }) => {
             </g>
           ))}
           {boxplotStats.map((item, i) => (
-            <g key={`BoxStat${cellLines[i]}`} transform={`translate(${xScale(cellLines[i])}, 0)`}>
+            <g
+              key={`BoxStat${cellLines[i]}`}
+              transform={`translate(${xScale(cellLines[i])}, 0)`}
+              onMouseEnter={(e) => {
+                setHoveredData({
+                  value: item,
+                  x: e.clientX - 175,
+                  y: e.clientY - 125,
+                })
+              }}
+              onMouseLeave={() => {
+                setHoveredData(null)
+              }}
+            >
               <line
                 x1={xScale.bandwidth() / 2}
                 x2={xScale.bandwidth() / 2}
@@ -139,28 +151,12 @@ const ViolinPlot = ({ width, data, height, margin, categoryColors }) => {
                 y1={yScale(item.median)}
                 y2={yScale(item.median)}
                 stroke="black"
-                onMouseOver={(e) => {
-                  setHoveredData({
-                    value: item.median.toFixed(3),
-                    x: xScale(cellLines[i]) + margin.left,
-                    y: pointer(e)[1],
-                  })
-                }}
-                onMouseLeave={() => setHoveredData(null)}
               />
               <line
                 x1={(xScale.bandwidth() * 7) / 16}
                 x2={(xScale.bandwidth() * 9) / 16}
                 y1={yScale(item.q1)}
                 y2={yScale(item.q1)}
-                onMouseOver={(e) => {
-                  setHoveredData({
-                    value: item.q1.toFixed(3),
-                    x: xScale(cellLines[i]) + margin.left,
-                    y: pointer(e)[1],
-                  })
-                }}
-                onMouseLeave={() => setHoveredData(null)}
                 stroke="black"
               />
               <line
@@ -168,14 +164,6 @@ const ViolinPlot = ({ width, data, height, margin, categoryColors }) => {
                 x2={(xScale.bandwidth() * 9) / 16}
                 y1={yScale(item.q3)}
                 y2={yScale(item.q3)}
-                onMouseOver={(e) => {
-                  setHoveredData({
-                    value: item.q3.toFixed(3),
-                    x: xScale(cellLines[i]) + margin.left,
-                    y: pointer(e)[1],
-                  })
-                }}
-                onMouseLeave={() => setHoveredData(null)}
                 stroke="black"
               />
             </g>
@@ -190,12 +178,21 @@ const ViolinPlot = ({ width, data, height, margin, categoryColors }) => {
             backgroundColor: 'white',
             border: 'solid',
             borderWidth: 1,
-            borderRadius: 5,
+            borderRadius: 1,
             padding: 5,
             position: 'absolute',
           }}
         >
-          {hoveredData.value}
+          {Object.entries(hoveredData.value).map(([key, value], index) => {
+            return (
+              // eslint-disable-next-line react/no-array-index-key
+              <div key={index}>
+                <span>
+                  <b>{key}:</b> {value.toFixed(3)}
+                </span>
+              </div>
+            )
+          })}
         </div>
       )}
     </>

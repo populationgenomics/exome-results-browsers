@@ -45,17 +45,22 @@ const Heatmap = ({
     const minScaleValue = minValue == null ? minBy(data, (d) => d.value).value : minValue
     const maxScaleValue = maxValue == null ? maxBy(data, (d) => d.value).value : maxValue
 
-    const colNamesOrdered = colNames?.legnth ? colNames : data.map((d) => tileColName(d)).sort()
+    const colNamesOrdered = colNames?.length
+      ? colNames
+      : Array.from(new Set(data.map((d) => tileColName(d)))).sort()
 
     const xScale = scaleBand()
       .range([margin.left, width - margin.right])
       .domain(colNamesOrdered)
       .padding(tileSpacing)
 
-    const rowNamesOrdered = rowNames?.legnth ? rowNames : data.map((d) => tileRowName(d))
+    const rowNamesOrdered = rowNames?.length
+      ? rowNames
+      : Array.from(new Set(data.map((d) => tileRowName(d)))).sort()
+
     const yScale = scaleBand()
       .range([height - margin.bottom, margin.top])
-      .domain(rowNamesOrdered)
+      .domain(rowNamesOrdered.reverse())
       .padding(tileSpacing)
 
     const xAxis = axisTop(xScale).tickSize(0)
@@ -66,6 +71,12 @@ const Heatmap = ({
       .select('.domain')
       .remove()
 
+    svg
+      .select('.x-axis')
+      .selectAll('text')
+      .style('text-anchor', 'start')
+      .attr('transform', 'rotate(-45)')
+
     const yAxis = axisLeft(yScale).tickSize(0)
     svg
       .select('.y-axis')
@@ -73,6 +84,22 @@ const Heatmap = ({
       .call(yAxis)
       .select('.domain')
       .remove()
+
+    svg
+      .selectAll('.y-axis .tick > text')
+      .on('mouseover', (e) => {
+        const element = select(e.target)
+        element.style('font-size', '12px').style('font-weight', '800').style('cursor', 'pointer')
+      })
+      .on('mouseleave', (e) => {
+        const element = select(e.target)
+        element.style('font-size', '10px').style('font-weight', '400').style('cursor', 'default')
+      })
+      .on('click', (e) => {
+        const element = select(e.target)
+        const tiles = data.filter((d) => tileRowName(d) === element.text() && tileIsDefined(d))
+        onClickTile(tiles, TileEventType.SELECT)
+      })
 
     const colorScale = scaleSequential()
       .interpolator(interpolateRgb(minValueColor, maxValueColor))
@@ -146,9 +173,9 @@ const Heatmap = ({
 
         const element = select(e.target)
         if (element.attr('class')?.includes('selected')) {
-          onClickTile(d, TileEventType.DESELECT)
+          onClickTile([d], TileEventType.DESELECT)
         } else {
-          onClickTile(d, TileEventType.SELECT)
+          onClickTile([d], TileEventType.SELECT)
         }
       })
 
@@ -172,13 +199,6 @@ const Heatmap = ({
       .text(minScaleValue)
 
     svg
-      .select('.legend-content-mid-label')
-      .attr('font-size', 10)
-      .attr('x', width - margin.right + 40 + 10)
-      .attr('y', height / 2)
-      .text(((minScaleValue + maxScaleValue) / 2).toString())
-
-    svg
       .select('.legend-content-max-label')
       .attr('font-size', 10)
       .attr('x', width - margin.right + 40 + 10)
@@ -190,7 +210,7 @@ const Heatmap = ({
       .select('.title')
       .attr('font-size', 16)
       .attr('x', '50%')
-      .attr('y', margin.top - 50)
+      .attr('y', margin.top - 75)
       .attr('text-anchor', 'middle')
       .text(title)
   }, [
@@ -266,7 +286,6 @@ const Heatmap = ({
           <g className="legend">
             <rect className="legend-content" />
             <text className="legend-content-min-label" />
-            <text className="legend-content-mid-label" />
             <text className="legend-content-max-label" />
           </g>
         </svg>
@@ -322,7 +341,7 @@ Heatmap.defaultProps = {
   tileSpacing: 0.01,
   tileSelectBorderWidth: 1,
   tileSelectBorderColor: '#1e1e1e',
-  margin: { left: 80, right: 80, top: 80, bottom: 80 },
+  margin: { left: 100, right: 80, top: 100, bottom: 80 },
   onClickTile: () => {},
   onHoverTile: () => {},
   tileTooltip: (d) => d.value,

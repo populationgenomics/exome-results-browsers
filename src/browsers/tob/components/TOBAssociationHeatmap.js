@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import React, { useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
 import { SizeMe } from 'react-sizeme'
@@ -7,56 +8,55 @@ import LoadingOverlay from '../shared/components/LoadingOverlay'
 import { PlotWrapper } from '../shared/utilities/styling'
 import Heatmap from '../shared/components/Heatmap'
 
-const TOBAssociationHeatmap = ({ query, round, selectedTiles, onChange }) => {
+const TOBAssociationHeatmap = ({ query, gene, round, selectedTiles, onChange }) => {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [response, setResponse] = useState(null)
 
   useEffect(() => {
     setIsLoading(true)
-    const apiPath = `/api/associations/aggregate/?query=${query}&round=${round}`
+    const apiPath = `/api/associations/aggregate/?query=${gene ?? query}&round=${round}`
 
     fetch(apiPath, { method: 'GET' })
       .then((r) => {
         if (r.ok) {
           r.json().then(
-            (result) => {
-              const { geneNames, cellTypeIds, range, data } = result.results
-              const filledData = [...data]
+            ({ results }) => {
+              // Pre-select first row for a gene search or first cell for other searches
+              if (!selectedTiles?.length) {
+                const firstGene = results.data
+                  .filter((d) => Number.isFinite(d.value))
+                  .sort((a, b) => a.gene > b.gene)[0]?.gene
 
-              if (filledData.length > 0) {
-                cellTypeIds.forEach((cellTypeId) => {
-                  geneNames.forEach((geneName) => {
-                    if (
-                      !filledData.find(
-                        (d) => d.geneName === geneName && d.cellTypeId === cellTypeId
-                      )
-                    ) {
-                      filledData.push({ geneName, cellTypeId, value: NaN })
-                    }
-                  })
-                })
+                const firstRow = results.data
+                  .filter((d) => firstGene && d.gene === firstGene)
+                  .filter((d) => Number.isFinite(d.value))
+
+                onChange(
+                  gene ? firstRow : [firstRow.sort((a, b) => a.cell_type_id > b.cell_type_id)[0]]
+                )
               }
 
-              setResponse({ geneNames, cellTypeIds, range, data: filledData })
+              setResponse({ ...results })
             },
             () => setError('Could not parse result')
           )
+        } else if (r.status === 400) {
+          r.json()
+            .then((result) => setError(result.error))
+            .catch(() => setError('Could not parse result'))
         } else {
           setError(`${r.status}: ${r.statusText}`)
         }
       })
       .catch((e) => setError(e.toString()))
       .finally(() => setIsLoading(false))
-  }, [query, round])
+  }, [query, gene, round])
 
   if (error) {
     return (
       <StatusMessage>
-        Unable to load results
-        <div>
-          <small>{error.toString().replace('Error:', '')}</small>
-        </div>
+        <small>{error.toString().replace('Error:', '')}</small>
       </StatusMessage>
     )
   }
@@ -81,25 +81,28 @@ const TOBAssociationHeatmap = ({ query, round, selectedTiles, onChange }) => {
                 <Heatmap
                   id="association-heatmap"
                   width={size.width}
-                  height={Math.min(1200, 10 * response.geneNames?.length) || 1}
+                  height={gene ? 200 : 800}
                   data={response.data}
                   title={'Maximum -log\u2081\u2080(p) variant association'}
-                  colNames={response.cellTypeIds}
-                  rowNames={response.geneNames}
+                  colNames={response.cell_type_ids.sort()}
+                  rowNames={response.gene_names.sort()}
                   tileSpacing={0.01}
-                  tileRowName={(d) => d.geneName}
-                  tileColName={(d) => d.cellTypeId}
+                  tileRowName={(d) => d.gene}
+                  tileColName={(d) => d.cell_type_id}
                   minValue={0}
+                  maxValue={4}
                   onClickTile={onChange}
                   selectedTiles={selectedTiles}
-                  maxValue={Math.min(4, -Math.log10(response.range.minValue))}
                   tileValue={(d) => Math.min(4, -Math.log10(d.value))}
                   tileIsDefined={(d) => Number.isFinite(d.value)}
                   tileTooltip={(d) => {
                     if (!Number.isFinite(d.value)) {
                       return `No associations found`
                     }
-                    return `${d.geneName} - ${d.cellTypeId}: ${-Math.log(d.value).toFixed(2)}`
+                    return `${d.gene} - ${d.cell_type_id}: ${Math.min(
+                      4,
+                      -Math.log10(d.value)
+                    ).toFixed(2)}`
                   }}
                 />
               )
@@ -113,10 +116,11 @@ const TOBAssociationHeatmap = ({ query, round, selectedTiles, onChange }) => {
 
 TOBAssociationHeatmap.propTypes = {
   query: PropTypes.string.isRequired,
+  gene: PropTypes.string,
   selectedTiles: PropTypes.arrayOf(
     PropTypes.shape({
-      geneName: PropTypes.string.isRequired,
-      cellTypeId: PropTypes.string.isRequired,
+      gene: PropTypes.string.isRequired,
+      cell_type_id: PropTypes.string.isRequired,
     })
   ),
   round: PropTypes.number,
@@ -125,6 +129,7 @@ TOBAssociationHeatmap.propTypes = {
 
 TOBAssociationHeatmap.defaultProps = {
   round: 1,
+  gene: null,
   selectedTiles: [],
   onChange: () => {},
 }

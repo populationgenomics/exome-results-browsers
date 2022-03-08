@@ -45,6 +45,7 @@ const config = {
   trustProxy: JSON.parse(process.env.TRUST_PROXY || 'false'),
   iapAudience: process.env.IAP_AUDIENCE,
   oAuthClient: new OAuth2Client(),
+  maxRegionSize: process.env.MAX_REGION || 2.5e6,
 }
 
 // ================================================================================================
@@ -163,6 +164,11 @@ app.get('/api/genes', (req, res) => {
 
   if (isRegionId(query)) {
     const region = parseRegionId(query)
+
+    if (Math.abs(region.stop - region.start) > config.maxRegionSize) {
+      return res.status(400).json({ error: 'Data is not available for a region this large' })
+    }
+
     return fetchGenesInRegion({ region })
       .then((results) => res.status(200).json({ results: { genes: results, region } }))
       .catch((error) => res.status(400).json({ error: error.message }))
@@ -246,6 +252,10 @@ app.get('/api/associations/', (req, res) => {
   const genes = req.query.genes?.trim()?.split(',') || []
   const cellTypes = req.query.cellTypes?.trim()?.split(',') || []
 
+  if (Math.abs(region.stop - region.start) > config.maxRegionSize) {
+    return res.status(400).json({ error: 'Data is not available for a region this large' })
+  }
+
   return fetchVariantsInRegion({ region, genes, cellTypes, round })
     .then((results) => res.status(200).json({ results }))
     .catch((error) => res.status(400).json({ error: error.message }))
@@ -258,6 +268,14 @@ app.get('/api/associations/aggregate', (req, res) => {
     return res.status(400).json({ error: 'Query must be a gene, region, variant ID or rsid' })
   }
 
+  if (isRegionId(query)) {
+    const region = parseRegionId(query)
+
+    if (Math.abs(region.stop - region.start) > config.maxRegionSize) {
+      return res.status(400).json({ error: 'Data is not available for a region this large' })
+    }
+  }
+
   let round = 1
   try {
     round = parseConditioningRound(req.query.round)
@@ -265,7 +283,7 @@ app.get('/api/associations/aggregate', (req, res) => {
     return res.status(400).json({ error: error.message })
   }
 
-  return fetchAssociationHeatmap({ query, round })
+  return fetchAssociationHeatmap({ query, round, aggregateBy: 'p_value' })
     .then((data) => res.status(200).json({ results: data }))
     .catch((error) => res.status(400).json({ error: error.message }))
 })
