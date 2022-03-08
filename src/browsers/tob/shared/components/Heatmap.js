@@ -45,7 +45,7 @@ const Heatmap = ({
     const minScaleValue = minValue == null ? minBy(data, (d) => d.value).value : minValue
     const maxScaleValue = maxValue == null ? maxBy(data, (d) => d.value).value : maxValue
 
-    const colNamesOrdered = colNames?.legnth
+    const colNamesOrdered = colNames?.length
       ? colNames
       : Array.from(new Set(data.map((d) => tileColName(d)))).sort()
 
@@ -54,7 +54,7 @@ const Heatmap = ({
       .domain(colNamesOrdered)
       .padding(tileSpacing)
 
-    const rowNamesOrdered = rowNames?.legnth
+    const rowNamesOrdered = rowNames?.length
       ? rowNames
       : Array.from(new Set(data.map((d) => tileRowName(d)))).sort()
 
