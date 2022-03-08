@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react'
 import PropTypes from 'prop-types'
 
 import { scaleLinear, zoom, select, pointer, brushX } from 'd3'
+import { useNavigate } from 'react-router'
 
 const numberWithCommas = (x) => {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
@@ -17,6 +18,8 @@ const ManhattanPlot = ({
   setInnerRegion,
   categoryColors,
 }) => {
+  const navigate = useNavigate()
+
   // console.log(innerRegion)
   const xAccessor = (d) => d.bp
   const yAccessor = (d) => d.p_value
@@ -154,7 +157,7 @@ const ManhattanPlot = ({
           <g transform={`translate(0, ${innerHeight})`}>
             <line x2={`${innerWidth}`} stroke="black" />
 
-            {xScale.ticks().map((tick) => (
+            {xScale.ticks(6).map((tick) => (
               <g key={tick} transform={`translate(${xScale(tick)}, 0)`}>
                 <text style={{ textAnchor: 'middle' }} dy=".71em" y={9}>
                   {numberWithCommas(tick)}
@@ -180,8 +183,9 @@ const ManhattanPlot = ({
                 key={keyAccessor(d, i)}
                 cx={xScale(xAccessor(d))}
                 cy={yScale(Math.min(4, -Math.log10(yAccessor(d))))}
-                r={5}
+                r={3}
                 fill={categoryColors[d.cell_type_id]}
+                onClick={() => navigate(`/results/${d.chrom}-${d.bp}-${d.a1}-${d.a2}`)}
                 onMouseOver={() => onMouseOver()}
                 onFocus={() => onMouseOver()}
                 onMouseMove={(e) => onMouseMove(e, d)}
