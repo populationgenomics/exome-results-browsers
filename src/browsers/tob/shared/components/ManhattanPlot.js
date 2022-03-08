@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react'
 import PropTypes from 'prop-types'
 
 import { scaleLinear, zoom, select, pointer, brushX } from 'd3'
-import { useNavigate } from 'react-router'
+import { useNavigate } from 'react-router-dom'
 
 const numberWithCommas = (x) => {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
