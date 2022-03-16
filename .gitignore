@@ -46,3 +46,6 @@ hail-*.log
 # Temp
 !genes.json
 *.gtf.gz
+
+# Yarn error logs
+yarn-*.log
