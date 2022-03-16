@@ -26,8 +26,8 @@ const parseQueryToRegion = (query) => {
     return parseRegionId(
       stringifyRegion({
         chrom: variant.chrom,
-        start: Math.max(1, variant.pos - 1e6),
-        stop: variant.pos + 1e6,
+        start: Math.max(1, variant.pos - 0.5e6),
+        stop: variant.pos + 0.5e6,
       })
     )
   }
