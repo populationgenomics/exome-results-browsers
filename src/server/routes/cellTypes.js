@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+
 const express = require('express')
 const { fetchCellTypes, fetchCellTypesById } = require('../queries')
 
@@ -90,7 +92,6 @@ const setup = (app) => {
         })
       }
 
-      console.log(req.params.id)
       const data = await fetchCellTypesById({ ids: [req.params.id] })
       return res.status(200).json(data[0] || null)
     } catch (e) {

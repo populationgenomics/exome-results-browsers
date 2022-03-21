@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+
 const express = require('express')
 
 const {
@@ -16,8 +18,6 @@ const {
   fetchAssociationHeatmap,
   fetchVariantsInRegion,
   fetchVariantsById,
-  fetchCellTypes,
-  fetchCellTypesById,
   fetchGenesInRegion,
   fetchGeneExpression,
 } = require('../queries')

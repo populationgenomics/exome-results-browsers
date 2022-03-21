@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+
 const express = require('express')
 const process = require('process')
 
@@ -16,7 +18,7 @@ const old = require('./old')
 const setup = (app, config) => {
   information.setup(app)
 
-  if (process.env.ENABLE_NEW_API.toLowerCase() == 'true') {
+  if (process.env.ENABLE_NEW_API.toLowerCase() === 'true') {
     variants.setup(app)
     associations.setup(app)
     cellTypes.setup(app)
