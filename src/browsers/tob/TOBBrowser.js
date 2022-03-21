@@ -12,6 +12,7 @@ import TOBAssociationPage from './pages/TOBAssociationPage'
 import TOBGenePage from './pages/TOBGenePage'
 import TOBVariantPage from './pages/TOBVariantPage'
 import TOBViolinPage from './pages/TOBViolinPage'
+import TOBApiDoc from './pages/TOBApiDoc'
 
 const TopBarWrapper = styled.div`
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.23);
@@ -29,7 +30,15 @@ const MainContentWrapper = styled.main`
 const TOBBrowser = () => (
   <Router>
     <TopBarWrapper>
-      <TopBar title="TOB-WGS Project" backgroundColor="#000000" />
+      <TopBar
+        title="TOB-WGS Project"
+        backgroundColor="#000000"
+        links={[
+          { path: '/', label: 'Home' },
+          { path: '/results', label: 'Results' },
+          { path: '/api', label: 'API' },
+        ]}
+      />
     </TopBarWrapper>
 
     {window.gtag && (
@@ -48,6 +57,8 @@ const TOBBrowser = () => (
     <MainContentWrapper>
       <ErrorBoundary>
         <Routes>
+          <Route path="/api" element={<TOBApiDoc />} />
+
           <Route path="/results" element={<TOBAssociationPage />}>
             <Route path=":query" element={<TOBAssociationPage />} />
           </Route>
