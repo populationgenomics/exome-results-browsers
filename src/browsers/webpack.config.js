@@ -42,6 +42,10 @@ let config = BROWSERS.map((browser) => {
             loader: '@gnomad/markdown-loader',
           },
         },
+        {
+          test: /\.css$/i,
+          use: ['style-loader', 'css-loader'],
+        },
       ],
     },
     output: {

@@ -105,11 +105,6 @@ const TopBar = ({ title, links, backgroundColor, textColor }) => {
       <Searchbox id="navbar-search" width="50%" />
 
       <Menu isExpanded={isMenuExpanded}>
-        <li>
-          <Link to="/results" onClick={closeMenu}>
-            Results
-          </Link>
-        </li>
         {links.map(({ path, label }) => (
           <li key={path}>
             <Link to={path} onClick={closeMenu}>

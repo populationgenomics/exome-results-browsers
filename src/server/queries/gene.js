@@ -11,14 +11,21 @@ const fetchGeneIdSuggestions = async ({ query, options }) => {
     labelColumn = 'gene_id'
   }
 
+  let filter = ''
+  if (query) {
+    filter = `
+    WHERE
+      REGEXP_CONTAINS(UPPER(${labelColumn}), CONCAT('^', @query))
+    `.trim()
+  }
+
   const sqlQuery = `
   SELECT
     ${labelColumn} AS label, 
     CONCAT('/results/', gene_id) AS url
   FROM
-    ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneLookup} 
-  WHERE
-    REGEXP_CONTAINS(UPPER(${labelColumn}), CONCAT('^', @query))
+    ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneLookup}
+  ${filter}
   LIMIT
     10
 `

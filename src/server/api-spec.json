@@ -1,0 +1,9 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "TOB-WGS",
+    "version": "1.0.0"
+  },
+  "schemes": ["https"],
+  "produces": ["application/json"]
+}
