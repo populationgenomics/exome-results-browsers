@@ -2,8 +2,6 @@
 
 const express = require('express')
 
-const { config } = require('../config')
-
 const {
   isRegionId,
   isVariantId,
@@ -26,6 +24,7 @@ const {
 const { parseConditioningRound } = require('../queries/utilities')
 const { convertPositionToGlobalPosition } = require('../queries/genome')
 const { isGene, isEnsemblGeneId } = require('../identifiers')
+const { config } = require('../config')
 
 /**
  * @param {express.Express} app
