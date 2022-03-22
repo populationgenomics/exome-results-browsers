@@ -5,7 +5,7 @@ const express = require('express')
 const { isGene } = require('../identifiers')
 
 const { fetchGeneIdSuggestions, fetchExpression } = require('../queries/gene')
-const { InvalidParameter, InvalidQueryParameter } = require('../errors')
+const { InvalidQueryParameter, InvalidPathParameter } = require('../errors')
 
 /**
  * @param {express.Express} app
@@ -105,7 +105,7 @@ const setup = (app) => {
   app.get('/api/genes/:id/expression', async (req, res, next) => {
     // TODO: change residual to log_residual
     if (!isGene(req.params.id)) {
-      next(new InvalidParameter('Please provide an Ensembl gene id'))
+      next(new InvalidPathParameter('Please provide an Ensembl gene id'))
     }
 
     const expressionType = (req.query.type ?? 'residual')?.toLowerCase()

@@ -1,8 +1,9 @@
 /* eslint-disable no-unused-vars */
 
 const express = require('express')
+
 const { fetchCellTypes, fetchCellTypesById } = require('../queries')
-const { MissingParameter, NotFound } = require('../errors')
+const { NotFound } = require('../errors')
 
 /**
  * @swagger

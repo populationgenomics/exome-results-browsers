@@ -14,8 +14,8 @@ class NotFound extends ApiError {
   statusCode = 404
 }
 
-class MissingParameter extends BadRequest {}
-class InvalidParameter extends BadRequest {}
+class MissingPathParameter extends BadRequest {}
+class InvalidPathParameter extends BadRequest {}
 class InvalidQueryParameter extends BadRequest {}
 
 module.exports = {
@@ -23,7 +23,7 @@ module.exports = {
   ServerError,
   BadRequest,
   NotFound,
-  MissingParameter,
-  InvalidParameter,
+  MissingPathParameter,
+  InvalidPathParameter,
   InvalidQueryParameter,
 }
