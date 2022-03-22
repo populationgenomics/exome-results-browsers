@@ -2,6 +2,7 @@
 
 const express = require('express')
 const { fetchCellTypes, fetchCellTypesById } = require('../queries')
+const { MissingParameter, NotFound } = require('../errors')
 
 /**
  * @swagger
@@ -44,13 +45,9 @@ const setup = (app) => {
    *              schema:
    *                $ref: '#/components/schemas/CellType'
    */
-  app.get('/api/cell-types', async (_, res) => {
-    try {
-      const data = await fetchCellTypes()
-      return res.status(200).json(data)
-    } catch (e) {
-      return res.status(500).json({ code: 500, error: 'ServerError', message: e.message })
-    }
+  app.get('/api/cell-types', async (_, res, next) => {
+    const data = await fetchCellTypes().catch(next)
+    res.status(200).json(data)
   })
 
   /**
@@ -69,34 +66,29 @@ const setup = (app) => {
    *          description: Shorthand cell type identifier
    *          schema:
    *            type: string
+   *          example: bmem
    *      responses:
    *        200:
    *          content:
    *            application/json:
    *              schema:
    *                $ref: '#/components/schemas/CellType'
-   *        400:
-   *          description: You have not provided a cell type id
+   *        404:
+   *          description: The requested cell type does not exist
    *          content:
    *            application/json:
    *              schema:
    *                $ref: '#/components/schemas/Error'
+   *
    */
-  app.get('/api/cell-types/:id', async (req, res) => {
-    try {
-      if (!req.params.id) {
-        return res.status(400).json({
-          code: 400,
-          type: 'MissingParameters',
-          message: 'Please provide a cell type id to retrieve',
-        })
-      }
+  app.get('/api/cell-types/:id', async (req, res, next) => {
+    const data = await fetchCellTypesById({ ids: [req.params.id] }).catch(next)
 
-      const data = await fetchCellTypesById({ ids: [req.params.id] })
-      return res.status(200).json(data[0] || null)
-    } catch (e) {
-      return res.status(500).json({ code: 500, error: 'ServerError', message: e.message })
+    if (!data || !data[0]) {
+      next(new NotFound(`An entry matching cell type id '${req.params.id}' does not exist`))
     }
+
+    res.status(200).json(data[0])
   })
 }
 

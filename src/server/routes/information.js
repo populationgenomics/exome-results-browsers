@@ -37,7 +37,7 @@ const setup = (app) => {
    *                $ref: '#/components/schemas/Error'
    */
   app.get('/api/health', (_, res) => {
-    return res.status(200).json({
+    res.status(200).json({
       message: `
       Once upon a midnight dreary, while I pondered, weak and weary,
       Over many a quaint and curious volume of forgotten lore—
@@ -65,14 +65,14 @@ const setup = (app) => {
    *              schema:
    *                type: object
    */
-  app.get('/api/specification', async (_, res) => {
+  app.get('/api/specification', (_, res, next) => {
     const options = {
       definition: { ...apiSpec },
       apis: [`${__dirname}/**/*.js`],
     }
 
-    const openApiSpec = await swaggerJsdoc(options)
-    return res.status(200).json(openApiSpec)
+    const openApiSpec = swaggerJsdoc(options)
+    res.status(200).json(openApiSpec)
   })
 }
 
