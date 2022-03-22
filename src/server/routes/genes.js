@@ -2,7 +2,10 @@
 
 const express = require('express')
 
-const { fetchGeneIdSuggestions } = require('../queries/gene')
+const { isGene } = require('../identifiers')
+
+const { fetchGeneIdSuggestions, fetchExpression } = require('../queries/gene')
+const { InvalidParameter, InvalidQueryParameter } = require('../errors')
 
 /**
  * @param {express.Express} app
@@ -22,6 +25,7 @@ const setup = (app) => {
    *          name: search
    *          description: Search string
    *          type: string
+   *          example: IL7
    *      responses:
    *        200:
    *          content:
@@ -51,10 +55,78 @@ const setup = (app) => {
    *              schema:
    *                $ref: '#/components/schemas/Error'
    */
-  app.use('/api/genes/', (req, res) => {
-    return fetchGeneIdSuggestions({ query: req.query.search }).then((data) =>
-      res.status(200).json({ data })
-    )
+  app.get('/api/genes/', async (req, res, next) => {
+    const genes = await fetchGeneIdSuggestions({ query: req.query.search }).catch(next)
+    return res.status(200).json({ genes })
+  })
+
+  /**
+   * @swagger
+   *  /api/genes/{id}/expression:
+   *    get:
+   *      description: Return the binned expression across all cell-types associated with a gene
+   *      tags:
+   *        - Genes
+   *      produces:
+   *        - application/json
+   *      parameters:
+   *        - in: path
+   *          name: id
+   *          description: Ensembl gene id
+   *          required: true
+   *          type: string
+   *          example: BRCA1
+   *        - in: query
+   *          name: type
+   *          description: Type of expression data to count
+   *          schema:
+   *            type: string
+   *            enum:
+   *              - log_cpm
+   *              - residual
+   *          example: residual
+   *        - in: query
+   *          name: nBins
+   *          description: Number of bins to use for histogram computation
+   *          type: number
+   *          example: 30
+   *      responses:
+   *        200:
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: object
+   *        400:
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: '#/components/schemas/Error'
+   */
+  app.get('/api/genes/:id/expression', async (req, res, next) => {
+    // TODO: change residual to log_residual
+    if (!isGene(req.params.id)) {
+      next(new InvalidParameter('Please provide an Ensembl gene id'))
+    }
+
+    const expressionType = (req.query.type ?? 'residual')?.toLowerCase()
+    if (!['residual', 'log_cpm'].includes(expressionType)) {
+      next(
+        new InvalidQueryParameter("Expression 'type' must be either 'log_cpm' or 'log_residual'")
+      )
+    }
+
+    let nBins = parseInt(req.query.nBins) ?? 30
+    if (nBins < 5) {
+      next(new InvalidQueryParameter('A minimum of 5 bins is required'))
+    }
+
+    const data = await fetchExpression({
+      geneId: req.params.id,
+      type: expressionType,
+      nBins,
+    }).catch(next)
+
+    res.status(200).json(data)
   })
 }
 
