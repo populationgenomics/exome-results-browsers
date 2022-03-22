@@ -3,43 +3,43 @@ const { tableIds, defaultQueryOptions, submitQuery } = require('./utilities')
 const fetchCellTypes = async ({ options } = {}) => {
   const queryOptions = { ...defaultQueryOptions(), ...options }
 
-  const sqlQuery = `
+  const query = `
   SELECT 
     *
   FROM 
     ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.cellType}
   `
 
-  const rows = await submitQuery({ query: sqlQuery, options: queryOptions })
+  const rows = await submitQuery({ query, options: queryOptions })
 
   return rows
 }
 
-const fetchCellTypesById = async ({ ids, options }) => {
+const fetchCellTypeById = async ({ id, options }) => {
   const queryOptions = { ...defaultQueryOptions(), ...options }
 
-  if (!ids?.length) return []
+  if (!id) return null
 
-  const sqlQuery = `
+  const query = `
   SELECT 
     *
   FROM 
     ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.cellType}
   WHERE
-    id IN UNNEST(@ids)
+    id = @id
   `
 
-  const sqlParams = { ids }
+  const queryParams = { id }
 
   const rows = await submitQuery({
-    query: sqlQuery,
-    options: { ...queryOptions, params: sqlParams },
+    query,
+    options: { ...queryOptions, params: queryParams },
   })
 
-  return rows
+  return rows[0]
 }
 
 module.exports = {
   fetchCellTypes,
-  fetchCellTypesById,
+  fetchCellTypeById,
 }
