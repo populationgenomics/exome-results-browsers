@@ -5,7 +5,7 @@ const { ReferenceGenome } = require('./genome')
 
 const tableIds = {
   association: 'association',
-  logResidual: 'log_residual',
+  expression: 'log_residual',
   cellType: 'cell_type',
   geneModel: 'gene_model',
   geneLookup: 'gene_lookup',
