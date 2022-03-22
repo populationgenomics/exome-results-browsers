@@ -95,7 +95,7 @@ const setup = (app) => {
    *          content:
    *            application/json:
    *              schema:
-   *                type: object
+   *                $ref: '#/components/schemas/BinnedExpression'
    *        400:
    *          content:
    *            application/json:
@@ -131,3 +131,93 @@ const setup = (app) => {
 }
 
 module.exports = { setup }
+
+// ---------------------------------------------------------------------------------------------- //
+// Swagger Components
+// ---------------------------------------------------------------------------------------------- //
+
+/**
+ * @swagger
+ *  components:
+ *    schemas:
+ *      BinnedExpression:
+ *        type: object
+ *        required:
+ *          - histograms
+ *          - bins
+ *        properties:
+ *          histograms:
+ *            type: array
+ *            items:
+ *              type: object
+ *              required:
+ *                - cell_type_id
+ *                - counts
+ *              properties:
+ *                cell_type_id:
+ *                  type: string
+ *                counts:
+ *                  type: array
+ *                  items:
+ *                    type: number
+ *                    format: int32
+ *          bins:
+ *            type: array
+ *            items:
+ *              type: object
+ *              required:
+ *                - min
+ *                - max
+ *              properties:
+ *                min:
+ *                  type: number
+ *                  format: float
+ *                max:
+ *                  type: number
+ *                  format: float
+ *          statistics:
+ *            type: array
+ *            items:
+ *              type: object
+ *              required:
+ *                - cell_type_id
+ *                - min
+ *                - max
+ *                - mean
+ *                - q1
+ *                - median
+ *                - q3
+ *                - iqr
+ *                - iqr_min
+ *                - iqr_max
+ *              properties:
+ *                cell_type_id:
+ *                  type: string
+ *                min:
+ *                  type: number
+ *                  format: float
+ *                max:
+ *                  type: number
+ *                  format: float
+ *                mean:
+ *                  type: number
+ *                  format: float
+ *                q1:
+ *                  type: number
+ *                  format: float
+ *                median:
+ *                  type: number
+ *                  format: float
+ *                q3:
+ *                  type: number
+ *                  format: float
+ *                iqr:
+ *                  type: number
+ *                  format: float
+ *                iqr_min:
+ *                  type: number
+ *                  format: float
+ *                iqr_max:
+ *                  type: number
+ *                  format: float
+ */
