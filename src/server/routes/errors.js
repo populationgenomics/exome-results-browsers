@@ -17,11 +17,7 @@ const errorHandler = (err, req, res, next) => {
     return next(err)
   }
 
-  if (
-    req.baseUrl.includes('/api') ||
-    req.headers['content-type'] === 'application/json' ||
-    req.xhr
-  ) {
+  if (req.baseUrl.includes('/api') || req.accepts('json') || req.xhr) {
     return res.status(err.statusCode ?? 500).json({
       code: err.statusCode ?? 500,
       type: err.constructor.name,
