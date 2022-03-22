@@ -5,6 +5,7 @@ class ApiError extends Error {
 class ServerError extends ApiError {
   statusCode = 500
 }
+
 class BadRequest extends ApiError {
   statusCode = 400
 }
