@@ -2,7 +2,7 @@
 
 const express = require('express')
 
-const { fetchCellTypes, fetchCellTypesById } = require('../queries')
+const { fetchCellTypes, fetchCellTypeById } = require('../queries/cellType')
 const { NotFound } = require('../errors')
 
 /**
@@ -83,13 +83,13 @@ const setup = (app) => {
    *
    */
   app.get('/api/cell-types/:id', async (req, res, next) => {
-    const data = await fetchCellTypesById({ ids: [req.params.id] }).catch(next)
+    const data = await fetchCellTypeById({ id: req.params.id }).catch(next)
 
-    if (!data || !data[0]) {
+    if (!data) {
       next(new NotFound(`An entry matching cell type id '${req.params.id}' does not exist`))
     }
 
-    res.status(200).json(data[0])
+    res.status(200).json(data)
   })
 }
 

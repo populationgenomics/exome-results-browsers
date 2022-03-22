@@ -1,7 +1,6 @@
 /* eslint-disable no-unused-vars */
 
 const express = require('express')
-const process = require('process')
 
 const information = require('./information')
 const variants = require('./varirants')

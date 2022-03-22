@@ -10,21 +10,21 @@ const {
   parseVariantId,
 } = require('@gnomad/identifiers')
 
-const {
-  fetchGenes,
-  fetchGenesAssociatedWithVariant,
-  fetchGenesById,
-  fetchGeneIdSuggestions,
-  fetchAssociationHeatmap,
-  fetchVariantsInRegion,
-  fetchVariantsById,
-  fetchGenesInRegion,
-  fetchGeneExpression,
-} = require('../queries')
-const { parseConditioningRound } = require('../queries/utilities')
+const { parseConditioningRound } = require('../queries/old/utilities')
 const { convertPositionToGlobalPosition } = require('../queries/genome')
 const { isGene, isEnsemblGeneId } = require('../identifiers')
 const { config } = require('../config')
+
+const {
+  fetchGeneIdSuggestions,
+  fetchGenesInRegion,
+  fetchGenesById,
+  fetchGenesAssociatedWithVariant,
+  fetchGenes,
+  fetchGeneExpression,
+} = require('../queries/old/gene')
+const { fetchVariantsById, fetchVariantsInRegion } = require('../queries/old/variant')
+const { fetchAssociationHeatmap } = require('../queries/old/heatmap')
 
 /**
  * @param {express.Express} app

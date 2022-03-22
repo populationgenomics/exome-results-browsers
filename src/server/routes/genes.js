@@ -4,7 +4,7 @@ const express = require('express')
 
 const { isGene } = require('../identifiers')
 
-const { fetchGeneIdSuggestions, fetchExpression } = require('../queries/gene')
+const queries = require('../queries/gene')
 const { InvalidQueryParameter, InvalidPathParameter } = require('../errors')
 
 /**
@@ -56,9 +56,13 @@ const setup = (app) => {
    *                $ref: '#/components/schemas/Error'
    */
   app.get('/api/genes/', async (req, res, next) => {
-    const genes = await fetchGeneIdSuggestions({ query: req.query.search }).catch(next)
+    const genes = await queries.fetchGenes({ query: req.query.search }).catch(next)
     return res.status(200).json({ genes })
   })
+
+  app.get('/api/genes/:id', async (req, res, next) => {})
+
+  app.get('/api/genes/:id/associations', async (req, res, next) => {})
 
   /**
    * @swagger
@@ -120,11 +124,13 @@ const setup = (app) => {
       next(new InvalidQueryParameter('A minimum of 5 bins is required'))
     }
 
-    const data = await fetchExpression({
-      geneId: req.params.id,
-      type: expressionType,
-      nBins,
-    }).catch(next)
+    const data = await queries
+      .fetchGeneExpression({
+        geneId: req.params.id,
+        type: expressionType,
+        nBins,
+      })
+      .catch(next)
 
     res.status(200).json(data)
   })
