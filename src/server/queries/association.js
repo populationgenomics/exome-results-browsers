@@ -1,9 +1,16 @@
-const fetchAssociations = async ({ query, limit, options }) = {}
-const fetchAssociationsById = async ({ id, options }) = {}
-const fetchAssociationEffect = async ({ id, type, options }) = {}
+/* eslint-disable no-unused-vars */
+
+const { ExpressionOptions } = require('./options')
+
+const fetchAssociations = async (query, { limit = 25, config = {} } = {}) => {}
+const fetchAssociationById = async (id, { config = {} } = {}) => {}
+const fetchAssociationEffect = async (
+  id,
+  { type = ExpressionOptions.choices.log_cpm, config = {} } = {}
+) => {}
 
 module.exports = {
   fetchAssociations,
-  fetchAssociationsById,
+  fetchAssociationById,
   fetchAssociationEffect,
 }

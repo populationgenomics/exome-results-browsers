@@ -154,7 +154,7 @@ const setup = (app) => {
         cellTypeIds: (req.query.cellTypes?.split(',') || [])
           .map((s) => s.trim())
           .filter((s) => !!s),
-        rounds: (req.query.rounds?.split(',') || []).map(parseInt).filter(isFinite),
+        rounds: (req.query.rounds?.split(',') || []).map(parseInt).filter(Number.isInteger),
         fdr: Number.isFinite(parseFloat(req.query.fdr)) ? parseFloat(req.query.fdr) : 0.05,
         limit: parseNumber(req.query.limit, 25),
       })
@@ -222,7 +222,7 @@ const setup = (app) => {
       )
     }
 
-    let nBins = Number.parseInt(req.query.nBins)
+    const nBins = Number.parseInt(req.query.nBins, 10)
     if (!Number.isInteger(nBins) || nBins < 5) {
       next(new InvalidQueryParameter('A minimum of 5 bins is required'))
     }

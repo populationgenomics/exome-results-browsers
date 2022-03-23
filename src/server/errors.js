@@ -1,3 +1,5 @@
+/* eslint-disable max-classes-per-file */
+
 class ApiError extends Error {
   statusCode = null
 }

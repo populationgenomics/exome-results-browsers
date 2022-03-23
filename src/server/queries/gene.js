@@ -52,7 +52,7 @@ const fetchGenes = async (query, { limit = 25, config = {} } = {}) => {
   }
 
   if (Number.isInteger(limit)) {
-    queryParams.limit = parseInt(limit)
+    queryParams.limit = parseInt(limit, 10)
     sqlQuery += `\nLIMIT @limit`
   }
 
@@ -69,10 +69,11 @@ const fetchGeneById = async (id, { config = {} } = {}) => {
 
   const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
 
+  let geneId = id
   if (isGeneSymbol(id)) {
     const gene = await resolveGene(id, config)
     if (!gene) return null
-    id = gene?.gene_id
+    geneId = gene.gene_id
   }
 
   const query = `
@@ -84,8 +85,8 @@ const fetchGeneById = async (id, { config = {} } = {}) => {
     UPPER(gene_id) = UPPER(@id)`
 
   const [gene] = await submitQuery({
-    query: query,
-    options: { ...queryOptions, params: { id } },
+    query,
+    options: { ...queryOptions, params: { id: geneId } },
   })
 
   return gene
@@ -98,15 +99,16 @@ const fetchGeneById = async (id, { config = {} } = {}) => {
  */
 const fetchGeneAssociations = async (
   id,
-  { cellTypeIds = [], rounds = [], limit = 25, fdr = 0.05, config = {} } = {}
+  { cellTypeIds = [], rounds = [], fdr = 0.05, limit = 25, config = {} } = {}
 ) => {
   if (!id) throw new Error("Parameter 'id' is required.")
 
   // Gene was not studied, which is different from no associations from being found which instead
   // will return an empty array
+  let geneId = id
   const gene = await resolveGene(id, config)
   if (!gene) return null
-  id = gene?.gene_id
+  geneId = gene?.gene_id
 
   // Gene is included in the study, continue to query associations
   const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
@@ -119,7 +121,7 @@ const fetchGeneAssociations = async (
   WHERE
     UPPER(ensembl_gene_id) = UPPER(@id)`
 
-  const queryParams = { id }
+  const queryParams = { id: geneId }
 
   // Add filter for matching cell type ids
   if (cellTypeIds?.length && Array.isArray(cellTypeIds)) {
@@ -141,12 +143,12 @@ const fetchGeneAssociations = async (
 
   // Add clause for row limit. Default to serving all rows if no limit is provided.
   if (Number.isInteger(limit)) {
-    queryParams.limit = parseInt(limit)
+    queryParams.limit = parseInt(limit, 10)
     query += `\n  LIMIT @limit`
   }
 
   const rows = await submitQuery({
-    query: query,
+    query,
     options: { ...queryOptions, params: queryParams },
   })
 
@@ -291,7 +293,7 @@ const fetchGeneAssociationAggregate = async (id, { config = {} } = {}) => {
   const queryParams = { id: id.trim().toUpperCase() }
 
   const rows = await submitQuery({
-    query: query,
+    query,
     options: { ...queryOptions, params: queryParams },
   })
 
