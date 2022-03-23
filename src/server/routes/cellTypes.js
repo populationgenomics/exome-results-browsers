@@ -83,10 +83,10 @@ const setup = (app) => {
    *
    */
   app.get('/api/cell-types/:id', async (req, res, next) => {
-    const data = await fetchCellTypeById({ id: req.params.id }).catch(next)
+    const data = await fetchCellTypeById(req.params.id).catch(next)
 
     if (!data) {
-      next(new NotFound(`An entry matching cell type id '${req.params.id}' does not exist`))
+      next(new NotFound('Cell type not found'))
     }
 
     res.status(200).json(data)

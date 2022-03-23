@@ -2,10 +2,12 @@
 
 const express = require('express')
 
-const { isGene } = require('../identifiers')
-
 const queries = require('../queries/gene')
-const { InvalidQueryParameter, InvalidPathParameter } = require('../errors')
+const { InvalidQueryParameter, NotFound } = require('../errors')
+const { ExpressionOptions } = require('../queries/options')
+const { parseNumber } = require('../utils')
+
+// TODO: Throw 404 for when :id is not found in any database rows
 
 /**
  * @param {express.Express} app
@@ -26,6 +28,12 @@ const setup = (app) => {
    *          description: Search string
    *          type: string
    *          example: IL7
+   *        - in: query
+   *          name: limit
+   *          description: Maximum number of results
+   *          type: number
+   *          format: int32
+   *          example: 10
    *      responses:
    *        200:
    *          content:
@@ -35,34 +43,129 @@ const setup = (app) => {
    *                items:
    *                  type: object
    *                  required:
-   *                    - label
-   *                    - url
+   *                    - gene_id
+   *                    - symbol
    *                  properties:
-   *                    label:
+   *                    gene_id:
    *                      type: string
-   *                    url:
+   *                    symbol:
    *                      type: string
-   *        400:
-   *          description: Bad request. A single query is required.
+   */
+  app.get('/api/genes/', async (req, res, next) => {
+    const genes = await queries
+      .fetchGenes(req.query.search, { limit: parseNumber(req.query.limit, 25) })
+      .catch(next)
+    res.status(200).json(genes)
+  })
+
+  /**
+   * @swagger
+   *  /api/genes/{id}:
+   *    get:
+   *      description: Return details of a gene
+   *      tags:
+   *        - Genes
+   *      produces:
+   *        - application/json
+   *      parameters:
+   *        - in: path
+   *          name: id
+   *          required: true
+   *          description: Ensembl gene id
+   *          type: string
+   *          example: ENSG00000104432
+   *      responses:
+   *        200:
    *          content:
    *            application/json:
    *              schema:
-   *                $ref: '#/components/schemas/Error'
-   *        5XX:
-   *          description: An unexpected error has occured
+   *                type: object
+   *        404:
+   *          description: Gene with requested identifier does not exist
    *          content:
    *            application/json:
    *              schema:
    *                $ref: '#/components/schemas/Error'
    */
-  app.get('/api/genes/', async (req, res, next) => {
-    const genes = await queries.fetchGenes({ query: req.query.search }).catch(next)
-    return res.status(200).json({ genes })
+  app.get('/api/genes/:id', async (req, res, next) => {
+    const gene = await queries.fetchGeneById(req.params.id).catch(next)
+
+    if (gene == null) {
+      next(new NotFound('Gene not found'))
+    }
+
+    res.status(200).json(gene)
   })
 
-  app.get('/api/genes/:id', async (req, res, next) => {})
+  /**
+   * @swagger
+   *  /api/genes/{id}/associations:
+   *    get:
+   *      description: Return all eQTL associations for a gene
+   *      tags:
+   *        - Genes
+   *      produces:
+   *        - application/json
+   *      parameters:
+   *        - in: path
+   *          name: id
+   *          required: true
+   *          description: Ensembl gene id
+   *          type: string
+   *          example: ENSG00000104432
+   *        - in: query
+   *          name: cellTypes
+   *          description: Cell type identifiers, comma delimited.
+   *          type: string
+   *          example: bin,bmem
+   *        - in: query
+   *          name: fdr
+   *          description: FDR filter
+   *          type: number
+   *          format: float
+   *          example: 0.05
+   *        - in: query
+   *          name: rounds
+   *          description: Conditioning rounds, comma delimited.
+   *          type: string
+   *          example: 1
+   *        - in: query
+   *          name: limit
+   *          description: Maximum number of results
+   *          type: number
+   *          format: int32
+   *          example: 25
+   *      responses:
+   *        200:
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: object
+   *        404:
+   *          description: Gene with requested identifier does not exist
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: '#/components/schemas/Error'
+   */
+  app.get('/api/genes/:id/associations', async (req, res, next) => {
+    const associations = await queries
+      .fetchGeneAssociations(req.params.id, {
+        cellTypeIds: (req.query.cellTypes?.split(',') || [])
+          .map((s) => s.trim())
+          .filter((s) => !!s),
+        rounds: (req.query.rounds?.split(',') || []).map(parseInt).filter(isFinite),
+        fdr: Number.isFinite(parseFloat(req.query.fdr)) ? parseFloat(req.query.fdr) : 0.05,
+        limit: parseNumber(req.query.limit, 25),
+      })
+      .catch(next)
 
-  app.get('/api/genes/:id/associations', async (req, res, next) => {})
+    if (associations == null) {
+      next(new NotFound('Gene not found'))
+    }
+
+    res.status(200).json(associations)
+  })
 
   /**
    * @swagger
@@ -100,7 +203,8 @@ const setup = (app) => {
    *            application/json:
    *              schema:
    *                $ref: '#/components/schemas/BinnedExpression'
-   *        400:
+   *        404:
+   *          description: Gene with requested identifier does not exist
    *          content:
    *            application/json:
    *              schema:
@@ -108,29 +212,26 @@ const setup = (app) => {
    */
   app.get('/api/genes/:id/expression', async (req, res, next) => {
     // TODO: change residual to log_residual
-    if (!isGene(req.params.id)) {
-      next(new InvalidPathParameter('Please provide an Ensembl gene id'))
-    }
-
-    const expressionType = (req.query.type ?? 'residual')?.toLowerCase()
-    if (!['residual', 'log_cpm'].includes(expressionType)) {
+    const type = (req.query.type || ExpressionOptions.choices.residual).toString()
+    if (!ExpressionOptions.isValid(type)) {
       next(
-        new InvalidQueryParameter("Expression 'type' must be either 'log_cpm' or 'log_residual'")
+        new InvalidQueryParameter(
+          `Value '${type}' for query parameter 'type' must be ` +
+            `one of ${ExpressionOptions.toString()}`
+        )
       )
     }
 
-    let nBins = parseInt(req.query.nBins) ?? 30
-    if (nBins < 5) {
+    let nBins = Number.parseInt(req.query.nBins)
+    if (!Number.isInteger(nBins) || nBins < 5) {
       next(new InvalidQueryParameter('A minimum of 5 bins is required'))
     }
 
-    const data = await queries
-      .fetchGeneExpression({
-        geneId: req.params.id,
-        type: expressionType,
-        nBins,
-      })
-      .catch(next)
+    const data = await queries.fetchGeneExpression(req.params.id, { type, nBins }).catch(next)
+
+    if (data == null) {
+      next(new NotFound('Gene not found'))
+    }
 
     res.status(200).json(data)
   })
