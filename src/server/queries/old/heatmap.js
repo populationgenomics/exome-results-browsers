@@ -14,7 +14,7 @@ const {
   submitQuery,
 } = require('./utilities')
 const { convertPositionToGlobalPosition } = require('./genome')
-const { isGene } = require('../identifiers')
+const { isGene } = require('../../identifiers')
 
 const generateRegionQuery = ({
   query,

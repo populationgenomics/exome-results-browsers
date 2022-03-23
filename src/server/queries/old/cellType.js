@@ -1,7 +1,7 @@
 const { tableIds, defaultQueryOptions, submitQuery } = require('./utilities')
 
-const fetchCellTypes = async ({ config } = {}) => {
-  const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
+const fetchCellTypes = async ({ options } = {}) => {
+  const queryOptions = { ...defaultQueryOptions(), ...options }
 
   const query = `
   SELECT 
@@ -15,8 +15,8 @@ const fetchCellTypes = async ({ config } = {}) => {
   return rows
 }
 
-const fetchCellTypeById = async (id, { config = {} } = {}) => {
-  const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
+const fetchCellTypeById = async ({ id, options }) => {
+  const queryOptions = { ...defaultQueryOptions(), ...options }
 
   if (!id) return null
 
@@ -26,17 +26,17 @@ const fetchCellTypeById = async (id, { config = {} } = {}) => {
   FROM 
     ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.cellType}
   WHERE
-    UPPER(id) = UPPER(@id)
+    id = @id
   `
 
   const queryParams = { id }
 
-  const [cellType] = await submitQuery({
+  const rows = await submitQuery({
     query,
     options: { ...queryOptions, params: queryParams },
   })
 
-  return cellType
+  return rows[0]
 }
 
 module.exports = {

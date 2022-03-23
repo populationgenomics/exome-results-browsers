@@ -11,6 +11,7 @@ const { OAuth2Client } = require('google-auth-library')
 
 const routes = require('./routes')
 const { config } = require('./config')
+const { errorHandler } = require('./routes/errors')
 
 // ================================================================================================
 // Express app
@@ -137,6 +138,12 @@ app.use((req, res) => {
     )
   )
 })
+
+// ================================================================================================
+// Error handling
+// ================================================================================================
+// Error middleware must be declared last.
+app.use('/api', errorHandler)
 
 // ================================================================================================
 // Start

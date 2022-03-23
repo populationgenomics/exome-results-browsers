@@ -1,35 +1,60 @@
-const { groupBy, mapValues } = require('lodash')
+const { groupBy, sortBy } = require('lodash')
 
 const { tableIds, defaultQueryOptions, submitQuery } = require('./utilities')
+const { isGeneSymbol } = require('../identifiers')
+const { ExpressionOptions } = require('./options')
 
-// TODO: This is slow, put gene names and ids in separate table.
-const fetchGeneIdSuggestions = async ({ query, options }) => {
-  const queryOptions = { ...defaultQueryOptions(), ...options }
+/**
+ * @param {string} symbol
+ *
+ * @returns {Promise<{gene_id: string, symbol: string}|null>}
+ */
+const resolveGene = async (query, { config = {} } = {}) => {
+  const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
 
-  let labelColumn = 'symbol'
-  if (new RegExp('^ENSG').test(query)) {
-    labelColumn = 'gene_id'
-  }
+  const sqlQuery = `
+  SELECT
+    DISTINCT gene_id, symbol
+  FROM
+    ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneModel}
+  WHERE
+    UPPER(gene_id) = UPPER(@query)
+    OR UPPER(symbol) = UPPER(@query)`
 
-  let filter = ''
+  const [gene] = await submitQuery({
+    query: sqlQuery,
+    options: { ...queryOptions, params: { query } },
+  })
+
+  return gene
+}
+
+const fetchGenes = async (query, { limit = 25, config = {} } = {}) => {
+  const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
+
+  let sqlQuery = `
+  SELECT
+    gene_id,
+    symbol
+  FROM
+    ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneModel}`
+
+  const queryParams = {}
   if (query) {
-    filter = `
+    queryParams.query = query
+    sqlQuery += `
     WHERE
-      REGEXP_CONTAINS(UPPER(${labelColumn}), CONCAT('^', @query))
-    `.trim()
+      UPPER(gene_id) = UPPER(@query)
+      OR UPPER(canonical_transcript_id) = UPPER(@query)
+      OR UPPER(symbol) = @query
+      OR REGEXP_CONTAINS(UPPER(symbol), CONCAT('^', @query))
+      OR REGEXP_CONTAINS(UPPER(gene_id), CONCAT('^', @query))`
   }
 
-  const sqlQuery = `
-  SELECT
-    ${labelColumn} AS label, 
-    CONCAT('/results/', gene_id) AS url
-  FROM
-    ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneLookup}
-  ${filter}
-  LIMIT
-    10
-`
-  const queryParams = { query: query?.toUpperCase() }
+  if (Number.isInteger(limit)) {
+    queryParams.limit = parseInt(limit, 10)
+    sqlQuery += `\nLIMIT @limit`
+  }
 
   const rows = await submitQuery({
     query: sqlQuery,
@@ -39,194 +64,246 @@ const fetchGeneIdSuggestions = async ({ query, options }) => {
   return rows
 }
 
-const fetchGenesInRegion = async ({ region, options }) => {
-  const queryOptions = { ...defaultQueryOptions(), ...options }
+const fetchGeneById = async (id, { config = {} } = {}) => {
+  if (!id) return null
 
-  const sqlQuery = `
+  const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
+
+  let geneId = id
+  if (isGeneSymbol(id)) {
+    const gene = await resolveGene(id, config)
+    if (!gene) return null
+    geneId = gene.gene_id
+  }
+
+  const query = `
   SELECT
     *
   FROM
-    ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneModel} 
+    ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneModel}
   WHERE
-    chrom = @chrom
-    AND (
-      (start >= @start AND stop <= @stop)
-        OR (start <= @start AND stop >= @start AND stop <= @stop)
-        OR (start >= @start AND start <= @stop AND stop >= @stop)
-        OR (start <= @start AND stop >= @stop)
+    UPPER(gene_id) = UPPER(@id)`
+
+  const [gene] = await submitQuery({
+    query,
+    options: { ...queryOptions, params: { id: geneId } },
+  })
+
+  return gene
+}
+
+/**
+ * @param {string} id
+ *
+ * @returns {Promise<object|null>}
+ */
+const fetchGeneAssociations = async (
+  id,
+  { cellTypeIds = [], rounds = [], fdr = 0.05, limit = 25, config = {} } = {}
+) => {
+  if (!id) throw new Error("Parameter 'id' is required.")
+
+  // Gene was not studied, which is different from no associations from being found which instead
+  // will return an empty array
+  let geneId = id
+  const gene = await resolveGene(id, config)
+  if (!gene) return null
+  geneId = gene?.gene_id
+
+  // Gene is included in the study, continue to query associations
+  const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
+
+  let query = `
+  SELECT 
+    *
+  FROM
+    ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.association}
+  WHERE
+    UPPER(ensembl_gene_id) = UPPER(@id)`
+
+  const queryParams = { id: geneId }
+
+  // Add filter for matching cell type ids
+  if (cellTypeIds?.length && Array.isArray(cellTypeIds)) {
+    queryParams.cellTypeIds = cellTypeIds.map((s) => s.toString())
+    query += ` AND LOWER(cell_type_id) IN UNNEST(@cellTypeIds)`
+  }
+
+  // Add filter for conditioning round
+  if (rounds?.length && Array.isArray(rounds)) {
+    queryParams.rounds = rounds.map(parseInt)
+    query += ` AND round IN UNNEST(@rounds)`
+  }
+
+  // Add filter for FDR
+  if (Number.isFinite(fdr)) {
+    queryParams.fdr = parseFloat(fdr)
+    query += ` AND fdr <= @fdr`
+  }
+
+  // Add clause for row limit. Default to serving all rows if no limit is provided.
+  if (Number.isInteger(limit)) {
+    queryParams.limit = parseInt(limit, 10)
+    query += `\n  LIMIT @limit`
+  }
+
+  const rows = await submitQuery({
+    query,
+    options: { ...queryOptions, params: queryParams },
+  })
+
+  return rows
+}
+
+const fetchGeneExpression = async (
+  id,
+  { type = ExpressionOptions.choices.log_cpm, nBins = 30, config = {} } = {}
+) => {
+  if (!id) throw new Error("Parameter 'id' is required.")
+
+  // Gene was not studied, which is different from no associations from being found which instead
+  // will return an empty array
+  const gene = await resolveGene(id, config)
+  if (!gene) return null
+  // id = gene?.gene_id // TODO: Enable once table has gene_id column
+
+  const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
+
+  const binsQuery = `
+  SELECT
+    i index,
+    (min + step * i) min, 
+    (min + step * (i + 1)) max  
+  FROM (
+    SELECT 
+      min, 
+      max, 
+      (max - min) diff, 
+      ((max - min) / @nBins) step, 
+      GENERATE_ARRAY(0, @nBins, 1) i
+    FROM (
+      SELECT 
+        MIN(${type}) min, 
+        MAX(${type}) max
+      FROM ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.expression}
+      WHERE gene = @id
     )
+  ), UNNEST(i) i
   `
 
-  const queryParams = {
-    start: region.start,
-    stop: region.stop,
-    chrom: region.chrom,
-  }
-
-  const rows = await submitQuery({
-    query: sqlQuery,
-    options: { ...queryOptions, params: queryParams },
-  })
-
-  return rows
-}
-
-const fetchGenesAssociatedWithVariant = async ({ variant, options }) => {
-  const queryOptions = { ...defaultQueryOptions(), ...options }
-
-  const sqlQuery = `
+  const statsQuery = `
   SELECT
-    *,
-  FROM
-    ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneModel} AS X
-  INNER JOIN (
-    SELECT
-      DISTINCT ensembl_gene_id
-    FROM
-      ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.association} 
-    WHERE
-      bp = @bp
-      AND chrom = @chrom
-      AND a1 = @ref
-      AND a2 = @alt
-  ) AS Y
-  ON X.gene_id = Y.ensembl_gene_id
-  `
-
-  const queryParams = {
-    chrom: variant.chrom,
-    bp: variant.pos,
-    ref: variant.ref,
-    alt: variant.alt,
-  }
-
-  const rows = await submitQuery({
-    query: sqlQuery,
-    options: { ...queryOptions, params: queryParams },
-  })
-
-  return rows
-}
-
-const fetchGenes = async ({ query, options }) => {
-  const queryOptions = { ...defaultQueryOptions(), ...options }
-
-  // Fallback to first N rows if no query has been specified
-  let queryParams = {}
-  let sqlQuery = `
-  SELECT
-    *
-  FROM
-    ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneModel}
-  LIMIT 10
-  `
-
-  if (query?.trim()) {
-    sqlQuery = `
-    SELECT
-      *
-    FROM
-      ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneModel}
-    WHERE
-      gene_id IN UNNEST(@listQuery)
-      OR canonical_transcript_id IN UNNEST(@listQuery)
-      OR UPPER(symbol) IN UNNEST(@listQuery)
-      OR REGEXP_CONTAINS(UPPER(search_terms), CONCAT('".*', @textQuery, '.*"'))
-      OR REGEXP_CONTAINS(UPPER(name), CONCAT('.*', @textQuery, '.*'))
-    `
-
-    queryParams = {
-      listQuery: query
-        .trim()
-        .split(',')
-        .filter((q) => q?.trim() != null)
-        .map((q) => q.toUpperCase()),
-      textQuery: query.trim().toUpperCase(),
-    }
-  }
-
-  const rows = await submitQuery({
-    query: sqlQuery,
-    options: { ...queryOptions, params: queryParams },
-  })
-
-  return rows
-}
-
-const fetchGenesById = async ({ ids, options }) => {
-  const queryOptions = { ...defaultQueryOptions(), ...options }
-
-  const formattedIds = ids?.filter((q) => q?.trim() != null)?.map((q) => q.toUpperCase())
-  if (!formattedIds) return []
-
-  const sqlQuery = `
-  SELECT
-    *
-  FROM
-    ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneModel}
-  WHERE
-    gene_id IN UNNEST(@ids)
-  `
-
-  const queryParams = { ids: formattedIds }
-
-  const rows = await submitQuery({
-    query: sqlQuery,
-    options: { ...queryOptions, params: queryParams },
-  })
-
-  return rows
-}
-
-const fetchGeneExpression = async ({ gene, cellTypesIds, chroms, options }) => {
-  const queryOptions = { ...defaultQueryOptions(), ...options }
-
-  const formattedCellTypeIds = cellTypesIds
-    ?.filter((q) => q?.trim() != null)
-    ?.map((q) => q.toLowerCase())
-
-  const formattedChroms = chroms?.filter((q) => q?.trim() != null)?.map((q) => q.toLowerCase())
-
-  let sqlQuery = `
-  SELECT
-    gene,
-    chrom,
     cell_type_id,
-    residual
-  FROM
-    ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.logResidual}
-  WHERE
-    LOWER(gene) = LOWER(@gene) 
+    min,
+    max, 
+    mean,
+    quantiles[SAFE_OFFSET(1)] as q1,
+    quantiles[SAFE_OFFSET(2)] as median,
+    quantiles[SAFE_OFFSET(3)] as q3,
+    (quantiles[SAFE_OFFSET(3)] - quantiles[SAFE_OFFSET(1)]) as iqr,
+    quantiles[SAFE_OFFSET(1)] - 1.5 * (quantiles[SAFE_OFFSET(3)] - quantiles[SAFE_OFFSET(1)]) as iqr_min,
+    quantiles[SAFE_OFFSET(3)] + 1.5 * (quantiles[SAFE_OFFSET(3)] - quantiles[SAFE_OFFSET(1)]) as iqr_max,
+  FROM (
+    SELECT
+      cell_type_id,
+      MIN(residual) min,
+      MAX(residual) max,
+      AVG(residual) mean,
+      APPROX_QUANTILES(${type}, 4) quantiles,
+    FROM ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.expression}
+    WHERE gene = @id 
+    GROUP BY cell_type_id
+  )
   `
 
-  const queryParams = { gene }
+  const histogramQuery = `
+  WITH data AS (
+    SELECT *
+    FROM ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.expression}
+    WHERE gene = @id
+  ), 
+  bins AS (
+  ${binsQuery}
+  )
+  SELECT
+    data.cell_type_id,        
+    bins.index bin_index,
+    COUNT(*) count
+  FROM data  
+  LEFT JOIN bins ON (
+    data.${type} >= bins.min AND data.${type} < bins.max
+  )
+  GROUP BY bin_index, cell_type_id
+  ORDER BY cell_type_id, bin_index
+  `
 
-  if (formattedCellTypeIds.length) {
-    sqlQuery += `AND LOWER(cell_type_id) IN UNNEST(@cellTypeIds)`
-    queryParams.cellTypeIds = formattedCellTypeIds
-  }
+  const queryParams = { id, nBins, type: type.trim().toLowerCase() }
 
-  if (formattedChroms.length) {
-    sqlQuery += `AND LOWER(chrom) IN UNNEST(@chroms)`
-    queryParams.chroms = formattedChroms
-  }
-
-  const rows = await submitQuery({
-    query: sqlQuery,
+  const bins = await submitQuery({
+    query: binsQuery,
     options: { ...queryOptions, params: queryParams },
   })
 
-  return mapValues(
-    groupBy(rows, (r) => r.cell_type_id),
-    (a) => a.map((r) => r.residual)
+  const statistics = await submitQuery({
+    query: statsQuery,
+    options: { ...queryOptions, params: queryParams },
+  })
+
+  const histograms = await submitQuery({
+    query: histogramQuery,
+    options: { ...queryOptions, params: queryParams },
+  })
+
+  // Query will omit bins where there is a zero count, so add these back in to make the data
+  // square (ish).
+  const sortedBins = sortBy(bins, (b) => b.index)
+  const flattened = Object.entries(groupBy(histograms, (h) => h.cell_type_id)).map(
+    ([cellTypeId, group]) => {
+      const counts = []
+
+      sortedBins
+        .map((b) => b.index)
+        .forEach((index) => {
+          const binCounts = group.find((g) => g.bin_index === index)
+          counts.push(binCounts?.count ?? 0)
+        })
+
+      return { cell_type_id: cellTypeId, counts }
+    }
   )
+
+  return {
+    histograms: flattened,
+    bins: flattened.length
+      ? sortedBins.map((b) => {
+          return { min: b.min, max: b.max }
+        })
+      : [],
+    statistics,
+  }
+}
+
+const fetchGeneAssociationAggregate = async (id, { config = {} } = {}) => {
+  if (!id) throw new Error("Parameter 'id' is required.")
+
+  const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
+
+  const query = ``
+
+  const queryParams = { id: id.trim().toUpperCase() }
+
+  const rows = await submitQuery({
+    query,
+    options: { ...queryOptions, params: queryParams },
+  })
+
+  return rows[0]
 }
 
 module.exports = {
-  fetchGeneIdSuggestions,
-  fetchGenesInRegion,
   fetchGenes,
-  fetchGenesAssociatedWithVariant,
-  fetchGenesById,
+  fetchGeneById,
+  fetchGeneAssociations,
+  fetchGeneAssociationAggregate,
   fetchGeneExpression,
 }
