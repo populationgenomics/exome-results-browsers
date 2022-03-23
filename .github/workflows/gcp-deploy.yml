@@ -42,7 +42,7 @@ jobs:
           echo "DOCKER_IMAGE=$DOCKER_IMAGE_BASE/browser-$DEPLOYMENT_TYPE:$RELEASE_TAG" >> $GITHUB_ENV
 
       - name: 'gcloud setup'
-        uses: google-github-actions/setup-gcloud@master
+        uses: google-github-actions/setup-gcloud@v0
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           service_account_key: ${{ secrets.GCP_DEPLOY_SA_KEY }}
