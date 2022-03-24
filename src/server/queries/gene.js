@@ -62,15 +62,15 @@ const resolveGenes = async (queries, { config = {} } = {}) => {
 }
 
 /**
- * @param {{query?: string, limit?: number, config?: object}} options
+ * @param {{query?: string, expand?: boolean, limit?: number, config?: object}} options
  *
  * @returns {Promise<object[]>}
  */
-const fetchGenes = async ({ query = null, limit = 25, config = {} } = {}) => {
+const fetchGenes = async ({ query = null, expand = false, limit = 25, config = {} } = {}) => {
   const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
 
   const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneModel}`
-  const selectStatement = `SELECT DISTINCT gene_id, symbol FROM ${table}`
+  const selectStatement = `SELECT ${expand ? '*' : 'DISTINCT gene_id, symbol'} FROM ${table}`
 
   const queryParams = {}
   const filters = []
