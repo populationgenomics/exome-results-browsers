@@ -1,5 +1,4 @@
 /* eslint-disable no-unused-vars */
-
 const { ExpressionOptions } = require('./options')
 const { defaultQueryOptions, tableIds, submitQuery } = require('./utilities')
 
@@ -34,9 +33,9 @@ const fetchVariants = async ({
     queryParams.query = query
     filters.push(
       [
-        'UPPER(id) = UPPER(@query)',
-        'UPPER(locus_id) = UPPER(@uery)',
-        'UPPER(rsid) = UPPER(@query)',
+        "UPPER(id) LIKE CONCAT('%', UPPER(@query), '%')",
+        "UPPER(locus_id) LIKE CONCAT('%', UPPER(@query), '%')",
+        "UPPER(rsid) LIKE CONCAT('%', UPPER(@query), '%')",
       ].join(' OR ')
     )
   }
@@ -186,19 +185,20 @@ const fetchVariantAssociationAggregate = async (
   { type = ExpressionOptions.choices.log_cpm, config = {} } = {}
 ) => {
   if (!id) throw new Error("Parameter 'id' is required.")
+  return null
 
-  const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
+  // const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
 
-  const query = ``
+  // const query = ``
 
-  const queryParams = { id }
+  // const queryParams = { id }
 
-  const rows = await submitQuery({
-    query,
-    options: { ...queryOptions, params: queryParams },
-  })
+  // const rows = await submitQuery({
+  //   query,
+  //   options: { ...queryOptions, params: queryParams },
+  // })
 
-  return rows[0]
+  // return rows[0]
 }
 
 module.exports = {
