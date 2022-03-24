@@ -29,6 +29,11 @@ const setup = (app) => {
    *          type: string
    *          example: IL7
    *        - in: query
+   *          name: expand
+   *          description: Return all database columns
+   *          type: boolean
+   *          example: false
+   *        - in: query
    *          name: limit
    *          description: Maximum number of results
    *          type: number
@@ -53,7 +58,11 @@ const setup = (app) => {
    */
   app.get('/api/genes/', async (req, res, next) => {
     const genes = await queries
-      .fetchGenes({ query: req.query.search, limit: parseNumber(req.query.limit, 25) })
+      .fetchGenes({
+        query: req.query.search,
+        expand: req.query.expand === 'true',
+        limit: parseNumber(req.query.limit, 25),
+      })
       .catch(next)
     res.status(200).json(genes)
   })
