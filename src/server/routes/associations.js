@@ -16,7 +16,7 @@ const setup = (app) => {
    * @swagger
    *  /api/associations:
    *    get:
-   *      description: Return all eQTL associations for a query
+   *      description: Returns all eQTL associations for a query
    *      tags:
    *        - Associations
    *      produces:
@@ -60,6 +60,12 @@ const setup = (app) => {
    *            application/json:
    *              schema:
    *                type: object
+   *        400:
+   *          description: Invalid region identifier
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: '#/components/schemas/Error'
    *        404:
    *          description: Gene with requested identifier does not exist
    *          content:
@@ -99,7 +105,7 @@ const setup = (app) => {
    * @swagger
    *  /api/associations/{id}:
    *    get:
-   *      description: Return details of an eQTL association
+   *      description: Returns details of an eQTL association
    *      tags:
    *        - Associations
    *      produces:
