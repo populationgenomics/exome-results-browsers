@@ -53,7 +53,7 @@ const setup = (app) => {
    */
   app.get('/api/genes/', async (req, res, next) => {
     const genes = await queries
-      .fetchGenes(req.query.search, { limit: parseNumber(req.query.limit, 25) })
+      .fetchGenes({ query: req.query.search, limit: parseNumber(req.query.limit, 25) })
       .catch(next)
     res.status(200).json(genes)
   })
@@ -71,7 +71,7 @@ const setup = (app) => {
    *        - in: path
    *          name: id
    *          required: true
-   *          description: Ensembl gene id
+   *          description: Ensembl gene id or gene symbol
    *          type: string
    *          example: ENSG00000104432
    *      responses:
@@ -110,7 +110,7 @@ const setup = (app) => {
    *        - in: path
    *          name: id
    *          required: true
-   *          description: Ensembl gene id
+   *          description: Ensembl gene id or gene symbol
    *          type: string
    *          example: ENSG00000104432
    *        - in: query
@@ -120,10 +120,10 @@ const setup = (app) => {
    *          example: bin,bmem
    *        - in: query
    *          name: fdr
-   *          description: FDR filter
+   *          description: Filter by FDR between 0 and 1
    *          type: number
    *          format: float
-   *          example: 0.05
+   *          example: null
    *        - in: query
    *          name: rounds
    *          description: Conditioning rounds, comma delimited.
@@ -155,7 +155,7 @@ const setup = (app) => {
           .map((s) => s.trim())
           .filter((s) => !!s),
         rounds: (req.query.rounds?.split(',') || []).map(parseInt).filter(Number.isInteger),
-        fdr: Number.isFinite(parseFloat(req.query.fdr)) ? parseFloat(req.query.fdr) : 0.05,
+        fdr: Number.isFinite(parseFloat(req.query.fdr)) ? parseFloat(req.query.fdr) : null,
         limit: parseNumber(req.query.limit, 25),
       })
       .catch(next)
@@ -179,7 +179,7 @@ const setup = (app) => {
    *      parameters:
    *        - in: path
    *          name: id
-   *          description: Ensembl gene id
+   *          description: Ensembl gene id or gene symbol
    *          required: true
    *          type: string
    *          example: BRCA1
@@ -202,7 +202,7 @@ const setup = (app) => {
    *          content:
    *            application/json:
    *              schema:
-   *                $ref: '#/components/schemas/BinnedExpression'
+   *                $ref: '#/components/schemas/Expression'
    *        404:
    *          description: Gene with requested identifier does not exist
    *          content:
@@ -247,7 +247,7 @@ module.exports = { setup }
  * @swagger
  *  components:
  *    schemas:
- *      BinnedExpression:
+ *      Expression:
  *        type: object
  *        required:
  *          - histograms
