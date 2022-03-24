@@ -17,7 +17,7 @@ const setup = (app) => {
    * @swagger
    *  /api/genes:
    *    get:
-   *      description: Return a list of gene suggestions for a given query
+   *      description: Returns a list of gene suggestions for a given query
    *      tags:
    *        - Genes
    *      produces:
@@ -33,7 +33,7 @@ const setup = (app) => {
    *          description: Maximum number of results
    *          type: number
    *          format: int32
-   *          example: 10
+   *          example: 25
    *      responses:
    *        200:
    *          content:
@@ -62,7 +62,7 @@ const setup = (app) => {
    * @swagger
    *  /api/genes/{id}:
    *    get:
-   *      description: Return details of a gene
+   *      description: Returns details of a gene
    *      tags:
    *        - Genes
    *      produces:
@@ -101,7 +101,7 @@ const setup = (app) => {
    * @swagger
    *  /api/genes/{id}/associations:
    *    get:
-   *      description: Return all eQTL associations for a gene
+   *      description: Returns all eQTL associations for a gene
    *      tags:
    *        - Genes
    *      produces:
@@ -171,7 +171,7 @@ const setup = (app) => {
    * @swagger
    *  /api/genes/{id}/expression:
    *    get:
-   *      description: Return the binned expression across all cell-types associated with a gene
+   *      description: Returns the binned expression across all cell-types associated with a gene
    *      tags:
    *        - Genes
    *      produces:
@@ -203,6 +203,12 @@ const setup = (app) => {
    *            application/json:
    *              schema:
    *                $ref: '#/components/schemas/Expression'
+   *        400:
+   *          description: Invalid expression data type
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: '#/components/schemas/Error'
    *        404:
    *          description: Gene with requested identifier does not exist
    *          content:
@@ -228,6 +234,72 @@ const setup = (app) => {
     }
 
     const data = await queries.fetchGeneExpression(req.params.id, { type, nBins }).catch(next)
+
+    if (data == null) {
+      next(new NotFound('Gene not found'))
+    }
+
+    res.status(200).json(data)
+  })
+
+  /**
+   * @swagger
+   *  /api/genes/{id}/aggregate:
+   *    get:
+   *      description: 'Returns a summary of eQTL association information such as mean gene
+   *        expression and minimum p-value across all cell types'
+   *      tags:
+   *        - Genes
+   *      produces:
+   *        - application/json
+   *      parameters:
+   *        - in: path
+   *          name: id
+   *          description: Ensembl gene id or gene symbol
+   *          required: true
+   *          type: string
+   *          example: BRCA1
+   *        - in: query
+   *          name: type
+   *          description: Type of expression data to summarise
+   *          schema:
+   *            type: string
+   *            enum:
+   *              - log_cpm
+   *              - residual
+   *          example: residual
+   *      responses:
+   *        200:
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: '#/components/schemas/Aggregate'
+   *        400:
+   *          description: Invalid expression data type
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: '#/components/schemas/Error'
+   *        404:
+   *          description: Gene with requested identifier does not exist
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: '#/components/schemas/Error'
+   */
+  app.get('/api/genes/:id/aggregate', async (req, res, next) => {
+    // TODO: change residual to log_residual
+    const type = (req.query.type || ExpressionOptions.choices.residual).toString()
+    if (!ExpressionOptions.isValid(type)) {
+      next(
+        new InvalidQueryParameter(
+          `Value '${type}' for query parameter 'type' must be ` +
+            `one of ${ExpressionOptions.toString()}`
+        )
+      )
+    }
+
+    const data = await queries.fetchGeneAssociationAggregate(req.params.id, { type }).catch(next)
 
     if (data == null) {
       next(new NotFound('Gene not found'))
