@@ -361,18 +361,20 @@ const fetchGeneAssociationAggregate = async (
 ) => {
   if (!id) throw new Error("Parameter 'id' is required.")
 
-  const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
+  return null
 
-  const query = ``
+  // const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
 
-  const queryParams = { id }
+  // const query = ``
 
-  const rows = await submitQuery({
-    query,
-    options: { ...queryOptions, params: queryParams },
-  })
+  // const queryParams = { id }
 
-  return rows[0]
+  // const rows = await submitQuery({
+  //   query,
+  //   options: { ...queryOptions, params: queryParams },
+  // })
+
+  // return rows[0]
 }
 
 module.exports = {
