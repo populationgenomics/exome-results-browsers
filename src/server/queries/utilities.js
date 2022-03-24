@@ -1,7 +1,10 @@
-const _ = require('lodash')
+/* eslint-disable no-console */
+
 const { BigQuery } = require('@google-cloud/bigquery')
 
 const { ReferenceGenome } = require('./genome')
+
+// TODO: Define table schemas here
 
 const tableIds = {
   association: 'association',
@@ -30,11 +33,12 @@ const defaultQueryOptions = () => {
   }
 }
 
-const parseConditioningRound = (value) => {
-  if (!value) return 1
+const parseConditioningRound = (value, min = 1, max = 6) => {
+  if (!value || !Number.isInteger(Number.parseInt(value, 10))) return min
 
-  if (!Number.isInteger(value) && !_.range(1, 7).includes(parseInt(value, 10))) {
-    throw new Error('Conditioning round must be a number between 1 and 6')
+  const number = Number.parseInt(value, 10)
+  if (number < min || number > max) {
+    throw new Error(`Conditioning round must be a number between ${min} and ${max}`)
   }
 
   return parseInt(value, 10)
@@ -71,7 +75,46 @@ const submitQuery = async ({ query, options }) => {
 
   const [rows] = await job.getQueryResults()
 
+  if (verbose) {
+    const metadata = await job.getMetadata()
+    const queryInfo = metadata[0]?.statistics?.query || {}
+
+    const keys = [
+      ['estimatedBytesProcessed', (n) => (n == null ? n : `${n / 1e9} GB`)],
+      ['totalBytesProcessed', (n) => (n == null ? n : `${n / 1e9} GB`)],
+      ['totalBytesBilled', (n) => (n == null ? n : `${n / 1e9} GB`)],
+      ['totalPartitionsProcessed', (n) => n],
+      ['totalSlotMs', (n) => n],
+      ['cacheHit', (n) => n],
+      ['billingTier', (n) => n],
+    ]
+
+    console.group('\n------- Query metadata --------')
+    keys.map(([key, formatter]) => console.info(`${key}: ${formatter(queryInfo[key]) ?? '?'}`))
+    console.groupEnd()
+    console.info('-------------------------------')
+  }
+
   return rows
+}
+
+const parseAssociationId = (value) => {
+  const idRe = /^(\d+):(\d+):([ATCG]+):([ATCG]+):(([A-Z][A-Z0-9-]*)|(ENSG\d{11})):([A-Z_]+):(\d+)$/i
+
+  if (!idRe.test(value.toString())) {
+    throw new Error(`Association id '${value}' is not a valid identifier.`)
+  }
+
+  const [chrom, pos, ref, alt, gene, cell, round] = value.split(':')
+  return {
+    chrom,
+    pos: Number.parseInt(pos, 10),
+    ref,
+    alt,
+    gene,
+    cell,
+    round: Number.parseInt(round, 10),
+  }
 }
 
 module.exports = {
@@ -81,4 +124,5 @@ module.exports = {
   defaultQueryOptions,
   parseConditioningRound,
   submitQuery,
+  parseAssociationId,
 }
