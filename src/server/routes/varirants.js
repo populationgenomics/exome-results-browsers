@@ -105,7 +105,7 @@ const setup = (app) => {
    *              schema:
    *                $ref: '#/components/schemas/Error'
    */
-  app.get('/api/genes/:id', async (req, res, next) => {
+  app.get('/api/variants/:id', async (req, res, next) => {
     const variant = await queries.fetchVariantById(req.params.id).catch(next)
 
     if (variant == null) {
@@ -216,7 +216,7 @@ const setup = (app) => {
    *          content:
    *            application/json:
    *              schema:
-   *                $ref: '#/components/schemas/Aggregate'
+   *                type: object
    *        400:
    *          description: Invalid expression data type
    *          content:
@@ -224,7 +224,7 @@ const setup = (app) => {
    *              schema:
    *                $ref: '#/components/schemas/Error'
    *        404:
-   *          description: Gene with requested identifier does not exist
+   *          description: Variant with requested identifier does not exist
    *          content:
    *            application/json:
    *              schema:
