@@ -211,7 +211,7 @@ const setup = (app) => {
    *          content:
    *            application/json:
    *              schema:
-   *                $ref: '#/components/schemas/Expression'
+   *                $ref: '#/components/schemas/BinnedExpression'
    *        400:
    *          description: Invalid expression data type
    *          content:
@@ -281,8 +281,7 @@ const setup = (app) => {
    *        200:
    *          content:
    *            application/json:
-   *              schema:
-   *                $ref: '#/components/schemas/Aggregate'
+   *              type: object
    *        400:
    *          description: Invalid expression data type
    *          content:
@@ -328,7 +327,7 @@ module.exports = { setup }
  * @swagger
  *  components:
  *    schemas:
- *      Expression:
+ *      BinnedExpression:
  *        type: object
  *        required:
  *          - histograms
@@ -339,10 +338,11 @@ module.exports = { setup }
  *            items:
  *              type: object
  *              required:
- *                - cell_type_id
+ *                - id
  *                - counts
  *              properties:
- *                cell_type_id:
+ *                id:
+ *                  description: Group id (cell type or genotype id)
  *                  type: string
  *                counts:
  *                  type: array
@@ -368,7 +368,7 @@ module.exports = { setup }
  *            items:
  *              type: object
  *              required:
- *                - cell_type_id
+ *                - id
  *                - min
  *                - max
  *                - mean
@@ -379,7 +379,8 @@ module.exports = { setup }
  *                - iqr_min
  *                - iqr_max
  *              properties:
- *                cell_type_id:
+ *                id:
+ *                  description: Group id (cell type or genotype id)
  *                  type: string
  *                min:
  *                  type: number

@@ -292,15 +292,15 @@ const fetchGeneExpression = async (
   ${binsQuery}
   )
   SELECT
-    data.cell_type_id,        
+    data.cell_type_id id,        
     bins.index bin_index,
     COUNT(*) count
   FROM data  
   LEFT JOIN bins ON (
     data.${type} >= bins.min AND data.${type} < bins.max
   )
-  GROUP BY bin_index, cell_type_id
-  ORDER BY cell_type_id, bin_index
+  GROUP BY bin_index, id
+  ORDER BY id, bin_index
   `
 
   const queryParams = { id: geneId, nBins, type: type.trim().toLowerCase() }
@@ -323,20 +323,18 @@ const fetchGeneExpression = async (
   // Query will omit bins where there is a zero count, so add these back in to make the data
   // square (ish).
   const sortedBins = sortBy(bins, (b) => b.index)
-  const flattened = Object.entries(groupBy(histograms, (h) => h.cell_type_id)).map(
-    ([cellTypeId, group]) => {
-      const counts = []
+  const flattened = Object.entries(groupBy(histograms, (h) => h.id)).map(([gid, group]) => {
+    const counts = []
 
-      sortedBins
-        .map((b) => b.index)
-        .forEach((index) => {
-          const binCounts = group.find((g) => g.bin_index === index)
-          counts.push(binCounts?.count ?? 0)
-        })
+    sortedBins
+      .map((b) => b.index)
+      .forEach((index) => {
+        const binCounts = group.find((g) => g.bin_index === index)
+        counts.push(binCounts?.count ?? 0)
+      })
 
-      return { cell_type_id: cellTypeId, counts }
-    }
-  )
+    return { id: gid, counts }
+  })
 
   return {
     histograms: flattened,
