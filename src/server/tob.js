@@ -84,15 +84,22 @@ app.use('/', (req, _, next) => {
   next()
 })
 
-const datasetConfig = {}
+const datasetConfig = {
+  tob: {
+    enableSwaggerUi: (process.env.ENABLE_SWAGGER_UI ?? '').toLowerCase() === 'true',
+  },
+}
+
 const getDatasetConfigJs = (dataset) => {
   if (!datasetConfig[dataset]) {
     const datasetMetadata = {
       datasetId: dataset,
     }
-    datasetConfig[dataset] = `window.datasetConfig = ${JSON.stringify(datasetMetadata)}`
+    datasetConfig[dataset] = datasetMetadata
   }
-  return datasetConfig[dataset]
+
+  const js = `window.datasetConfig = ${JSON.stringify(datasetConfig[dataset])}`
+  return js
 }
 
 app.use('/config.js', (req, res) => {

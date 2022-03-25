@@ -14,6 +14,8 @@ import TOBVariantPage from './pages/TOBVariantPage'
 import TOBViolinPage from './pages/TOBViolinPage'
 import TOBApiDoc from './pages/TOBApiDoc'
 
+import datasetConfig from '../datasetConfig'
+
 const TopBarWrapper = styled.div`
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.23);
 
@@ -36,8 +38,8 @@ const TOBBrowser = () => (
         links={[
           { path: '/', label: 'Home' },
           { path: '/results', label: 'Results' },
-          { path: '/api', label: 'API' },
-        ]}
+          datasetConfig.enableSwaggerUi ? { path: '/api', label: 'API' } : null,
+        ].filter((d) => !!d)}
       />
     </TopBarWrapper>
 
@@ -57,7 +59,7 @@ const TOBBrowser = () => (
     <MainContentWrapper>
       <ErrorBoundary>
         <Routes>
-          <Route path="/api" element={<TOBApiDoc />} />
+          {datasetConfig.enableSwaggerUi ? <Route path="/api" element={<TOBApiDoc />} /> : null}
 
           <Route path="/results" element={<TOBAssociationPage />}>
             <Route path=":query" element={<TOBAssociationPage />} />
