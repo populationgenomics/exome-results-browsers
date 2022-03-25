@@ -97,9 +97,12 @@ const fetchAssociations = async ({
     limitClause = `LIMIT @limit`
   }
 
+  const orderClause = 'ORDER BY fdr ASC'
+
   const sqlQuery = [
     selectClause,
     filters.length ? `WHERE ${filters.join(' AND ')}` : null,
+    orderClause,
     limitClause,
   ]
     .filter((c) => !!c)
