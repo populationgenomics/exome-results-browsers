@@ -161,7 +161,7 @@ const setup = (app) => {
    *          content:
    *            application/json:
    *              schema:
-   *                $ref: '#/components/schemas/AssociationEffect'
+   *                $ref: '#/components/schemas/BinnedExpression'
    *        404:
    *          description: Association with requested identifier does not exist
    *          content:
@@ -179,89 +179,3 @@ module.exports = { setup }
 // ---------------------------------------------------------------------------------------------- //
 // Swagger Components
 // ---------------------------------------------------------------------------------------------- //
-
-/**
- * @swagger
- *  components:
- *    schemas:
- *      AssociationEffect:
- *        type: object
- *        required:
- *          - histograms
- *          - bins
- *        properties:
- *          histograms:
- *            type: array
- *            items:
- *              type: object
- *              required:
- *                - genotype
- *                - counts
- *              properties:
- *                genotype:
- *                  type: string
- *                counts:
- *                  type: array
- *                  items:
- *                    type: number
- *                    format: int32
- *          bins:
- *            type: array
- *            items:
- *              type: object
- *              required:
- *                - min
- *                - max
- *              properties:
- *                min:
- *                  type: number
- *                  format: float
- *                max:
- *                  type: number
- *                  format: float
- *          statistics:
- *            type: array
- *            items:
- *              type: object
- *              required:
- *                - genotype
- *                - min
- *                - max
- *                - mean
- *                - q1
- *                - median
- *                - q3
- *                - iqr
- *                - iqr_min
- *                - iqr_max
- *              properties:
- *                genotype:
- *                  type: string
- *                min:
- *                  type: number
- *                  format: float
- *                max:
- *                  type: number
- *                  format: float
- *                mean:
- *                  type: number
- *                  format: float
- *                q1:
- *                  type: number
- *                  format: float
- *                median:
- *                  type: number
- *                  format: float
- *                q3:
- *                  type: number
- *                  format: float
- *                iqr:
- *                  type: number
- *                  format: float
- *                iqr_min:
- *                  type: number
- *                  format: float
- *                iqr_max:
- *                  type: number
- *                  format: float
- */
