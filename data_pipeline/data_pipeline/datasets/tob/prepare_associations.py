@@ -2,6 +2,7 @@
 # coding: utf-8
 
 import re
+import shelve
 
 import hail
 from google.cloud import storage
@@ -33,7 +34,15 @@ def process_table(table, reference="grch37", is_esnp=False, verify=True):
     result = result.annotate(
         is_esnp=hail.bool(is_esnp),
         global_bp=result.variant.locus.global_position(),
-        id=hail.str(":").join(
+        variant_id=hail.str("-").join(
+            [
+                hail.str(result.CHR),
+                hail.str(result.BP),
+                result.A1,
+                result.A2,
+            ]
+        ),
+        association_id=hail.str("-").join(
             [
                 hail.str(result.CHR),
                 hail.str(result.BP),
@@ -53,16 +62,44 @@ def process_table(table, reference="grch37", is_esnp=False, verify=True):
     result = result.rename({"db_key": "cell_type_id"})
     result = result.rename({"cell_type": "cell_type_name"})
     result = result.rename({"CHR": "chrom"})
+    result = result.rename({"SNPID": "snp_id"})
+    result = result.rename({"ENSEMBL_GENE_ID": "gene_id"})
+    result = result.rename({"GENE": "gene_symbol"})
     result = result.rename({c: c.lower() for c in list(result.row.keys())})
 
-    columns = [c for c in list(result.row.keys()) if c not in ("id", "global_bp")]
-    column_order = ["id"] + columns[0:8] + ["global_bp"] + columns[8:]
+    column_order = [
+        "association_id",
+        "cell_type_id",
+        "cell_type_name",
+        "gene_id",
+        "gene_symbol",
+        "rsid",
+        "variant_id",
+        "snp_id",
+        "chrom",
+        "bp",
+        "global_bp",
+        "a1",
+        "a2",
+        "a2_freq_onek1k",
+        "a2_freq_hrc",
+        "spearmans_rho",
+        "s_statistic",
+        "p_value",
+        "q_value",
+        "fdr",
+        "rsquare",
+        "genotyped",
+        "round",
+        "is_esnp",
+    ]
+
     result = result.select(*column_order)
     assert len(set(column_order)) == len(set(result.row.keys()))
 
     result = result.drop(result.variant)
 
-    return result.order_by("global_bp").key_by("id").distinct()
+    return result.order_by("global_bp").key_by("association_id").distinct()
 
 
 def prepare_associations(verify=True):
@@ -119,6 +156,9 @@ def prepare_associations(verify=True):
         verify=verify,
     ).cache()
 
+    shelf_filename = "/tmp/global_coordinate_lookup"
+    shelf = shelve.open(shelf_filename)
+
     for (index, chrom) in enumerate(chromosomes):
         print(f"Loading eQTL files for {chrom}")
         eqtl_table = process_table(
@@ -149,6 +189,13 @@ def prepare_associations(verify=True):
             delimiter="\t",
             header=True,
         )
+
+        print("Writing global coordinate lookup")
+        table = association_table.select("bp", "global_bp").to_pandas().set_index("bp")
+        shelf.update(table.to_records())
+
+    shelf.close()
+    return shelf_filename
 
 
 if __name__ == "__main__":
