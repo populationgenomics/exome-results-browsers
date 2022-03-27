@@ -20,6 +20,7 @@ def run_pipeline(verify=True, skip_processing=False, delete_existing_tables=True
     if not skip_processing:
         hail.init()
 
+        # TODO: Update gene symbol and ids in assocation files #pylint: disable=fixme
         symbol_to_id_mapping = prepare_gene_models()
         global_coordinate_lookup = prepare_associations(verify)
 
