@@ -11,16 +11,75 @@ from data_pipeline.config import pipeline_config
 from data_pipeline.datasets.tob.helpers import PROJECT, get_gcp_bucket_name
 
 
+# Largest chromosome (chr1) has ~250 Million base pairs
+MAX_NUM_PARTITIONS = 4000
+CHROM_LENGTHS = {
+    "grch37": {
+        "chr1": 249250621,
+        "chr2": 243199373,
+        "chr3": 198022430,
+        "chr4": 191154276,
+        "chr5": 180915260,
+        "chr6": 171115067,
+        "chr7": 159138663,
+        "chr8": 146364022,
+        "chr9": 141213431,
+        "chr10": 135534747,
+        "chr11": 135006516,
+        "chr12": 133851895,
+        "chr13": 115169878,
+        "chr14": 107349540,
+        "chr15": 102531392,
+        "chr16": 90354753,
+        "chr17": 81195210,
+        "chr18": 78077248,
+        "chr19": 59128983,
+        "chr20": 63025520,
+        "chr21": 48129895,
+        "chr22": 51304566,
+        "chrX": 155270560,
+        "chrY": 59373566,
+    },
+    "grch38": {
+        "chr1": 248956422,
+        "chr2": 242193529,
+        "chr3": 198295559,
+        "chr4": 190214555,
+        "chr5": 181538259,
+        "chr6": 170805979,
+        "chr7": 159345973,
+        "chr8": 145138636,
+        "chr9": 138394717,
+        "chr10": 133797422,
+        "chr11": 135086622,
+        "chr12": 133275309,
+        "chr13": 114364328,
+        "chr14": 107043718,
+        "chr15": 101991189,
+        "chr16": 90338345,
+        "chr17": 83257441,
+        "chr18": 80373285,
+        "chr19": 58617616,
+        "chr20": 64444167,
+        "chr21": 46709983,
+        "chr22": 50818468,
+        "chrX": 156040895,
+        "chrY": 57227415,
+    },
+}
+
+
 def init_tables(delete_existing_tables=False, reference="grch37"):
     schemas = {
         "association": [
-            bigquery.SchemaField("id", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("association_id", "STRING", mode="REQUIRED"),
             bigquery.SchemaField("cell_type_id", "STRING", mode="REQUIRED"),
             bigquery.SchemaField("cell_type_name", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("gene_id", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("gene_symbol", "STRING", mode="REQUIRED"),
             bigquery.SchemaField("rsid", "STRING", mode="REQUIRED"),
-            bigquery.SchemaField("snpid", "STRING", mode="REQUIRED"),
-            bigquery.SchemaField("gene", "STRING", mode="REQUIRED"),
-            bigquery.SchemaField("ensembl_gene_id", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("variant_id", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("snp_id", "STRING", mode="REQUIRED"),
             bigquery.SchemaField("chrom", "STRING", mode="REQUIRED"),
             bigquery.SchemaField("bp", "INTEGER", mode="REQUIRED"),
             bigquery.SchemaField("global_bp", "INTEGER", mode="REQUIRED"),
@@ -38,17 +97,26 @@ def init_tables(delete_existing_tables=False, reference="grch37"):
             bigquery.SchemaField("round", "INTEGER", mode="REQUIRED"),
             bigquery.SchemaField("is_esnp", "BOOLEAN", mode="REQUIRED"),
         ],
-        "log_residual": [
+        "expression": [
             bigquery.SchemaField("sample_id", "STRING", mode="REQUIRED"),
             bigquery.SchemaField("cell_type_id", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("gene_id", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("gene_symbol", "STRING", mode="REQUIRED"),
             bigquery.SchemaField("chrom", "STRING", mode="REQUIRED"),
-            bigquery.SchemaField("gene", "STRING", mode="REQUIRED"),
-            bigquery.SchemaField("residual", "FLOAT", mode="REQUIRED"),
+            bigquery.SchemaField("log_residual", "FLOAT", mode="REQUIRED"),
+            bigquery.SchemaField("log_cpm", "FLOAT", mode="REQUIRED"),
+        ],
+        "genotype": [
+            bigquery.SchemaField("sample_id", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("snp_id", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("chrom", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("bp", "FLOAT", mode="REQUIRED"),
+            bigquery.SchemaField("global_bp", "FLOAT", mode="REQUIRED"),
+            bigquery.SchemaField("genotype", "INTEGER", mode="REQUIRED"),
         ],
         "cell_type": [
-            bigquery.SchemaField("id", "STRING", mode="REQUIRED"),
-            bigquery.SchemaField("name", "STRING", mode="REQUIRED"),
-            bigquery.SchemaField("parent_id", "STRING", mode="NULLABLE"),
+            bigquery.SchemaField("cell_type_id", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("cell_type_name", "STRING", mode="REQUIRED"),
             bigquery.SchemaField("description", "STRING", mode="REQUIRED"),
         ],
         "gene_model": [
@@ -95,91 +163,41 @@ def init_tables(delete_existing_tables=False, reference="grch37"):
         ],
     }
 
-    # Largest chromosome (chr1) has ~250 Million base pairs
-    chrom_lengths = {
-        "grch37": {
-            "chr1": 249250621,
-            "chr2": 243199373,
-            "chr3": 198022430,
-            "chr4": 191154276,
-            "chr5": 180915260,
-            "chr6": 171115067,
-            "chr7": 159138663,
-            "chr8": 146364022,
-            "chr9": 141213431,
-            "chr10": 135534747,
-            "chr11": 135006516,
-            "chr12": 133851895,
-            "chr13": 115169878,
-            "chr14": 107349540,
-            "chr15": 102531392,
-            "chr16": 90354753,
-            "chr17": 81195210,
-            "chr18": 78077248,
-            "chr19": 59128983,
-            "chr20": 63025520,
-            "chr21": 48129895,
-            "chr22": 51304566,
-            "chrX": 155270560,
-            "chrY": 59373566,
-        },
-        "grch38": {
-            "chr1": 248956422,
-            "chr2": 242193529,
-            "chr3": 198295559,
-            "chr4": 190214555,
-            "chr5": 181538259,
-            "chr6": 170805979,
-            "chr7": 159345973,
-            "chr8": 145138636,
-            "chr9": 138394717,
-            "chr10": 133797422,
-            "chr11": 135086622,
-            "chr12": 133275309,
-            "chr13": 114364328,
-            "chr14": 107043718,
-            "chr15": 101991189,
-            "chr16": 90338345,
-            "chr17": 83257441,
-            "chr18": 80373285,
-            "chr19": 58617616,
-            "chr20": 64444167,
-            "chr21": 46709983,
-            "chr22": 50818468,
-            "chrX": 156040895,
-            "chrY": 57227415,
-        },
-    }
-
     bq_client = bigquery.Client()
     dataset = bq_client.dataset(reference)
 
-    max_global_bp = sum(chrom_lengths[reference.lower()].values())
-    max_num_partitions = 4000
-    partition_interval = int(max(math.ceil(max_global_bp / max_num_partitions), int(4e6)))
+    max_global_bp = sum(CHROM_LENGTHS[reference.lower()].values())
+    partition_interval = int(max(math.ceil(max_global_bp / MAX_NUM_PARTITIONS), int(4e6)))
 
     tables = {}
     for (table_name, schema) in schemas.items():
         table_id = f"{dataset.project}.{dataset.dataset_id}.{table_name}"
         table_ref = bigquery.Table(table_id, schema=schema)
 
+        # Note: Google limits the number of cluster fields to 4
         if table_name == "association":
-            # Note: Google limits the number of cluster fields to 4
-            table_ref.clustering_fields = ["gene", "cell_type_id", "round", "genotyped"]
+            table_ref.clustering_fields = ["gene_id", "cell_type_id", "round", "chrom"]
             table_ref.range_partitioning = bigquery.RangePartitioning(
                 field="global_bp",
                 range_=bigquery.PartitionRange(start=0, end=max_global_bp, interval=partition_interval),
             )
 
-        if table_name == "log_residual":
-            table_ref.clustering_fields = ["chrom", "gene", "cell_type_id"]
+        if table_name == "expression":
+            table_ref.clustering_fields = ["gene_id", "cell_type_id", "chrom"]
+
+        if table_name == "genotype":
+            table_ref.clustering_fields = ["chrom", "genotype"]
+            table_ref.range_partitioning = bigquery.RangePartitioning(
+                field="global_bp",
+                range_=bigquery.PartitionRange(start=0, end=max_global_bp, interval=partition_interval),
+            )
 
         if table_name == "gene_model":
             table_ref.range_partitioning = bigquery.RangePartitioning(
                 field="global_start",
                 range_=bigquery.PartitionRange(start=0, end=max_global_bp, interval=partition_interval),
             )
-            table_ref.clustering_fields = ["chrom", "symbol", "gene_id"]
+            table_ref.clustering_fields = ["gene_id", "cell_type_id", "chrom"]
 
         try:
             if delete_existing_tables:
@@ -248,24 +266,102 @@ def create_gene_lookup_table(association_table, gene_model_table, table_id="gene
     sql_query = f"""
     CREATE OR REPLACE TABLE
         `{dataset.project}.{dataset.dataset_id}.{table_id}` (
-            gene_id STRING NOT NULL OPTIONS(description="Ensembl gene ID"), 
-            symbol STRING NOT NULL OPTIONS(description="HGNC gene symbol")
+            gene_id STRING NOT NULL, 
+            gene_symbol STRING NOT NULL
         )
     AS (
         SELECT
-            gene_id,
-            symbol
+            DISTINCT gene_id,
+            symbol gene_symbol
         FROM
             `{dataset.project}.{dataset.dataset_id}.{gene_model_table.table_id}` AS X
         INNER JOIN
             `{dataset.project}.{dataset.dataset_id}.{association_table.table_id}` AS Y
-            ON X.gene_id = Y.ensembl_gene_id
-        GROUP BY 
-            X.gene_id, X.symbol
+            ON X.gene_id = Y.gene_id
         ORDER BY 
             X.gene_id ASC
     )
-    CLUSTER BY [symbol]
+    """
+
+    job_config = bigquery.QueryJobConfig(
+        use_legacy_sql=False,
+    )
+
+    try:
+        return client.query(sql_query, job_config=job_config)
+    except exceptions.BadRequest as error:
+        print(f"Bad request: {error}")
+        print(json.dumps(error.errors, indent=2))
+    except exceptions.GoogleAPIError as error:
+        print(f"Error: {error}")
+
+
+def create_variant_table(association_table, table_id="variant", reference="grch37"):
+    client = bigquery.Client()
+    dataset = client.dataset(reference.lower())
+
+    max_global_bp = sum(CHROM_LENGTHS[reference.lower()].values())
+    partition_interval = int(max(math.ceil(max_global_bp / MAX_NUM_PARTITIONS), int(4e6)))
+
+    sql_query = f"""
+    CREATE OR REPLACE TABLE
+        `{dataset.project}.{dataset.dataset_id}.{table_id}` (
+            variant_id STRING NOT NULL, 
+            rsid STRING NOT NULL,
+            snp_id STRING NOT NULL,
+            chrom STRING NOT NULL,
+            bp FLOAT NOT NULL,
+            global_bp FLOAT NOT NULL,
+            a1 STRING NOT NULL,
+            a2 STRING NOT NULL,
+            a2_freq_onek1k FLOAT NOT NULL,
+            a2_freq_hrc FLOAT NOT NULL
+        )
+    AS (
+        SELECT
+            DISTINCT variant_id,
+            rsid,
+            snp_id,
+            chrom,
+            bp,
+            global_bp,
+            a1,
+            a2,
+            a2_freq_onek1k,
+            a2_freq_hrc
+        FROM
+            `{dataset.project}.{dataset.dataset_id}.{association_table.table_id}`
+    )
+    PARTITION BY
+        RANGE_BUCKET(variant_id, GENERATE_ARRAY(0, {max_global_bp}, {partition_interval}))
+    OPTIONS(
+        require_partition_filter=true
+    )
+    CLUSTER BY [chrom]
+    """
+
+    job_config = bigquery.QueryJobConfig(
+        use_legacy_sql=False,
+    )
+
+    try:
+        return client.query(sql_query, job_config=job_config)
+    except exceptions.BadRequest as error:
+        print(f"Bad request: {error}")
+        print(json.dumps(error.errors, indent=2))
+    except exceptions.GoogleAPIError as error:
+        print(f"Error: {error}")
+
+
+def update_genotype_global_bp(genotype_table, reference="grch37"):
+    client = bigquery.Client()
+    dataset = client.dataset(reference.lower())
+
+    sql_query = f"""
+    UPDATE `{dataset.project}.{dataset.dataset_id}.{genotype_table.table_id}` AS genotype
+    SET genotype.global_bp = variant.global_bp
+    INNER JOIN `{dataset.project}.{dataset.dataset_id}.variant` AS variant
+    ON genotype.snp_id = variant.snp_id
     """
 
     job_config = bigquery.QueryJobConfig(
@@ -303,19 +399,40 @@ def create_tables(delete_existing_tables=True):
         source_uri_format=bigquery.SourceFormat.CSV,
     )
 
-    log_residual_table = tables["log_residual"]
-    print("Populating log residual table")
+    print("Creating variant table")
+    create_variant_table(
+        association_table=association_table,
+        reference=reference,
+    )
+
+    expression_table = tables["expression"]
+    print("Populating gene expression table")
     populate_table(
-        table=log_residual_table,
+        table=expression_table,
         reference=reference,
         source_uris=[
             f"gs://{bucket.name}/{blob.name}"
             for blob in blobs
-            if "/log_residuals/" in blob.name and blob.name.endswith(".tsv.gz")
+            if "/expression/" in blob.name and blob.name.endswith(".tsv.gz")
         ],
         delimiter="\t",
         source_uri_format=bigquery.SourceFormat.CSV,
     )
+
+    genotype_table = tables["genotype"]
+    print("Populating genotype table")
+    populate_table(
+        table=genotype_table,
+        reference=reference,
+        source_uris=[
+            f"gs://{bucket.name}/{blob.name}"
+            for blob in blobs
+            if "/genotypes/" in blob.name and blob.name.endswith(".tsv.gz")
+        ],
+        delimiter="\t",
+        source_uri_format=bigquery.SourceFormat.CSV,
+    )
+    update_genotype_global_bp(genotype_table=genotype_table, reference=reference)
 
     gene_model_table = tables["gene_model"]
     print("Populating gene model table")
@@ -329,6 +446,13 @@ def create_tables(delete_existing_tables=True):
         source_uri_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
     )
 
+    print("Creating gene lookup table")
+    create_gene_lookup_table(
+        association_table=association_table,
+        gene_model_table=gene_model_table,
+        reference=reference,
+    )
+
     cell_types_table = tables["cell_type"]
     print("Populating cell type table")
     populate_table(
@@ -337,13 +461,6 @@ def create_tables(delete_existing_tables=True):
         source_uris=[f"gs://{bucket.name}/{blob.name}" for blob in blobs if "/metadata/cell_types.tsv" in blob.name],
         delimiter="\t",
         source_uri_format=bigquery.SourceFormat.CSV,
-    )
-
-    print("Creating gene lookup table")
-    create_gene_lookup_table(
-        association_table=association_table,
-        gene_model_table=gene_model_table,
-        reference=reference,
     )
 
 
