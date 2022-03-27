@@ -271,6 +271,19 @@ def prepare_gene_models():
 
     print(f"File {tmp_file} uploaded to {output_path}.")
 
+    print("Creating gene symbol to gene id mapping.")
+    symbol_to_id_mapping = dict()
+    for (_, row) in dataframe.iterrows():
+        symbol_to_id_mapping[row["symbol"]] = row["gene_id"]
+
+        for symbol in row["alias_symbols"].split("|"):
+            symbol_to_id_mapping[symbol] = row["gene_id"]
+
+        for symbol in row["previous_symbols"].split("|"):
+            symbol_to_id_mapping[symbol] = row["gene_id"]
+
+    return symbol_to_id_mapping
+
 
 def pyspark_row_to_dict(record):
     if record["transcript_id"] is None and record["features"] is None:
