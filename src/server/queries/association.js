@@ -1,8 +1,23 @@
 /* eslint-disable no-unused-vars */
 
+const lodash = require('lodash')
+const { quantileSeq } = require('mathjs')
+
 const { convertPositionToGlobalPosition } = require('./genome')
 const { ExpressionOptions } = require('./options')
-const { defaultQueryOptions, tableIds, submitQuery, parseAssociationId } = require('./utilities')
+const {
+  defaultQueryOptions,
+  tableIds,
+  submitQuery,
+  parseAssociationId,
+  sampleNormal,
+} = require('./utilities')
+
+const { config: serverConfig } = require('../config')
+
+const ASSOCIATION_ID_COLUMN = serverConfig.enableNewDatabase ? 'association_id' : 'id'
+const GENE_SYMBOL_COLUMN = serverConfig.enableNewDatabase ? 'gene_symbol' : 'gene'
+const GENE_ID_COLUMN = serverConfig.enableNewDatabase ? 'gene_id' : 'ensembl_gene_id'
 
 /**
  * @param {{
@@ -54,7 +69,9 @@ const fetchAssociations = async ({
   // TODO: change column name to gene_id
   if (genes?.length && Array.isArray(genes)) {
     queryParams.genes = genes.map((s) => s.toString().toUpperCase())
-    filters.push('(UPPER(gene) in UNNEST(@genes) OR UPPER(ensembl_gene_id) IN UNNEST(@genes))')
+    filters.push(
+      `(UPPER(${GENE_SYMBOL_COLUMN}) in UNNEST(@genes) OR UPPER(${GENE_ID_COLUMN}) IN UNNEST(@genes))`
+    )
   }
 
   // Add filter for matching cell type ids
@@ -140,9 +157,9 @@ const fetchAssociationById = async (id, { config = {} } = {}) => {
   const selectClause = `SELECT * FROM ${table}`
   const filters = [
     'global_bp = @pos',
-    'UPPER(ensembl_gene_id) = UPPER(@gene)',
+    `UPPER(${GENE_ID_COLUMN}) = UPPER(@gene)`,
     'UPPER(cell_type_id) = UPPER(@cell)',
-    'UPPER(id) = UPPER(@id)',
+    `UPPER(${ASSOCIATION_ID_COLUMN}) = UPPER(@id)`,
   ]
 
   const queryParams = { id, pos: region.start, gene: associationId.gene, cell: associationId.cell }
@@ -167,7 +184,70 @@ const fetchAssociationById = async (id, { config = {} } = {}) => {
 const fetchAssociationEffect = async (
   id,
   { type = ExpressionOptions.choices.log_cpm, config = {} } = {}
-) => {}
+) => {
+  if (!id) throw new Error("Parameter 'id' is required.")
+
+  const association = parseAssociationId(id)
+  const genotypes = [
+    `${association.ref}${association.ref}`,
+    `${association.ref}${association.alt}`,
+    `${association.alt}${association.alt}`,
+  ]
+
+  const min = 5
+  const max = 15
+
+  // compute distributions
+  const distributions = genotypes.map((g) => {
+    const skew = sampleNormal({ min: 0, max: 5, skew: 2 })
+    return {
+      id: g.toUpperCase(),
+      data: new Array(10000).fill(0).map(() => sampleNormal({ min, max, skew })),
+    }
+  })
+
+  // Compute bin widths
+  const nBins = 40
+  const step = (max - min) / nBins
+  const bins = new Array(nBins).fill(0).map((_, i) => {
+    return { min: min + step * i, max: min + step * (i + 1) }
+  })
+
+  // Compute bin counts
+  const histograms = distributions.map((d) => {
+    return {
+      id: d.id,
+      counts: bins.map((b) => {
+        return d.data.filter((n) => n >= b.min && n < b.max).length
+      }),
+    }
+  })
+
+  // Compute box plot statistic
+  const statistics = distributions.map((d) => {
+    const [q1, median, q3] = quantileSeq(d.data, [0.25, 0.5, 0.75])
+    const iqr = q3 - q1
+
+    return {
+      id: d.id,
+      min: Math.min(...d.data),
+      max: Math.max(...d.data),
+      mean: lodash.mean(d.data),
+      median,
+      q1,
+      q3,
+      iqr,
+      iqr_min: q1 - 1.5 * iqr,
+      iqr_max: q3 + 1.5 * iqr,
+    }
+  })
+
+  return {
+    histograms,
+    bins,
+    statistics,
+  }
+}
 
 module.exports = {
   fetchAssociations,
