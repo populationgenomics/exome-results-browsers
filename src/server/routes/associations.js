@@ -170,7 +170,13 @@ const setup = (app) => {
    *                $ref: '#/components/schemas/Error'
    */
   app.get('/api/associations/:id/effect', async (req, res, next) => {
-    next(new ServerError('Route has not been implemented yet'))
+    const effect = await queries.fetchAssociationEffect(req.params.id).catch(next)
+
+    if (effect == null) {
+      next(new NotFound('Association not found'))
+    }
+
+    res.status(200).json(effect)
   })
 }
 
