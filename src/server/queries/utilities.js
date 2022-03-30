@@ -117,6 +117,40 @@ const parseAssociationId = (value) => {
   }
 }
 
+/**
+ * Adapted from https://stackoverflow.com/questions/25582882/javascript-math-random-normal-distribution-gaussian-bell-curve
+ *
+ * @returns {number}
+ */
+const sampleNormal = ({ min = 0, max = 1, skew = 0 } = {}) => {
+  let u = 0
+  let v = 0
+
+  // Converting [0,1) to (0,1)
+  while (u === 0) u = Math.random()
+  while (v === 0) v = Math.random()
+
+  // Apply the Box–Muller Transform
+  let num = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v)
+
+  // Translate to 0 -> 1
+  num = num / 10.0 + 0.5
+
+  if (num > 1 || num < 0) {
+    // resample between 0 and 1 if out of range
+    num = sampleNormal({ min, max, skew })
+  } else {
+    // Apply the skew factor
+    num **= skew // Skew
+    // Stretch to fill range
+    num *= max - min
+    // Offset to min
+    num += min
+  }
+
+  return num
+}
+
 module.exports = {
   tableIds,
   datasetIds,
@@ -125,4 +159,5 @@ module.exports = {
   parseConditioningRound,
   submitQuery,
   parseAssociationId,
+  sampleNormal,
 }
