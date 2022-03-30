@@ -216,7 +216,7 @@ const setup = (app) => {
    *          content:
    *            application/json:
    *              schema:
-   *                type: object
+   *                $ref: '#/components/schemas/Aggregate'
    *        400:
    *          description: Invalid expression data type
    *          content:
