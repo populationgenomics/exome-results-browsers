@@ -281,7 +281,8 @@ const setup = (app) => {
    *        200:
    *          content:
    *            application/json:
-   *              type: object
+   *              schema:
+   *                $ref: '#/components/schemas/Aggregate'
    *        400:
    *          description: Invalid expression data type
    *          content:
@@ -409,4 +410,33 @@ module.exports = { setup }
  *                iqr_max:
  *                  type: number
  *                  format: float
+ */
+
+/**
+ * @swagger
+ *  components:
+ *    schemas:
+ *      Aggregate:
+ *        type: array
+ *        items:
+ *          type: object
+ *          required:
+ *            - gene_id
+ *            - gene_symbol
+ *            - cell_type_id
+ *            - min_p_value
+ *            - mean_log_cpm
+ *          properties:
+ *            gene_id:
+ *              type: string
+ *            gene_symbol:
+ *              type: string
+ *            cell_type_id:
+ *              type: string
+ *            min_p_value:
+ *              type: number
+ *              format: float
+ *            mean_log_cpm:
+ *              type: number
+ *              format: float
  */
