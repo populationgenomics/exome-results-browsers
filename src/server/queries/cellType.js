@@ -1,5 +1,9 @@
 const { tableIds, defaultQueryOptions, submitQuery } = require('./utilities')
 
+const { config: serverConfig } = require('../config')
+
+const ID_COLUMN = serverConfig.enableNewApi ? 'cell_type_id' : 'id'
+
 /**
  * @param {{config?: object}} options
  *
@@ -28,7 +32,7 @@ const fetchCellTypeById = async (id, { config = {} } = {}) => {
 
   const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.cellType}`
   const select = `SELECT * FROM ${table}`
-  const filter = 'UPPER(id) = UPPER(@id)'
+  const filter = `UPPER(${ID_COLUMN}) = UPPER(@id)`
 
   const query = `${select}\nWHERE ${filter}`
   const queryParams = { id }
