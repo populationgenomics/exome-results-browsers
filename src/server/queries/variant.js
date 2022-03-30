@@ -1,6 +1,12 @@
 /* eslint-disable no-unused-vars */
+const { fetchCellTypes } = require('./cellType')
+const { fetchGenes } = require('./gene')
 const { ExpressionOptions } = require('./options')
-const { defaultQueryOptions, tableIds, submitQuery } = require('./utilities')
+const { defaultQueryOptions, tableIds, submitQuery, sampleNormal } = require('./utilities')
+
+const { config: serverConfig } = require('../config')
+
+const GENE_SYMBOL_COLUMN = serverConfig.enableNewDatabase ? 'gene_symbol' : 'symbol'
 
 /**
  * Fetch variant rows using an optional query to match variant ids or rsids. Provide a
@@ -33,8 +39,8 @@ const fetchVariants = async ({
     queryParams.query = query
     filters.push(
       [
-        "UPPER(id) LIKE CONCAT('%', UPPER(@query), '%')",
-        "UPPER(locus_id) LIKE CONCAT('%', UPPER(@query), '%')",
+        "UPPER(variant_id) LIKE CONCAT('%', UPPER(@query), '%')",
+        "UPPER(snp_id) LIKE CONCAT('%', UPPER(@query), '%')",
         "UPPER(rsid) LIKE CONCAT('%', UPPER(@query), '%')",
       ].join(' OR ')
     )
@@ -84,7 +90,7 @@ const fetchVariantById = async (id, { config = {} } = {}) => {
 
   const selectClause = 'SELECT *'
   const fromClause = `FROM ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.variant}`
-  const filters = ['UPPER(id) = UPPER(@id)']
+  const filters = ['UPPER(variant_id) = UPPER(@id)']
 
   const queryParams = { id }
   const sqlQuery = [
@@ -127,10 +133,10 @@ const fetchVariantAssociations = async (
   const sourceTable = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.variant}`
   const joinTable = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.association}`
   const selectClause = `SELECT * FROM ${sourceTable} AS t1`
-  const joinClause = `LEFT JOIN ${joinTable} AS t2 ON t1.id = t2.id`
+  const joinClause = `LEFT JOIN ${joinTable} AS t2 ON t1.variant_id = t2.association_id`
 
   const queryParams = { id }
-  const filters = ['UPPER(id) = UPPER(@id)']
+  const filters = ['UPPER(variant_id) = UPPER(@id)']
 
   // Add filter for matching cell type ids
   if (cellTypeIds?.length && Array.isArray(cellTypeIds)) {
@@ -185,20 +191,22 @@ const fetchVariantAssociationAggregate = async (
   { type = ExpressionOptions.choices.log_cpm, config = {} } = {}
 ) => {
   if (!id) throw new Error("Parameter 'id' is required.")
-  return null
 
-  // const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
+  const cellTypes = await fetchCellTypes({ config })
+  const genes = await fetchGenes({ limit: 10, expand: false })
 
-  // const query = ``
-
-  // const queryParams = { id }
-
-  // const rows = await submitQuery({
-  //   query,
-  //   options: { ...queryOptions, params: queryParams },
-  // })
-
-  // return rows[0]
+  return cellTypes.map((c) => {
+    return genes.map((g) => {
+      const skew = sampleNormal({ min: 1, max: 4, skew: 1 })
+      return {
+        gene_id: g.gene_id,
+        gene_symbol: g[GENE_SYMBOL_COLUMN],
+        cell_type_id: c.cell_type_id || c.id,
+        min_p_value: sampleNormal({ min: 0, max: 1e4, skew: 6 }) / 1e4,
+        mean_log_cpm: sampleNormal({ min: 0, max: 15, skew }),
+      }
+    })
+  })
 }
 
 module.exports = {

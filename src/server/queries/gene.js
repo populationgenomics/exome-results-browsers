@@ -2,9 +2,17 @@
 
 const { groupBy, sortBy } = require('lodash')
 
-const { tableIds, defaultQueryOptions, submitQuery } = require('./utilities')
-const { isGeneSymbol, isEnsemblGeneId } = require('../identifiers')
+const { tableIds, defaultQueryOptions, submitQuery, sampleNormal } = require('./utilities')
+const { isGeneSymbol } = require('../identifiers')
 const { ExpressionOptions } = require('./options')
+const { fetchCellTypes } = require('./cellType')
+
+const { config: serverConfig } = require('../config')
+
+const GENE_SYMBOL_COLUMN = serverConfig.enableNewDatabase ? 'gene_symbol' : 'symbol'
+const ASSOCIATION_GENE_SYMBOL_COLUMN = serverConfig.enableNewDatabase ? 'gene_symbol' : 'gene'
+const ASSOCIATION_GENE_ID_COLUMN = serverConfig.enableNewDatabase ? 'gene_id' : 'ensembl_gene_id'
+const EXPRESSION_GENE_ID_COLUMN = serverConfig.enableNewDatabase ? 'gene_id' : 'gene'
 
 /**
  * @param {string} query
@@ -18,8 +26,8 @@ const resolveGene = async (query, { config = {} } = {}) => {
   const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
 
   const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneLookup}`
-  const selectStatement = `SELECT DISTINCT gene_id, symbol FROM ${table}`
-  const filters = ['UPPER(gene_id) = UPPER(@query)', 'UPPER(symbol) = UPPER(@query)']
+  const selectStatement = `SELECT DISTINCT gene_id, ${GENE_SYMBOL_COLUMN} FROM ${table}`
+  const filters = ['UPPER(gene_id) = UPPER(@query)', `UPPER(${GENE_SYMBOL_COLUMN}) = UPPER(@query)`]
   const sqlQuery = [selectStatement, filters.length ? `WHERE ${filters.join(' OR ')}` : null]
     .filter((c) => !!c)
     .join('\n')
@@ -44,8 +52,11 @@ const resolveGenes = async (queries, { config = {} } = {}) => {
   const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
 
   const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneLookup}`
-  const selectStatement = `SELECT DISTINCT gene_id, symbol FROM ${table}`
-  const filters = ['UPPER(gene_id) IN UNNEST(@queries)', 'UPPER(symbol) IN UNNEST(@queries)']
+  const selectStatement = `SELECT DISTINCT gene_id, ${GENE_SYMBOL_COLUMN} FROM ${table}`
+  const filters = [
+    'UPPER(gene_id) IN UNNEST(@queries)',
+    `UPPER(${GENE_SYMBOL_COLUMN}) IN UNNEST(@queries)`,
+  ]
   const sqlQuery = [selectStatement, filters.length ? `WHERE ${filters.join(' OR ')}` : null]
     .filter((c) => !!c)
     .join('\n')
@@ -70,7 +81,9 @@ const fetchGenes = async ({ query = null, expand = false, limit = 25, config = {
   const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
 
   const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneModel}`
-  const selectStatement = `SELECT ${expand ? '*' : 'DISTINCT gene_id, symbol'} FROM ${table}`
+  const selectStatement = `SELECT ${
+    expand ? '*' : `DISTINCT gene_id, ${GENE_SYMBOL_COLUMN}`
+  } FROM ${table}`
 
   const queryParams = {}
   const filters = []
@@ -80,8 +93,8 @@ const fetchGenes = async ({ query = null, expand = false, limit = 25, config = {
       ...[
         'UPPER(gene_id) = UPPER(@query)',
         'UPPER(canonical_transcript_id) = UPPER(@query)',
-        'UPPER(symbol) = @query',
-        "REGEXP_CONTAINS(UPPER(symbol), CONCAT('^', @query))",
+        `UPPER(${GENE_SYMBOL_COLUMN}) = @query`,
+        `REGEXP_CONTAINS(UPPER(${GENE_SYMBOL_COLUMN}), CONCAT('^', @query))`,
         "REGEXP_CONTAINS(UPPER(gene_id), CONCAT('^', @query))",
       ]
     )
@@ -172,7 +185,9 @@ const fetchGeneAssociations = async (
 
   const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.association}`
   const select = `SELECT * FROM ${table}`
-  const filters = ['(UPPER(gene) = UPPER(@id) OR UPPER(ensembl_gene_id) = UPPER(@id))']
+  const filters = [
+    `(UPPER(${ASSOCIATION_GENE_SYMBOL_COLUMN}) = UPPER(@id) OR UPPER(${ASSOCIATION_GENE_ID_COLUMN}) = UPPER(@id))`,
+  ]
 
   const queryParams = { id: geneId }
 
@@ -277,7 +292,7 @@ const fetchGeneExpression = async (
       AVG(residual) mean,
       APPROX_QUANTILES(${type}, 4) quantiles,
     FROM ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.expression}
-    WHERE gene = @id 
+    WHERE ${EXPRESSION_GENE_ID_COLUMN} = @id 
     GROUP BY cell_type_id
   )
   `
@@ -286,7 +301,7 @@ const fetchGeneExpression = async (
   WITH data AS (
     SELECT *
     FROM ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.expression}
-    WHERE gene = @id
+    WHERE ${EXPRESSION_GENE_ID_COLUMN} = @id
   ), 
   bins AS (
   ${binsQuery}
@@ -359,20 +374,23 @@ const fetchGeneAssociationAggregate = async (
 ) => {
   if (!id) throw new Error("Parameter 'id' is required.")
 
-  return null
+  // Gene was not studied, which is different from no associations from being found which instead
+  // will return an empty array
+  const gene = await resolveGene(id, config)
+  if (!gene) return null
 
-  // const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
+  const cellTypes = await fetchCellTypes({ config })
 
-  // const query = ``
-
-  // const queryParams = { id }
-
-  // const rows = await submitQuery({
-  //   query,
-  //   options: { ...queryOptions, params: queryParams },
-  // })
-
-  // return rows[0]
+  return cellTypes.map((c) => {
+    const skew = sampleNormal({ min: 1, max: 4, skew: 1 })
+    return {
+      gene_id: gene.gene_id,
+      gene_symbol: gene[GENE_SYMBOL_COLUMN],
+      cell_type_id: c.cell_type_id || c.id,
+      min_p_value: sampleNormal({ min: 0, max: 1e4, skew: 6 }) / 1e4,
+      mean_log_cpm: sampleNormal({ min: 0, max: 15, skew }),
+    }
+  })
 }
 
 module.exports = {
