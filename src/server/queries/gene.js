@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 
-const { groupBy, sortBy } = require('lodash')
+const { mean } = require('lodash')
+const { quantileSeq } = require('mathjs')
 
 const { tableIds, defaultQueryOptions, submitQuery, sampleNormal } = require('./utilities')
 const { isGeneSymbol } = require('../identifiers')
@@ -10,9 +11,7 @@ const { fetchCellTypes } = require('./cellType')
 const { config: serverConfig } = require('../config')
 
 const GENE_SYMBOL_COLUMN = serverConfig.enableNewDatabase ? 'gene_symbol' : 'symbol'
-const ASSOCIATION_GENE_SYMBOL_COLUMN = serverConfig.enableNewDatabase ? 'gene_symbol' : 'gene'
 const ASSOCIATION_GENE_ID_COLUMN = serverConfig.enableNewDatabase ? 'gene_id' : 'ensembl_gene_id'
-const EXPRESSION_GENE_ID_COLUMN = serverConfig.enableNewDatabase ? 'gene_id' : 'gene'
 
 /**
  * @param {string} query
@@ -129,7 +128,7 @@ const fetchGeneById = async (id, { config = {} } = {}) => {
 
   let geneId = id
   if (isGeneSymbol(id)) {
-    const gene = await resolveGene(id, config)
+    const gene = await resolveGene(id, { config })
     if (!gene) return null
     geneId = gene.gene_id
   }
@@ -168,7 +167,7 @@ const fetchGeneAssociations = async (
   // will return an empty array
   const geneId = id
   if (isGeneSymbol(id)) {
-    const gene = await resolveGene(id, config)
+    const gene = await resolveGene(id, { config })
     if (!gene) return null
     // TODO: resolve gene name when association table is indexed on gene id
     // geneId = gene.gene_id
@@ -185,9 +184,7 @@ const fetchGeneAssociations = async (
 
   const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.association}`
   const select = `SELECT * FROM ${table}`
-  const filters = [
-    `(UPPER(${ASSOCIATION_GENE_SYMBOL_COLUMN}) = UPPER(@id) OR UPPER(${ASSOCIATION_GENE_ID_COLUMN}) = UPPER(@id))`,
-  ]
+  const filters = [`UPPER(${ASSOCIATION_GENE_ID_COLUMN}) = UPPER(@id)`]
 
   const queryParams = { id: geneId }
 
@@ -234,130 +231,66 @@ const fetchGeneAssociations = async (
  */
 const fetchGeneExpression = async (
   id,
-  { type = ExpressionOptions.choices.log_cpm, nBins = 30, config = {} } = {}
+  { type = ExpressionOptions.choices.log_cpm, config = {} } = {}
 ) => {
   if (!id) throw new Error("Parameter 'id' is required.")
 
-  // Gene was not studied, which is different from no associations from being found which instead
-  // will return an empty array
-  const geneId = id
-  if (isGeneSymbol(id)) {
-    const gene = await resolveGene(id, config)
-    if (!gene) return null
-    // TODO: resolve gene name when association table is indexed on gene id
-    // geneId = gene.gene_id
-  }
+  const gene = await resolveGene(id, { config })
+  if (!gene) return null
 
-  const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
+  // compute distributions
+  const cellTypes = await fetchCellTypes({ config })
 
-  const binsQuery = `
-  SELECT
-    i index,
-    (min + step * i) min, 
-    (min + step * (i + 1)) max  
-  FROM (
-    SELECT 
-      min, 
-      max, 
-      (max - min) diff, 
-      ((max - min) / @nBins) step, 
-      GENERATE_ARRAY(0, @nBins, 1) i
-    FROM (
-      SELECT 
-        MIN(${type}) min, 
-        MAX(${type}) max
-      FROM ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.expression}
-      WHERE gene = @id
-    )
-  ), UNNEST(i) i
-  `
+  const min = 5
+  const max = 15
 
-  const statsQuery = `
-  SELECT
-    cell_type_id,
-    min,
-    max, 
-    mean,
-    quantiles[SAFE_OFFSET(1)] as q1,
-    quantiles[SAFE_OFFSET(2)] as median,
-    quantiles[SAFE_OFFSET(3)] as q3,
-    (quantiles[SAFE_OFFSET(3)] - quantiles[SAFE_OFFSET(1)]) as iqr,
-    quantiles[SAFE_OFFSET(1)] - 1.5 * (quantiles[SAFE_OFFSET(3)] - quantiles[SAFE_OFFSET(1)]) as iqr_min,
-    quantiles[SAFE_OFFSET(3)] + 1.5 * (quantiles[SAFE_OFFSET(3)] - quantiles[SAFE_OFFSET(1)]) as iqr_max,
-  FROM (
-    SELECT
-      cell_type_id,
-      MIN(residual) min,
-      MAX(residual) max,
-      AVG(residual) mean,
-      APPROX_QUANTILES(${type}, 4) quantiles,
-    FROM ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.expression}
-    WHERE ${EXPRESSION_GENE_ID_COLUMN} = @id 
-    GROUP BY cell_type_id
-  )
-  `
-
-  const histogramQuery = `
-  WITH data AS (
-    SELECT *
-    FROM ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.expression}
-    WHERE ${EXPRESSION_GENE_ID_COLUMN} = @id
-  ), 
-  bins AS (
-  ${binsQuery}
-  )
-  SELECT
-    data.cell_type_id id,        
-    bins.index bin_index,
-    COUNT(*) count
-  FROM data  
-  LEFT JOIN bins ON (
-    data.${type} >= bins.min AND data.${type} < bins.max
-  )
-  GROUP BY bin_index, id
-  ORDER BY id, bin_index
-  `
-
-  const queryParams = { id: geneId, nBins, type: type.trim().toLowerCase() }
-
-  const bins = await submitQuery({
-    query: binsQuery,
-    options: { ...queryOptions, params: queryParams },
+  const distributions = cellTypes.map((c) => {
+    const skew = sampleNormal({ min: 0, max: 5, skew: 2 })
+    return {
+      id: c.cell_type_id.toUpperCase(),
+      data: new Array(10000).fill(0).map(() => sampleNormal({ min, max, skew })),
+    }
   })
 
-  const statistics = await submitQuery({
-    query: statsQuery,
-    options: { ...queryOptions, params: queryParams },
+  // Compute bin widths
+  const nBins = 40
+  const step = (max - min) / nBins
+  const bins = new Array(nBins).fill(0).map((_, i) => {
+    return { min: min + step * i, max: min + step * (i + 1) }
   })
 
-  const histograms = await submitQuery({
-    query: histogramQuery,
-    options: { ...queryOptions, params: queryParams },
+  // Compute bin counts
+  const histograms = distributions.map((d) => {
+    return {
+      id: d.id,
+      counts: bins.map((b) => {
+        return d.data.filter((n) => n >= b.min && n < b.max).length
+      }),
+    }
   })
 
-  // Query will omit bins where there is a zero count, so add these back in to make the data
-  // square (ish).
-  const sortedBins = sortBy(bins, (b) => b.index)
-  const flattened = Object.entries(groupBy(histograms, (h) => h.id)).map(([gid, group]) => {
-    const counts = []
+  // Compute box plot statistic
+  const statistics = distributions.map((d) => {
+    const [q1, median, q3] = quantileSeq(d.data, [0.25, 0.5, 0.75])
+    const iqr = q3 - q1
 
-    sortedBins
-      .map((b) => b.index)
-      .forEach((index) => {
-        const binCounts = group.find((g) => g.bin_index === index)
-        counts.push(binCounts?.count ?? 0)
-      })
-
-    return { id: gid, counts }
+    return {
+      id: d.id,
+      min: Math.min(...d.data),
+      max: Math.max(...d.data),
+      mean: mean(d.data),
+      median,
+      q1,
+      q3,
+      iqr,
+      iqr_min: q1 - 1.5 * iqr,
+      iqr_max: q3 + 1.5 * iqr,
+    }
   })
 
   return {
-    histograms: flattened,
-    bins: flattened.length
-      ? sortedBins.map((b) => {
-          return { min: b.min, max: b.max }
-        })
-      : [],
+    histograms,
+    bins,
     statistics,
   }
 }
@@ -376,7 +309,7 @@ const fetchGeneAssociationAggregate = async (
 
   // Gene was not studied, which is different from no associations from being found which instead
   // will return an empty array
-  const gene = await resolveGene(id, config)
+  const gene = await resolveGene(id, { config })
   if (!gene) return null
 
   const cellTypes = await fetchCellTypes({ config })
