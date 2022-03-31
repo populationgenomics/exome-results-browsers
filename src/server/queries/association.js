@@ -14,9 +14,9 @@ const {
 } = require('./utilities')
 
 const { config: serverConfig } = require('../config')
+const { resolveGenes } = require('./gene')
 
 const ASSOCIATION_ID_COLUMN = serverConfig.enableNewDatabase ? 'association_id' : 'id'
-const GENE_SYMBOL_COLUMN = serverConfig.enableNewDatabase ? 'gene_symbol' : 'gene'
 const GENE_ID_COLUMN = serverConfig.enableNewDatabase ? 'gene_id' : 'ensembl_gene_id'
 
 /**
@@ -68,10 +68,9 @@ const fetchAssociations = async ({
   // Add filter for matching gene ids
   // TODO: change column name to gene_id
   if (genes?.length && Array.isArray(genes)) {
-    queryParams.genes = genes.map((s) => s.toString().toUpperCase())
-    filters.push(
-      `(UPPER(${GENE_SYMBOL_COLUMN}) in UNNEST(@genes) OR UPPER(${GENE_ID_COLUMN}) IN UNNEST(@genes))`
-    )
+    const geneRecords = await resolveGenes(genes, { config })
+    queryParams.genes = geneRecords.map((g) => g.gene_id.toString().toUpperCase())
+    filters.push(`UPPER(${GENE_ID_COLUMN}) IN UNNEST(@genes)`)
   }
 
   // Add filter for matching cell type ids
