@@ -276,11 +276,18 @@ def prepare_gene_models():
     for (_, row) in dataframe.iterrows():
         symbol_to_id_mapping[row["symbol"]] = row["gene_id"]
 
-        for symbol in row["alias_symbols"].split("|"):
+        alias_symbols = filter(bool, [value.strip() for value in (row["alias_symbols"] or "").split("|")])
+        for symbol in alias_symbols:
             symbol_to_id_mapping[symbol] = row["gene_id"]
 
-        for symbol in row["previous_symbols"].split("|"):
+        previous_symbols = filter(bool, [value.strip() for value in (row["previous_symbols"] or "").split("|")])
+        for symbol in previous_symbols:
             symbol_to_id_mapping[symbol] = row["gene_id"]
+
+    output_path = f"{out_dir}/metadata/gene_symbol_to_id.json"
+    blob = bucket.blob(output_path.replace(f"gs://{bucket.name}/", ""))
+    blob.upload_from_string(json.dumps(symbol_to_id_mapping))
+    print(f"Symbol to id map uploaded to {output_path}.")
 
     return symbol_to_id_mapping
 
