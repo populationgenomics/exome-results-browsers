@@ -405,34 +405,34 @@ def create_tables(delete_existing_tables=True):
         reference=reference,
     )
 
-    expression_table = tables["expression"]
-    print("Populating gene expression table")
-    populate_table(
-        table=expression_table,
-        reference=reference,
-        source_uris=[
-            f"gs://{bucket.name}/{blob.name}"
-            for blob in blobs
-            if "/expression/" in blob.name and blob.name.endswith(".tsv.gz")
-        ],
-        delimiter="\t",
-        source_uri_format=bigquery.SourceFormat.CSV,
-    )
+    # expression_table = tables["expression"]
+    # print("Populating gene expression table")
+    # populate_table(
+    #     table=expression_table,
+    #     reference=reference,
+    #     source_uris=[
+    #         f"gs://{bucket.name}/{blob.name}"
+    #         for blob in blobs
+    #         if "/expression/" in blob.name and blob.name.endswith(".tsv.gz")
+    #     ],
+    #     delimiter="\t",
+    #     source_uri_format=bigquery.SourceFormat.CSV,
+    # )
 
-    genotype_table = tables["genotype"]
-    print("Populating genotype table")
-    populate_table(
-        table=genotype_table,
-        reference=reference,
-        source_uris=[
-            f"gs://{bucket.name}/{blob.name}"
-            for blob in blobs
-            if "/genotypes/" in blob.name and blob.name.endswith(".tsv.gz")
-        ],
-        delimiter="\t",
-        source_uri_format=bigquery.SourceFormat.CSV,
-    )
-    update_genotype_global_bp(genotype_table=genotype_table, reference=reference)
+    # genotype_table = tables["genotype"]
+    # print("Populating genotype table")
+    # populate_table(
+    #     table=genotype_table,
+    #     reference=reference,
+    #     source_uris=[
+    #         f"gs://{bucket.name}/{blob.name}"
+    #         for blob in blobs
+    #         if "/genotypes/" in blob.name and blob.name.endswith(".tsv.gz")
+    #     ],
+    #     delimiter="\t",
+    #     source_uri_format=bigquery.SourceFormat.CSV,
+    # )
+    # update_genotype_global_bp(genotype_table=genotype_table, reference=reference)
 
     gene_model_table = tables["gene_model"]
     print("Populating gene model table")
