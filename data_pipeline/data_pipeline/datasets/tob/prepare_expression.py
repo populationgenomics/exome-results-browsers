@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
+import json
 import re
 from pathlib import Path
+from collections import OrderedDict
+from functools import reduce
 
+import hail
 import pandas as pd
 from google.cloud import storage
 
@@ -15,31 +19,7 @@ from data_pipeline.datasets.tob.helpers import (
 )
 
 
-def load_file(path, symbol_to_id):
-    table = (
-        pd.read_table(path, header=0, sep="\t")
-        .rename(columns={"sampleid": "sample_id"})
-        .melt(
-            id_vars=["sample_id"],
-            var_name="gene_symbol",
-            value_name="log_residual",
-        )
-    )
-
-    cell_type = Path(path).stem.split("_")[0]
-    chrom = Path(path).stem.split("_")[1].replace("chr", "")
-
-    table["cell_type_id"] = cell_type
-    table["chrom"] = chrom
-    table["gene_id"] = table["gene_symbol"].apply(lambda x: symbol_to_id.get(x, x))
-    table["log_cpm"] = 0  # TODO: parse once updated expression files are ready #pylint: disable=fixme
-
-    column_order = ["sample_id", "cell_type_id", "gene_id", "gene_symbol", "chrom", "log_residual", "log_cpm"]
-
-    return table[column_order]
-
-
-def prepare_expression(symbol_mapping):
+def prepare_expression(symbol_mapping=None):
     client = storage.Client()
     bucket = client.get_bucket(get_gcp_bucket_name())
 
@@ -49,8 +29,14 @@ def prepare_expression(symbol_mapping):
     blobs = [
         f"gs://{bucket.name}/{b.name}"
         for b in bucket.list_blobs()
-        if (input_path.split(f"gs://{bucket.name}/")[-1] in b.name) and (".tsv" in b.name)
+        if re.search(f"{input_path.replace(f'gs://{bucket.name}/', '')}/Residuals/", str(b.name))
     ]
+
+    # Create lookup table to update set gene identifier column from gene symbols column
+    if symbol_mapping is None:
+        mapping_file = f"{output_dir}/metadata/gene_symbol_to_id.json".replace(f"gs://{bucket.name}/", "")
+        blob = bucket.get_blob(mapping_file)
+        symbol_mapping = json.loads(blob.download_as_string()) if blob else None
 
     # TODO: Update this regex once new expression files are ready #pylint: disable=fixme
     files_to_process = [str(path) for path in blobs if re.search(r"Residuals", str(path))]
@@ -72,5 +58,49 @@ def prepare_expression(symbol_mapping):
         residuals.to_csv(output_path, mode="w", sep="\t", header=True, index=False, compression="gzip")
 
 
+def load_file(path, symbol_to_id=None):
+    table = (
+        pd.read_table(path, header=0, sep="\t")
+        .rename(columns={"sampleid": "sample_id"})
+        .melt(
+            id_vars=["sample_id"],
+            var_name="gene_symbol",
+            value_name="log_residual",
+        )
+    )
+
+    cell_type = Path(path).stem.split("_")[0]
+    chrom = Path(path).stem.split("_")[1].replace("chr", "")
+
+    table["cell_type_id"] = cell_type
+    table["chrom"] = chrom
+    table["gene_id"] = table["gene_symbol"].apply(lambda x: (symbol_to_id or {}).get(x, None))
+    table["log_cpm"] = 0  # TODO: parse once updated expression files are ready #pylint: disable=fixme
+
+    column_order = ["sample_id", "cell_type_id", "gene_id", "gene_symbol", "chrom", "log_residual", "log_cpm"]
+
+    return table[column_order]
+
+
+def read_matrix_table(path, bucket, row_key="sampleid"):
+    relative_path = path.replace(f"gs://{bucket.name}/", "")
+    blob = bucket.get_blob(relative_path)
+
+    columns = []
+    with blob.open("r") as handle:
+        columns = handle.readline().split("\t")
+    columns = [c.strip() for c in columns if c and c.strip()]
+
+    row_fields = OrderedDict()
+    for col in columns:
+        row_fields[col] = hail.tstr if col == row_key else hail.tfloat
+
+    return hail.import_matrix_table(path, row_fields=row_fields, row_key=row_key, delimiter="\t")
+
+
+def merge_matrix_tables(mts, row_join_type="outer"):
+    return reduce(lambda a, b: a.union_cols(b, row_join_type=row_join_type), mts[1:], mts[0])
+
+
 if __name__ == "__main__":
-    prepare_expression(symbol_mapping={})
+    prepare_expression()
