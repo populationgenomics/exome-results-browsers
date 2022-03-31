@@ -80,9 +80,8 @@ const fetchGenes = async ({ query = null, expand = false, limit = 25, config = {
   const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
 
   const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneModel}`
-  const selectStatement = `SELECT ${
-    expand ? '*' : `DISTINCT gene_id, ${GENE_SYMBOL_COLUMN}`
-  } FROM ${table}`
+  const columns = expand ? '*' : `DISTINCT gene_id, ${GENE_SYMBOL_COLUMN}`
+  const selectStatement = `SELECT ${columns} FROM ${table}`
 
   const queryParams = {}
   const filters = []
@@ -126,20 +125,13 @@ const fetchGeneById = async (id, { config = {} } = {}) => {
 
   const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
 
-  let geneId = id
-  if (isGeneSymbol(id)) {
-    const gene = await resolveGene(id, { config })
-    if (!gene) return null
-    geneId = gene.gene_id
-  }
-
   const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneModel}`
   const select = `SELECT * FROM ${table}`
   const filter = 'UPPER(gene_id) = UPPER(@id)'
 
   const [gene] = await submitQuery({
     query: [select, `WHERE ${filter}`].join('\n'),
-    options: { ...queryOptions, params: { id: geneId } },
+    options: { ...queryOptions, params: { id } },
   })
 
   return gene
@@ -165,13 +157,8 @@ const fetchGeneAssociations = async (
 
   // Gene was not studied, which is different from no associations from being found which instead
   // will return an empty array
-  const geneId = id
-  if (isGeneSymbol(id)) {
-    const gene = await resolveGene(id, { config })
-    if (!gene) return null
-    // TODO: resolve gene name when association table is indexed on gene id
-    // geneId = gene.gene_id
-  }
+  const gene = await resolveGene(id, { config })
+  if (!gene) return null
 
   // Gene is included in the study, continue to query associations
   const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
@@ -179,14 +166,11 @@ const fetchGeneAssociations = async (
   // NOTE: table cluster order is gene, cell_type_id, round. These filters should always
   // occur in this order to improve query performance and reduce cost. All other filters should
   // occur after.
-
-  // TODO: cluster on gene_id instead.
-
   const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.association}`
   const select = `SELECT * FROM ${table}`
   const filters = [`UPPER(${ASSOCIATION_GENE_ID_COLUMN}) = UPPER(@id)`]
 
-  const queryParams = { id: geneId }
+  const queryParams = { id: gene.gene_id }
 
   // Add filter for matching cell type ids
   if (cellTypeIds?.length && Array.isArray(cellTypeIds)) {
