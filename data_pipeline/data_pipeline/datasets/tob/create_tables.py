@@ -377,6 +377,31 @@ def update_genotype_global_bp(genotype_table, reference="grch37"):
         print(f"Error: {error}")
 
 
+def remove_genes_not_in_analysis(gene_model_table, reference="grch37"):
+    client = bigquery.Client()
+    dataset = client.dataset(reference.lower())
+
+    sql_query = f"""
+    DELETE FROM `{dataset.project}.{dataset.dataset_id}.{gene_model_table.table_id}`
+    WHERE gene_id NOT IN (
+        SELECT gene_id
+        FROM `{dataset.project}.{dataset.dataset_id}.gene_lookup`
+    )
+    """
+
+    job_config = bigquery.QueryJobConfig(
+        use_legacy_sql=False,
+    )
+
+    try:
+        return client.query(sql_query, job_config=job_config)
+    except exceptions.BadRequest as error:
+        print(f"Bad request: {error}")
+        print(json.dumps(error.errors, indent=2))
+    except exceptions.GoogleAPIError as error:
+        print(f"Error: {error}")
+
+
 def create_tables(delete_existing_tables=True):
     client = storage.Client()
     bucket = client.get_bucket(get_gcp_bucket_name())
@@ -384,6 +409,16 @@ def create_tables(delete_existing_tables=True):
 
     tables = init_tables(delete_existing_tables=delete_existing_tables, reference=reference)
     blobs = list(bucket.list_blobs())
+
+    cell_types_table = tables["cell_type"]
+    print("Populating cell type table")
+    populate_table(
+        table=cell_types_table,
+        reference=reference,
+        source_uris=[f"gs://{bucket.name}/{blob.name}" for blob in blobs if "/metadata/cell_types.tsv" in blob.name],
+        delimiter="\t",
+        source_uri_format=bigquery.SourceFormat.CSV,
+    )
 
     association_table = tables["association"]
     print("Populating association table")
@@ -453,15 +488,7 @@ def create_tables(delete_existing_tables=True):
         reference=reference,
     )
 
-    cell_types_table = tables["cell_type"]
-    print("Populating cell type table")
-    populate_table(
-        table=cell_types_table,
-        reference=reference,
-        source_uris=[f"gs://{bucket.name}/{blob.name}" for blob in blobs if "/metadata/cell_types.tsv" in blob.name],
-        delimiter="\t",
-        source_uri_format=bigquery.SourceFormat.CSV,
-    )
+    remove_genes_not_in_analysis(gene_model_table=gene_model_table, reference=reference)
 
 
 if __name__ == "__main__":
