@@ -22,6 +22,13 @@ class ReferenceGenome {
     return this.GENOMES.grch38
   }
 
+  static getFromEnv() {
+    if (process.env.REFERENCE_GENOME) {
+      return this.getReference(process.env.REFERENCE_GENOME)
+    }
+    return this.default()
+  }
+
   static getReference(value) {
     const id = value.toString().toLowerCase()
 
@@ -119,7 +126,7 @@ const convertPositionToGlobalPosition = ({
   chrom,
   start,
   stop,
-  reference = ReferenceGenome.default(),
+  reference = ReferenceGenome.getFromEnv(),
 }) => {
   if (!chrom) throw new Error('Range attribute `chrom` is required.')
 
