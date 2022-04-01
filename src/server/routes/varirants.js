@@ -1,15 +1,13 @@
 /* eslint-disable no-unused-vars */
 
 const express = require('express')
+
 const { isRegionId, parseRegionId } = require('@gnomad/identifiers')
 
 const queries = require('../queries/variant')
 const { InvalidQueryParameter, NotFound } = require('../errors')
-const { ExpressionOptions } = require('../queries/options')
 const { parseNumber } = require('../utils')
 const { convertPositionToGlobalPosition } = require('../queries/genome')
-
-// TODO: Throw 404 for when :id is not found in any database rows
 
 /**
  * @param {express.Express} app
@@ -107,12 +105,8 @@ const setup = (app) => {
    */
   app.get('/api/variants/:id', async (req, res, next) => {
     const variant = await queries.fetchVariantById(req.params.id).catch(next)
-
-    if (variant == null) {
-      next(new NotFound('Variant not found'))
-    }
-
-    res.status(200).json(variant)
+    if (variant == null) return next(new NotFound('Variant not found'))
+    return res.status(200).json(variant)
   })
 
   /**
@@ -179,15 +173,15 @@ const setup = (app) => {
       .catch(next)
 
     if (associations == null) {
-      next(new NotFound('Variant not found'))
+      return next(new NotFound('Variant not found'))
     }
 
-    res.status(200).json(associations)
+    return res.status(200).json(associations)
   })
 
   /**
    * @swagger
-   *  /api/variant/{id}/aggregate:
+   *  /api/variants/{id}/aggregate:
    *    get:
    *      description: 'Returns a summary of eQTL association information such as mean gene
    *        expression and minimum p-value across all cell types'
@@ -202,27 +196,12 @@ const setup = (app) => {
    *          required: true
    *          type: string
    *          example: 2-42752280-A-G
-   *        - in: query
-   *          name: type
-   *          description: Type of expression data to summarise
-   *          schema:
-   *            type: string
-   *            enum:
-   *              - log_cpm
-   *              - residual
-   *          example: residual
    *      responses:
    *        200:
    *          content:
    *            application/json:
    *              schema:
    *                $ref: '#/components/schemas/Aggregate'
-   *        400:
-   *          description: Invalid expression data type
-   *          content:
-   *            application/json:
-   *              schema:
-   *                $ref: '#/components/schemas/Error'
    *        404:
    *          description: Variant with requested identifier does not exist
    *          content:
@@ -231,24 +210,9 @@ const setup = (app) => {
    *                $ref: '#/components/schemas/Error'
    */
   app.get('/api/variants/:id/aggregate', async (req, res, next) => {
-    // TODO: change residual to log_residual
-    const type = (req.query.type || ExpressionOptions.choices.residual).toString()
-    if (!ExpressionOptions.isValid(type)) {
-      next(
-        new InvalidQueryParameter(
-          `Value '${type}' for query parameter 'type' must be ` +
-            `one of ${ExpressionOptions.toString()}`
-        )
-      )
-    }
-
-    const data = await queries.fetchVariantAssociationAggregate(req.params.id, { type }).catch(next)
-
-    if (data == null) {
-      next(new NotFound('Variant not found'))
-    }
-
-    res.status(200).json(data)
+    const data = await queries.fetchVariantAssociationAggregate(req.params.id).catch(next)
+    if (data == null) return next(new NotFound('Variant not found'))
+    return res.status(200).json(data)
   })
 }
 
