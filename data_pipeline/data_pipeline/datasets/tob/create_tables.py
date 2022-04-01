@@ -7,7 +7,12 @@ import json
 from google.cloud import storage, bigquery
 from google.api_core import exceptions
 
-from data_pipeline.datasets.tob.helpers import get_bq_dataset_id, get_gcp_bucket_name, get_reference_genome, get_biq_query_client
+from data_pipeline.datasets.tob.helpers import (
+    get_bq_dataset_id,
+    get_gcp_bucket_name,
+    get_reference_genome,
+    get_biq_query_client,
+)
 
 
 # Largest chromosome (chr1) has ~250 Million base pairs
@@ -407,9 +412,9 @@ def remove_genes_not_in_analysis(gene_model_table, gene_lookup_table):
 def create_tables(delete_existing_tables=True):
     client = storage.Client()
     bucket = client.get_bucket(get_gcp_bucket_name())
-    
+
     reference = get_reference_genome()
-    bq_dataset_id = get_bq_dataset_id() 
+    bq_dataset_id = get_bq_dataset_id()
 
     bq_client = get_biq_query_client()
     print(f"Initialising project with dataset id '{bq_dataset_id}'")
@@ -418,8 +423,8 @@ def create_tables(delete_existing_tables=True):
     blobs = list(bucket.list_blobs())
     tables = init_tables(
         bq_dataset_id=dataset.dataset_id,
-        delete_existing_tables=delete_existing_tables, 
-        reference=reference, 
+        delete_existing_tables=delete_existing_tables,
+        reference=reference,
     )
 
     cell_types_table = tables["cell_type"]
@@ -449,7 +454,7 @@ def create_tables(delete_existing_tables=True):
     insert_into_variant_table(
         association_table=association_table,
         variant_table=variant_table,
-    ) 
+    )
 
     gene_model_table = tables["gene_model"]
     print("Populating gene model table")
@@ -468,11 +473,10 @@ def create_tables(delete_existing_tables=True):
         gene_model_table=gene_model_table,
         gene_lookup_table=f"{dataset.project}.{dataset.dataset_id}.gene_lookup",
     )
-    
+
     print("Filtering genes in analysis")
     remove_genes_not_in_analysis(
-        gene_model_table=gene_model_table, 
-        gene_lookup_table=f"{dataset.project}.{dataset.dataset_id}.gene_lookup"
+        gene_model_table=gene_model_table, gene_lookup_table=f"{dataset.project}.{dataset.dataset_id}.gene_lookup"
     )
 
     # expression_table = tables["expression"]

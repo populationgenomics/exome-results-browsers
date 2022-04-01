@@ -75,5 +75,5 @@ def build_hgnc_path():
 def chrom_ord(chrom):
     if chrom in ("X", "Y", "MT"):
         return {"X": 23, "Y": 24, "MT": 25}[chrom]
-        
+
     return int(chrom)
