@@ -1,3 +1,5 @@
+from google.cloud import bigquery
+
 from data_pipeline.config import pipeline_config
 
 
@@ -6,6 +8,14 @@ PROJECT = "TOB"
 
 def get_gcp_bucket_name():
     return "cpg-tob-wgs-browser-dev"
+
+
+def get_bq_dataset_id():
+    return pipeline_config.get(PROJECT, "bq_dataset_id")
+
+
+def get_reference_genome():
+    return pipeline_config.get(PROJECT, "reference").lower()
 
 
 def build_analaysis_input_path():
@@ -19,6 +29,10 @@ def build_analaysis_input_path():
         .replace(":reference", reference)
         .replace(":dataset", dataset)
     )
+
+
+def get_biq_query_client():
+    return bigquery.Client(location=pipeline_config.get(PROJECT, "bq_location"))
 
 
 def build_output_path():
@@ -61,4 +75,5 @@ def build_hgnc_path():
 def chrom_ord(chrom):
     if chrom in ("X", "Y", "MT"):
         return {"X": 23, "Y": 24, "MT": 25}[chrom]
+        
     return int(chrom)
