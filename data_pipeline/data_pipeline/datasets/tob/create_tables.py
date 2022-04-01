@@ -380,15 +380,14 @@ def update_genotype_global_bp(genotype_table, variant_table):
         print(f"Error: {error}")
 
 
-def remove_genes_not_in_analysis(gene_model_table, reference="grch37"):
+def remove_genes_not_in_analysis(gene_model_table):
     client = get_biq_query_client()
-    dataset = client.dataset(reference.lower())
 
     sql_query = f"""
-    DELETE FROM `{dataset.project}.{dataset.dataset_id}.{gene_model_table.table_id}`
+    DELETE FROM `{gene_model_table.project}.{gene_model_table.dataset_id}.{gene_model_table.table_id}`
     WHERE gene_id NOT IN (
         SELECT gene_id
-        FROM `{dataset.project}.{dataset.dataset_id}.gene_lookup`
+        FROM `{gene_model_table.project}.{gene_model_table.dataset_id}.gene_lookup`
     )
     """
 
@@ -470,7 +469,7 @@ def create_tables(delete_existing_tables=True):
         gene_lookup_table=f"{dataset.project}.{dataset.dataset_id}.gene_lookup",
     )
     
-    remove_genes_not_in_analysis(gene_model_table=gene_model_table, reference=reference)
+    remove_genes_not_in_analysis(gene_model_table=gene_model_table)
 
     # expression_table = tables["expression"]
     # print("Populating gene expression table")
