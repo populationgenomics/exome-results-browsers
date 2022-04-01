@@ -13,8 +13,10 @@ def prepare_cell_metadata():
         sep=",",
     )
 
+    output = f"{build_output_path()}/metadata/cell_types.tsv"
+    print(f"Writing cell metadata to '{output}'")
     table.to_csv(
-        f"{build_output_path()}/metadata/cell_types.tsv",
+        output,
         mode="w",
         sep="\t",
         header=True,
