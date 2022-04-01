@@ -2,7 +2,7 @@ const { tableIds, defaultQueryOptions, submitQuery } = require('./utilities')
 
 const { config: serverConfig } = require('../config')
 
-const ID_COLUMN = serverConfig.enableNewApi ? 'cell_type_id' : 'id'
+const ID_COLUMN = serverConfig.enableNewDatabase ? 'cell_type_id' : 'id'
 
 /**
  * @param {{config?: object}} options
