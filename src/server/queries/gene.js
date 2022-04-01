@@ -3,12 +3,10 @@
 const { mean } = require('lodash')
 const { quantileSeq } = require('mathjs')
 
-const { tableIds, defaultQueryOptions, submitQuery, sampleNormal } = require('./utilities')
-const { isGeneSymbol } = require('../identifiers')
-const { ExpressionOptions } = require('./options')
-const { fetchCellTypes } = require('./cellType')
-
 const { config: serverConfig } = require('../config')
+
+const { tableIds, defaultQueryOptions, submitQuery, sampleNormal } = require('./utilities')
+const { fetchCellTypes } = require('./cellType')
 
 const GENE_SYMBOL_COLUMN = serverConfig.enableNewDatabase ? 'gene_symbol' : 'symbol'
 const ASSOCIATION_GENE_ID_COLUMN = serverConfig.enableNewDatabase ? 'gene_id' : 'ensembl_gene_id'
@@ -17,7 +15,7 @@ const ASSOCIATION_GENE_ID_COLUMN = serverConfig.enableNewDatabase ? 'gene_id' : 
  * @param {string} query
  * @param {{config?: object}} options
  *
- * @returns {Promise<{gene_id: string, symbol: string}|null>}
+ * @returns {Promise<{id: string, symbol: string}|null>}
  */
 const resolveGene = async (query, { config = {} } = {}) => {
   if (!query) throw new Error("Parameter 'query' is required.")
@@ -25,7 +23,7 @@ const resolveGene = async (query, { config = {} } = {}) => {
   const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
 
   const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneLookup}`
-  const selectStatement = `SELECT DISTINCT gene_id, ${GENE_SYMBOL_COLUMN} FROM ${table}`
+  const selectStatement = `SELECT DISTINCT gene_id id, ${GENE_SYMBOL_COLUMN} symbol FROM ${table}`
   const filters = ['UPPER(gene_id) = UPPER(@query)', `UPPER(${GENE_SYMBOL_COLUMN}) = UPPER(@query)`]
   const sqlQuery = [selectStatement, filters.length ? `WHERE ${filters.join(' OR ')}` : null]
     .filter((c) => !!c)
@@ -43,7 +41,7 @@ const resolveGene = async (query, { config = {} } = {}) => {
  * @param {string[]} queries
  * @param {{config?: object}} options
  *
- * @returns {Promise<{gene_id: string, symbol: string}[]>}
+ * @returns {Promise<{id: string, symbol: string}[]>}
  */
 const resolveGenes = async (queries, { config = {} } = {}) => {
   if (!queries) throw new Error("Parameter 'query' is required.")
@@ -51,7 +49,7 @@ const resolveGenes = async (queries, { config = {} } = {}) => {
   const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
 
   const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneLookup}`
-  const selectStatement = `SELECT DISTINCT gene_id, ${GENE_SYMBOL_COLUMN} FROM ${table}`
+  const selectStatement = `SELECT DISTINCT gene_id id, ${GENE_SYMBOL_COLUMN} symbol FROM ${table}`
   const filters = [
     'UPPER(gene_id) IN UNNEST(@queries)',
     `UPPER(${GENE_SYMBOL_COLUMN}) IN UNNEST(@queries)`,
@@ -80,7 +78,7 @@ const fetchGenes = async ({ query = null, expand = false, limit = 25, config = {
   const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
 
   const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneModel}`
-  const columns = expand ? '*' : `DISTINCT gene_id, ${GENE_SYMBOL_COLUMN}`
+  const columns = expand ? '*' : 'DISTINCT gene_id, symbol'
   const selectStatement = `SELECT ${columns} FROM ${table}`
 
   const queryParams = {}
@@ -91,8 +89,8 @@ const fetchGenes = async ({ query = null, expand = false, limit = 25, config = {
       ...[
         'UPPER(gene_id) = UPPER(@query)',
         'UPPER(canonical_transcript_id) = UPPER(@query)',
-        `UPPER(${GENE_SYMBOL_COLUMN}) = @query`,
-        `REGEXP_CONTAINS(UPPER(${GENE_SYMBOL_COLUMN}), CONCAT('^', @query))`,
+        `UPPER(symbol) = @query`,
+        `REGEXP_CONTAINS(UPPER(symbol), CONCAT('^', @query))`,
         "REGEXP_CONTAINS(UPPER(gene_id), CONCAT('^', @query))",
       ]
     )
@@ -125,13 +123,15 @@ const fetchGeneById = async (id, { config = {} } = {}) => {
 
   const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
 
+  const geneRecord = await resolveGene(id, { config })
+
   const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneModel}`
   const select = `SELECT * FROM ${table}`
   const filter = 'UPPER(gene_id) = UPPER(@id)'
 
   const [gene] = await submitQuery({
     query: [select, `WHERE ${filter}`].join('\n'),
-    options: { ...queryOptions, params: { id } },
+    options: { ...queryOptions, params: { id: geneRecord.id || id } },
   })
 
   return gene
@@ -163,14 +163,14 @@ const fetchGeneAssociations = async (
   // Gene is included in the study, continue to query associations
   const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
 
-  // NOTE: table cluster order is gene, cell_type_id, round. These filters should always
+  // NOTE: table cluster order is gene_id, cell_type_id, round. These filters should always
   // occur in this order to improve query performance and reduce cost. All other filters should
   // occur after.
   const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.association}`
   const select = `SELECT * FROM ${table}`
   const filters = [`UPPER(${ASSOCIATION_GENE_ID_COLUMN}) = UPPER(@id)`]
 
-  const queryParams = { id: gene.gene_id }
+  const queryParams = { id: gene.id }
 
   // Add filter for matching cell type ids
   if (cellTypeIds?.length && Array.isArray(cellTypeIds)) {
@@ -209,14 +209,11 @@ const fetchGeneAssociations = async (
 
 /**
  * @param {string} id
- * @param {{type?: string, nBins?: number, config?: object}} options
+ * @param {{config?: object}} options
  *
  * @returns {Promise<object|null>}
  */
-const fetchGeneExpression = async (
-  id,
-  { type = ExpressionOptions.choices.log_cpm, config = {} } = {}
-) => {
+const fetchGeneExpression = async (id, { config = {} } = {}) => {
   if (!id) throw new Error("Parameter 'id' is required.")
 
   const gene = await resolveGene(id, { config })
@@ -231,7 +228,7 @@ const fetchGeneExpression = async (
   const distributions = cellTypes.map((c) => {
     const skew = sampleNormal({ min: 0, max: 5, skew: 2 })
     return {
-      id: c.cell_type_id.toUpperCase(),
+      id: c.cell_type_id,
       data: new Array(10000).fill(0).map(() => sampleNormal({ min, max, skew })),
     }
   })
@@ -281,14 +278,11 @@ const fetchGeneExpression = async (
 
 /**
  * @param {string} id
- * @param {{type?: string, config?: object}} options
+ * @param {{config?: object}} options
  *
  * @returns {Promise<object|null>}
  */
-const fetchGeneAssociationAggregate = async (
-  id,
-  { type = ExpressionOptions.choices.log_cpm, config = {} } = {}
-) => {
+const fetchGeneAssociationAggregate = async (id, { config = {} } = {}) => {
   if (!id) throw new Error("Parameter 'id' is required.")
 
   // Gene was not studied, which is different from no associations from being found which instead
@@ -301,8 +295,8 @@ const fetchGeneAssociationAggregate = async (
   return cellTypes.map((c) => {
     const skew = sampleNormal({ min: 1, max: 4, skew: 1 })
     return {
-      gene_id: gene.gene_id,
-      gene_symbol: gene[GENE_SYMBOL_COLUMN],
+      gene_id: gene.id,
+      gene_symbol: gene.symbol,
       cell_type_id: c.cell_type_id || c.id,
       min_p_value: sampleNormal({ min: 0, max: 1e4, skew: 6 }) / 1e4,
       mean_log_cpm: sampleNormal({ min: 0, max: 15, skew }),

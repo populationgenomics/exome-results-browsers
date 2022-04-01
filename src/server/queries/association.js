@@ -3,8 +3,11 @@
 const lodash = require('lodash')
 const { quantileSeq } = require('mathjs')
 
+const { config: serverConfig } = require('../config')
+
+const { isGeneSymbol, isEnsemblGeneId } = require('../identifiers')
 const { convertPositionToGlobalPosition } = require('./genome')
-const { ExpressionOptions } = require('./options')
+const { resolveGene, resolveGenes } = require('./gene')
 const {
   defaultQueryOptions,
   tableIds,
@@ -13,11 +16,9 @@ const {
   sampleNormal,
 } = require('./utilities')
 
-const { config: serverConfig } = require('../config')
-const { resolveGenes } = require('./gene')
-
 const ASSOCIATION_ID_COLUMN = serverConfig.enableNewDatabase ? 'association_id' : 'id'
 const GENE_ID_COLUMN = serverConfig.enableNewDatabase ? 'gene_id' : 'ensembl_gene_id'
+const GENE_SYMBOL_COLUMN = serverConfig.enableNewDatabase ? 'gene_symbol' : 'gene'
 
 /**
  * @param {{
@@ -66,10 +67,9 @@ const fetchAssociations = async ({
   }
 
   // Add filter for matching gene ids
-  // TODO: change column name to gene_id
   if (genes?.length && Array.isArray(genes)) {
     const geneRecords = await resolveGenes(genes, { config })
-    queryParams.genes = geneRecords.map((g) => g.gene_id.toString().toUpperCase())
+    queryParams.genes = geneRecords.map((g) => g.id.toString().toUpperCase())
     filters.push(`UPPER(${GENE_ID_COLUMN}) IN UNNEST(@genes)`)
   }
 
@@ -143,25 +143,29 @@ const fetchAssociationById = async (id, { config = {} } = {}) => {
 
   const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
 
-  const associationId = parseAssociationId(id)
+  const associationRecord = parseAssociationId(id)
   const region = convertPositionToGlobalPosition({
-    chrom: associationId.chrom,
-    start: associationId.pos,
-    stop: associationId.pos,
-    reference: queryOptions.datasetId,
+    chrom: associationRecord.chrom,
+    start: associationRecord.pos,
+    stop: associationRecord.pos,
+    reference: queryOptions.reference,
   })
 
-  // TODO: use gene_id column
   const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.association}`
   const selectClause = `SELECT * FROM ${table}`
   const filters = [
     'global_bp = @pos',
-    `UPPER(${GENE_ID_COLUMN}) = UPPER(@gene)`,
+    `(UPPER(${GENE_ID_COLUMN}) = UPPER(@gene) OR UPPER(${GENE_SYMBOL_COLUMN}) = UPPER(@gene))`,
     'UPPER(cell_type_id) = UPPER(@cell)',
     `UPPER(${ASSOCIATION_ID_COLUMN}) = UPPER(@id)`,
   ]
 
-  const queryParams = { id, pos: region.start, gene: associationId.gene, cell: associationId.cell }
+  const queryParams = {
+    id,
+    pos: region.start,
+    gene: associationRecord.gene,
+    cell: associationRecord.cell,
+  }
   const sqlQuery = [selectClause, filters.length ? `WHERE ${filters.join(' AND ')}` : null]
     .filter((c) => !!c)
     .join('\n')
@@ -176,14 +180,11 @@ const fetchAssociationById = async (id, { config = {} } = {}) => {
 
 /**
  * @param {string} id
- * @param {{type?: string, config?: object}} options
+ * @param {{config?: object}} options
  *
  * @returns {Promise<object|null>}
  */
-const fetchAssociationEffect = async (
-  id,
-  { type = ExpressionOptions.choices.log_cpm, config = {} } = {}
-) => {
+const fetchAssociationEffect = async (id, { config = {} } = {}) => {
   if (!id) throw new Error("Parameter 'id' is required.")
 
   const association = parseAssociationId(id)
