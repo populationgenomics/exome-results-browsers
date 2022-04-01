@@ -287,8 +287,8 @@ def create_gene_lookup_table(association_table, gene_model_table, gene_lookup_ta
         )
     AS (
         SELECT
-            DISTINCT gene_id,
-            symbol gene_symbol
+            DISTINCT X.gene_id,
+            X.symbol gene_symbol
         FROM
             `{gene_model_table.project}.{gene_model_table.dataset_id}.{gene_model_table.table_id}` AS X
         INNER JOIN
@@ -380,14 +380,14 @@ def update_genotype_global_bp(genotype_table, variant_table):
         print(f"Error: {error}")
 
 
-def remove_genes_not_in_analysis(gene_model_table):
+def remove_genes_not_in_analysis(gene_model_table, gene_lookup_table):
     client = get_biq_query_client()
 
     sql_query = f"""
     DELETE FROM `{gene_model_table.project}.{gene_model_table.dataset_id}.{gene_model_table.table_id}`
     WHERE gene_id NOT IN (
         SELECT gene_id
-        FROM `{gene_model_table.project}.{gene_model_table.dataset_id}.gene_lookup`
+        FROM `{gene_lookup_table}`
     )
     """
 
@@ -469,7 +469,11 @@ def create_tables(delete_existing_tables=True):
         gene_lookup_table=f"{dataset.project}.{dataset.dataset_id}.gene_lookup",
     )
     
-    remove_genes_not_in_analysis(gene_model_table=gene_model_table)
+    print("Filtering genes in analysis")
+    remove_genes_not_in_analysis(
+        gene_model_table=gene_model_table, 
+        gene_lookup_table=f"{dataset.project}.{dataset.dataset_id}.gene_lookup"
+    )
 
     # expression_table = tables["expression"]
     # print("Populating gene expression table")
