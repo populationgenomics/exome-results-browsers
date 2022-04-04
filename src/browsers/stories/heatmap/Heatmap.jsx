@@ -12,6 +12,7 @@ export const Heatmap = () => {
     x: columnNames[i % 14],
     y: rowNames[Math.floor(i / 14)],
   }))
+
   const xAccessor = (d) => d.x
   const yAccessor = (d) => d.y
   const colorAccessor = (d) => d.expression
@@ -43,14 +44,14 @@ export const Heatmap = () => {
       id="Test"
       data={data}
       options={{
-        title: 'Title',
+        // title: 'Title',
         width,
         height,
         margin,
         innerWidth,
         innerHeight,
-        xScale,
-        yScale,
+        // xScale,
+        // yScale,
         colorScale,
         sizeScale,
         accessors: { x: xAccessor, y: yAccessor, color: colorAccessor, size: sizeAccessor },

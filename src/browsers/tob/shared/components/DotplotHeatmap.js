@@ -1,5 +1,8 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import PropTypes from 'prop-types'
+import { scaleBand } from 'd3'
+
+const tileSpacing = 0.05
 
 const DotplotHeatmap = ({
   id,
@@ -19,6 +22,25 @@ const DotplotHeatmap = ({
     sizeScale,
   },
 }) => {
+  const xScaleLocal = useMemo(
+    () =>
+      xScale ||
+      scaleBand()
+        .range([0, innerWidth])
+        .domain([...new Set(data.map((item) => accessors.x(item)))])
+        .padding(tileSpacing),
+    [xScale, data]
+  )
+
+  const yScaleLocal = useMemo(
+    () =>
+      yScale ||
+      scaleBand()
+        .range([innerHeight, 0])
+        .domain([...new Set(data.map((item) => accessors.y(item)))])
+        .padding(tileSpacing),
+    [yScale, data]
+  )
   return (
     <>
       <svg id={id} width={width} height={height}>
@@ -44,10 +66,12 @@ const DotplotHeatmap = ({
           <g id="x-axis">
             <line x2={`${innerWidth}`} stroke="black" />
             <line y1={`${innerHeight}`} y2={`${innerHeight}`} x2={`${innerWidth}`} stroke="black" />
-            {xScale.domain().map((tick) => (
+            {xScaleLocal.domain().map((tick) => (
               <g
                 key={tick}
-                transform={`translate(${xScale(tick) + xScale.bandwidth() / 2}, ${innerHeight})`}
+                transform={`translate(${
+                  xScaleLocal(tick) + xScaleLocal.bandwidth() / 2
+                }, ${innerHeight})`}
               >
                 <text
                   transform="translate(0, 10)rotate(-90)"
@@ -63,8 +87,11 @@ const DotplotHeatmap = ({
           <g id="y-axis">
             <line y2={`${innerHeight}`} stroke="black" />
             <line x1={`${innerWidth}`} y2={`${innerHeight}`} x2={`${innerWidth}`} stroke="black" />
-            {yScale.domain().map((tick) => (
-              <g key={tick} transform={`translate(0, ${yScale(tick) + yScale.bandwidth() / 2})`}>
+            {yScaleLocal.domain().map((tick) => (
+              <g
+                key={tick}
+                transform={`translate(0, ${yScaleLocal(tick) + yScaleLocal.bandwidth() / 2})`}
+              >
                 <text key={tick} style={{ textAnchor: 'end', alignmentBaseline: 'middle' }} x={-6}>
                   {tick}
                 </text>
@@ -78,8 +105,8 @@ const DotplotHeatmap = ({
               <circle
                 key={`${accessors.x(item)},${accessors.y(item)}`}
                 r={sizeScale(accessors.size(item))}
-                cx={xScale(accessors.x(item)) + xScale.bandwidth() / 2}
-                cy={yScale(accessors.y(item)) + yScale.bandwidth() / 2}
+                cx={xScaleLocal(accessors.x(item)) + xScaleLocal.bandwidth() / 2}
+                cy={yScaleLocal(accessors.y(item)) + yScaleLocal.bandwidth() / 2}
                 stroke="black"
                 fill={`${colorScale(accessors.color(item))}`}
                 onClick={onClickFunction}
