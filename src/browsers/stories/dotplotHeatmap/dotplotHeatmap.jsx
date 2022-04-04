@@ -1,12 +1,13 @@
 import React from 'react'
+import PropTypes from 'prop-types'
 import { scaleBand, scaleSqrt, scaleSequential, interpolateRgb, extent } from 'd3'
 import DotplotHeatmap from '../../tob/shared/components/DotplotHeatmap'
 import { defaultCellTypeColors } from '../../tob/shared/utilities/constants'
 
-export const Heatmap = () => {
+export const Heatmap = ({ numRows }) => {
   const columnNames = Object.keys(defaultCellTypeColors())
-  const rowNames = ['Gene1', 'Gene2', 'Gene3']
-  const data = Array.from({ length: 42 }, (_, i) => ({
+  const rowNames = Array.from({ length: numRows }, (_, i) => `Gene${i}`)
+  const data = Array.from({ length: 14 * numRows }, (_, i) => ({
     pvalue: Math.random(),
     expression: Math.random(),
     x: columnNames[i % 14],
@@ -48,8 +49,6 @@ export const Heatmap = () => {
         width,
         height,
         margin,
-        innerWidth,
-        innerHeight,
         // xScale,
         // yScale,
         colorScale,
@@ -58,6 +57,14 @@ export const Heatmap = () => {
       }}
     />
   )
+}
+
+Heatmap.propTypes = {
+  numRows: PropTypes.number,
+}
+
+Heatmap.defaultProps = {
+  numRows: 3,
 }
 
 export default Heatmap

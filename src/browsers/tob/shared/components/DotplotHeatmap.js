@@ -1,27 +1,17 @@
 import React, { useMemo } from 'react'
 import PropTypes from 'prop-types'
-import { scaleBand } from 'd3'
+import { scaleBand, scaleSqrt, scaleSequential, interpolateRgb, extent } from 'd3'
 
 const tileSpacing = 0.05
 
 const DotplotHeatmap = ({
   id,
   data,
-  onClickFunction,
-  options: {
-    title,
-    width,
-    height,
-    innerHeight,
-    innerWidth,
-    margin,
-    accessors,
-    xScale,
-    yScale,
-    colorScale,
-    sizeScale,
-  },
+  onClick,
+  options: { title, width, height, margin, accessors, xScale, yScale, colorScale, sizeScale },
 }) => {
+  const innerHeight = height - margin.top - margin.bottom
+  const innerWidth = width - margin.left - margin.right
   const xScaleLocal = useMemo(
     () =>
       xScale ||
@@ -41,6 +31,26 @@ const DotplotHeatmap = ({
         .padding(tileSpacing),
     [yScale, data]
   )
+
+  const colorScaleLocal = useMemo(
+    () =>
+      colorScale ||
+      scaleSequential()
+        .interpolator(interpolateRgb('#FFFFFF', '#CC0000'))
+        .domain(extent(data, accessors.color))
+        .range(['#FFFFFF', '#CC0000'])
+        .nice()
+  )
+
+  const sizeScaleLocal = useMemo(
+    () =>
+      sizeScale ||
+      scaleSqrt()
+        .domain(extent(data, accessors.size).reverse())
+        .range([0, Math.min(xScaleLocal.bandwidth() / 2, yScaleLocal.bandwidth() / 2)])
+        .nice()
+  )
+
   return (
     <>
       <svg id={id} width={width} height={height}>
@@ -58,8 +68,8 @@ const DotplotHeatmap = ({
             <rect width={2} height={4} fill="black" opacity={0.4} />
           </pattern>
           <linearGradient id="linear-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor={`${colorScale.range()[0]}`} />
-            <stop offset="100%" stopColor={`${colorScale.range()[1]}`} />
+            <stop offset="0%" stopColor={`${colorScaleLocal.range()[0]}`} />
+            <stop offset="100%" stopColor={`${colorScaleLocal.range()[1]}`} />
           </linearGradient>
         </defs>
         <g transform={`translate(${margin.left}, ${margin.top})`}>
@@ -101,63 +111,80 @@ const DotplotHeatmap = ({
             ))}
           </g>
           <g id="tiles">
-            {data.map((item) => (
-              <circle
-                key={`${accessors.x(item)},${accessors.y(item)}`}
-                r={sizeScale(accessors.size(item))}
-                cx={xScaleLocal(accessors.x(item)) + xScaleLocal.bandwidth() / 2}
-                cy={yScaleLocal(accessors.y(item)) + yScaleLocal.bandwidth() / 2}
-                stroke="black"
-                fill={`${colorScale(accessors.color(item))}`}
-                onClick={onClickFunction}
-              />
-            ))}
-          </g>
-          <g
-            id="sizeLegend"
-            transform={`translate(${
-              width - margin.right - margin.left + sizeScale.range()[1] + 5
-            }, 20)`}
-          >
-            <text fontWeight="bold"> P value </text> <br />
-            {sizeScale
-              .ticks(6)
-              .filter((size) => size < 1)
-              .map((tick, i) => (
-                <g
-                  key={`sizeScale ${tick}`}
-                  transform={`translate(0, ${40 + sizeScale.range()[1] * 2 * i})`}
+            {data.length ? (
+              data.map((item) => (
+                <circle
+                  key={`${accessors.x(item)},${accessors.y(item)}`}
+                  r={sizeScaleLocal(accessors.size(item))}
+                  cx={xScaleLocal(accessors.x(item)) + xScaleLocal.bandwidth() / 2}
+                  cy={yScaleLocal(accessors.y(item)) + yScaleLocal.bandwidth() / 2}
+                  stroke="black"
+                  fill={`${colorScaleLocal(accessors.color(item))}`}
+                  onClick={onClick}
+                />
+              ))
+            ) : (
+              <g transform={`translate(${innerWidth / 2}, ${innerHeight / 2})`}>
+                <text
+                  style={{ textAnchor: 'middle', alignmentBaseline: 'middle', fontSize: 'larger' }}
                 >
-                  <circle r={sizeScale(tick)} stroke="black" fill="none" />
-                  <text x={sizeScale.range()[1] + 5} style={{ alignmentBaseline: 'middle' }}>
+                  No data to display.
+                </text>
+              </g>
+            )}
+          </g>
+          {data.length && (
+            <g
+              id="sizeLegend"
+              transform={`translate(${
+                width - margin.right - margin.left + sizeScaleLocal.range()[1] + 5
+              }, 20)`}
+            >
+              <text fontWeight="bold"> P value </text> <br />
+              {sizeScaleLocal
+                .ticks(6)
+                .filter((size) => size < 1)
+                .map((tick, i) => (
+                  <g
+                    key={`sizeScaleLocal ${tick}`}
+                    transform={`translate(0, ${40 + sizeScaleLocal.range()[1] * 2 * i})`}
+                  >
+                    <circle r={sizeScaleLocal(tick)} stroke="black" fill="none" />
+                    <text x={sizeScaleLocal.range()[1] + 5} style={{ alignmentBaseline: 'middle' }}>
+                      {tick.toFixed(1)}
+                    </text>
+                  </g>
+                ))}
+            </g>
+          )}
+          {data.length && (
+            <g
+              id="colourLegend"
+              transform={`translate(${
+                width - margin.right - margin.left + sizeScaleLocal.range()[1] + 100
+              }, 20)`}
+            >
+              <text fontWeight="bold"> Expression </text> <br />
+              <rect
+                transform="translate(0, 15)"
+                height="240"
+                width="40"
+                fill="url(#linear-gradient)"
+                stroke="black"
+              />
+              {colorScaleLocal.ticks(6).map((tick, i) => (
+                <g
+                  key={`colorScaleLocal ${tick}`}
+                  transform={`translate(40, ${15 + (i * 240) / 5})`}
+                >
+                  <line x2={5} stroke="black" />
+                  <text dx={7} style={{ alignmentBaseline: 'middle' }}>
                     {tick.toFixed(1)}
                   </text>
                 </g>
               ))}
-          </g>
-          <g
-            id="colourLegend"
-            transform={`translate(${
-              width - margin.right - margin.left + sizeScale.range()[1] + 100
-            }, 20)`}
-          >
-            <text fontWeight="bold"> Expression </text> <br />
-            <rect
-              transform="translate(0, 15)"
-              height="240"
-              width="40"
-              fill="url(#linear-gradient)"
-              stroke="black"
-            />
-            {colorScale.ticks(6).map((tick, i) => (
-              <g key={`colorScale ${tick}`} transform={`translate(40, ${15 + (i * 240) / 5})`}>
-                <line x2={5} stroke="black" />
-                <text dx={7} style={{ alignmentBaseline: 'middle' }}>
-                  {tick.toFixed(1)}
-                </text>
-              </g>
-            ))}
-          </g>
+            </g>
+          )}
         </g>
       </svg>
     </>
@@ -167,13 +194,11 @@ const DotplotHeatmap = ({
 DotplotHeatmap.propTypes = {
   id: PropTypes.string.isRequired,
   data: PropTypes.arrayOf(PropTypes.object).isRequired,
-  onClickFunction: PropTypes.func,
+  onClick: PropTypes.func,
   options: PropTypes.shape({
     title: PropTypes.string,
     width: PropTypes.number,
     height: PropTypes.number,
-    innerHeight: PropTypes.number,
-    innerWidth: PropTypes.number,
     margin: PropTypes.shape({
       top: PropTypes.number,
       right: PropTypes.number,
@@ -196,14 +221,12 @@ DotplotHeatmap.propTypes = {
 }
 
 DotplotHeatmap.defaultProps = {
-  onClickFunction: () => {},
+  onClick: () => {},
   options: {
     title: 'Heatmap',
     width: 1000,
     height: 500,
     margin: { top: 50, right: 50, left: 50, bottom: 50 },
-    innerWidth: 900,
-    innerHeight: 400,
     accessors: {
       x: (d) => d.x,
       y: (d) => d.y,
