@@ -1,10 +1,11 @@
 /* eslint-disable no-unused-vars */
 
-const { isRegionId, parseRegionId } = require('@gnomad/identifiers')
 const express = require('express')
-const { NotFound, InvalidQueryParameter, ServerError } = require('../errors')
+
+const { isRegionId, parseRegionId } = require('@gnomad/identifiers')
 
 const queries = require('../queries/association')
+const { NotFound, InvalidQueryParameter } = require('../errors')
 const { convertPositionToGlobalPosition } = require('../queries/genome')
 const { parseNumber } = require('../utils')
 
@@ -116,7 +117,7 @@ const setup = (app) => {
    *          required: true
    *          description: Association identifier
    *          type: string
-   *          example: 17:41216206:T:C:ARL4D:nk:1
+   *          example: 17:41216206:T:C:ENSG00000012048:nk:1
    *      responses:
    *        200:
    *          content:
@@ -132,12 +133,8 @@ const setup = (app) => {
    */
   app.get('/api/associations/:id', async (req, res, next) => {
     const association = await queries.fetchAssociationById(req.params.id).catch(next)
-
-    if (association == null) {
-      next(new NotFound('Association not found'))
-    }
-
-    res.status(200).json(association)
+    if (association == null) return next(new NotFound('Association not found'))
+    return res.status(200).json(association)
   })
 
   /**
@@ -155,7 +152,7 @@ const setup = (app) => {
    *          required: true
    *          description: Association identifier
    *          type: string
-   *          example: 17:41216206:T:C:ARL4D:nk:1
+   *          example: 17:41216206:T:C:ENSG00000012048:nk:1
    *      responses:
    *        200:
    *          content:
@@ -171,12 +168,8 @@ const setup = (app) => {
    */
   app.get('/api/associations/:id/effect', async (req, res, next) => {
     const effect = await queries.fetchAssociationEffect(req.params.id).catch(next)
-
-    if (effect == null) {
-      next(new NotFound('Association not found'))
-    }
-
-    res.status(200).json(effect)
+    if (effect == null) return next(new NotFound('Association not found'))
+    return res.status(200).json(effect)
   })
 }
 

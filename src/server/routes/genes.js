@@ -3,11 +3,8 @@
 const express = require('express')
 
 const queries = require('../queries/gene')
-const { InvalidQueryParameter, NotFound } = require('../errors')
-const { ExpressionOptions } = require('../queries/options')
+const { NotFound } = require('../errors')
 const { parseNumber } = require('../utils')
-
-// TODO: Throw 404 for when :id is not found in any database rows
 
 /**
  * @param {express.Express} app
@@ -64,7 +61,8 @@ const setup = (app) => {
         limit: parseNumber(req.query.limit, 25),
       })
       .catch(next)
-    res.status(200).json(genes)
+
+    return res.status(200).json(genes)
   })
 
   /**
@@ -99,11 +97,8 @@ const setup = (app) => {
   app.get('/api/genes/:id', async (req, res, next) => {
     const gene = await queries.fetchGeneById(req.params.id).catch(next)
 
-    if (gene == null) {
-      next(new NotFound('Gene not found'))
-    }
-
-    res.status(200).json(gene)
+    if (gene == null) return next(new NotFound('Gene not found'))
+    return res.status(200).json(gene)
   })
 
   /**
@@ -169,11 +164,8 @@ const setup = (app) => {
       })
       .catch(next)
 
-    if (associations == null) {
-      next(new NotFound('Gene not found'))
-    }
-
-    res.status(200).json(associations)
+    if (associations == null) return next(new NotFound('Gene not found'))
+    return res.status(200).json(associations)
   })
 
   /**
@@ -192,32 +184,12 @@ const setup = (app) => {
    *          required: true
    *          type: string
    *          example: BRCA1
-   *        - in: query
-   *          name: type
-   *          description: Type of expression data to count
-   *          schema:
-   *            type: string
-   *            enum:
-   *              - log_cpm
-   *              - residual
-   *          example: residual
-   *        - in: query
-   *          name: nBins
-   *          description: Number of bins to use for histogram computation
-   *          type: number
-   *          example: 30
    *      responses:
    *        200:
    *          content:
    *            application/json:
    *              schema:
    *                $ref: '#/components/schemas/BinnedExpression'
-   *        400:
-   *          description: Invalid expression data type
-   *          content:
-   *            application/json:
-   *              schema:
-   *                $ref: '#/components/schemas/Error'
    *        404:
    *          description: Gene with requested identifier does not exist
    *          content:
@@ -226,29 +198,9 @@ const setup = (app) => {
    *                $ref: '#/components/schemas/Error'
    */
   app.get('/api/genes/:id/expression', async (req, res, next) => {
-    // TODO: change residual to log_residual
-    const type = (req.query.type || ExpressionOptions.choices.residual).toString()
-    if (!ExpressionOptions.isValid(type)) {
-      next(
-        new InvalidQueryParameter(
-          `Value '${type}' for query parameter 'type' must be ` +
-            `one of ${ExpressionOptions.toString()}`
-        )
-      )
-    }
-
-    const nBins = Number.parseInt(req.query.nBins, 10)
-    if (!Number.isInteger(nBins) || nBins < 5) {
-      next(new InvalidQueryParameter('A minimum of 5 bins is required'))
-    }
-
-    const data = await queries.fetchGeneExpression(req.params.id, { type, nBins }).catch(next)
-
-    if (data == null) {
-      next(new NotFound('Gene not found'))
-    }
-
-    res.status(200).json(data)
+    const data = await queries.fetchGeneExpression(req.params.id).catch(next)
+    if (data == null) return next(new NotFound('Gene not found'))
+    return res.status(200).json(data)
   })
 
   /**
@@ -268,27 +220,12 @@ const setup = (app) => {
    *          required: true
    *          type: string
    *          example: BRCA1
-   *        - in: query
-   *          name: type
-   *          description: Type of expression data to summarise
-   *          schema:
-   *            type: string
-   *            enum:
-   *              - log_cpm
-   *              - residual
-   *          example: residual
    *      responses:
    *        200:
    *          content:
    *            application/json:
    *              schema:
    *                $ref: '#/components/schemas/Aggregate'
-   *        400:
-   *          description: Invalid expression data type
-   *          content:
-   *            application/json:
-   *              schema:
-   *                $ref: '#/components/schemas/Error'
    *        404:
    *          description: Gene with requested identifier does not exist
    *          content:
@@ -297,24 +234,9 @@ const setup = (app) => {
    *                $ref: '#/components/schemas/Error'
    */
   app.get('/api/genes/:id/aggregate', async (req, res, next) => {
-    // TODO: change residual to log_residual
-    const type = (req.query.type || ExpressionOptions.choices.residual).toString()
-    if (!ExpressionOptions.isValid(type)) {
-      next(
-        new InvalidQueryParameter(
-          `Value '${type}' for query parameter 'type' must be ` +
-            `one of ${ExpressionOptions.toString()}`
-        )
-      )
-    }
-
-    const data = await queries.fetchGeneAssociationAggregate(req.params.id, { type }).catch(next)
-
-    if (data == null) {
-      next(new NotFound('Gene not found'))
-    }
-
-    res.status(200).json(data)
+    const data = await queries.fetchGeneAssociationAggregate(req.params.id).catch(next)
+    if (data == null) return next(new NotFound('Gene not found'))
+    return res.status(200).json(data)
   })
 }
 

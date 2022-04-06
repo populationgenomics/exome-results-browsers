@@ -6,27 +6,6 @@ const { fetchCellTypes, fetchCellTypeById } = require('../queries/cellType')
 const { NotFound } = require('../errors')
 
 /**
- * @swagger
- *  components:
- *    schemas:
- *      CellType:
- *        type: object
- *        required:
- *          - id
- *          - name
- *          - description
- *        properties:
- *          id:
- *            type: string
- *          name:
- *            type: string
- *          parent_id:
- *            type: string
- *          description:
- *            type: string
- */
-
-/**
  * @param {express.Express} app
  */
 const setup = (app) => {
@@ -48,7 +27,7 @@ const setup = (app) => {
    */
   app.get('/api/cell-types', async (_, res, next) => {
     const data = await fetchCellTypes().catch(next)
-    res.status(200).json(data)
+    return res.status(200).json(data)
   })
 
   /**
@@ -84,13 +63,32 @@ const setup = (app) => {
    */
   app.get('/api/cell-types/:id', async (req, res, next) => {
     const data = await fetchCellTypeById(req.params.id).catch(next)
-
-    if (!data) {
-      next(new NotFound('Cell type not found'))
-    }
-
-    res.status(200).json(data)
+    if (!data) return next(new NotFound('Cell type not found'))
+    return res.status(200).json(data)
   })
 }
 
 module.exports = { setup }
+
+// ---------------------------------------------------------------------------------------------- //
+// Swagger Components
+// ---------------------------------------------------------------------------------------------- //
+
+/**
+ * @swagger
+ *  components:
+ *    schemas:
+ *      CellType:
+ *        type: object
+ *        required:
+ *          - cell_type_id
+ *          - cell_type_name
+ *          - description
+ *        properties:
+ *          cell_type_id:
+ *            type: string
+ *          cell_type_name:
+ *            type: string
+ *          description:
+ *            type: string
+ */

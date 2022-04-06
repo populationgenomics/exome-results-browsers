@@ -28,6 +28,7 @@ const projectIds = {
 const defaultQueryOptions = () => {
   return {
     verbose: process.env.NODE_ENV === 'development',
+    reference: process.env.REFERENCE_GENOME || datasetIds.grch37,
     datasetId: process.env.DATASET_ID || datasetIds.grch37,
     projectId: process.env.PROJECT_ID || projectIds.tobWgsBrowser,
   }
@@ -50,15 +51,15 @@ const submitQuery = async ({ query, options }) => {
 
   const verbose = options.verbose || false
   if (verbose) {
-    // eslint-disable-next-line no-console
+    console.debug('\n----------- QUERY ------------')
     console.debug(query)
-    // eslint-disable-next-line no-console
     console.debug(options.params)
+    console.debug('------------------------------\n')
   }
 
   // Remove options that are not BigQuery options
   const bigQueryOverrides = { ...options }
-  const nonBigQueryOptions = ['verobse', 'datasetId', 'projectId']
+  const nonBigQueryOptions = ['verobse', 'reference', 'datasetId', 'projectId']
   nonBigQueryOptions.forEach((prop) => {
     delete bigQueryOverrides[prop]
   })
@@ -99,7 +100,7 @@ const submitQuery = async ({ query, options }) => {
 }
 
 const parseAssociationId = (value) => {
-  const idRe = /^(\d+):(\d+):([ATCG]+):([ATCG]+):(([A-Z][A-Z0-9-]*)|(ENSG\d{11})):([A-Z_]+):(\d+)$/i
+  const idRe = /^(\d+):(\d+):([ATCG]+):([ATCG]+):(ENSG\d{11}):([A-Z_]+):(\d+)$/i
 
   if (!idRe.test(value.toString())) {
     throw new Error(`Association id '${value}' is not a valid identifier.`)

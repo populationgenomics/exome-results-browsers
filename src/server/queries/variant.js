@@ -1,12 +1,10 @@
 /* eslint-disable no-unused-vars */
+const { parseVariantId } = require('@gnomad/identifiers')
+
 const { fetchCellTypes } = require('./cellType')
 const { fetchGenes } = require('./gene')
-const { ExpressionOptions } = require('./options')
+const { convertPositionToGlobalPosition } = require('./genome')
 const { defaultQueryOptions, tableIds, submitQuery, sampleNormal } = require('./utilities')
-
-const { config: serverConfig } = require('../config')
-
-const GENE_SYMBOL_COLUMN = serverConfig.enableNewDatabase ? 'gene_symbol' : 'symbol'
 
 /**
  * Fetch variant rows using an optional query to match variant ids or rsids. Provide a
@@ -130,13 +128,20 @@ const fetchVariantAssociations = async (
   // Gene is included in the study, continue to query associations
   const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
 
-  const sourceTable = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.variant}`
-  const joinTable = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.association}`
-  const selectClause = `SELECT * FROM ${sourceTable} AS t1`
-  const joinClause = `LEFT JOIN ${joinTable} AS t2 ON t1.variant_id = t2.association_id`
+  const variant = parseVariantId(id)
+  const { start: pos } = convertPositionToGlobalPosition({
+    chrom: variant.chrom,
+    start: variant.pos,
+    stop: variant.pos,
+  })
 
-  const queryParams = { id }
-  const filters = ['UPPER(variant_id) = UPPER(@id)']
+  const sourceTable = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.association}`
+  const joinTable = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.variant}`
+  const selectClause = `SELECT * FROM ${sourceTable} AS t1`
+  const joinClause = `LEFT JOIN ${joinTable} AS t2 ON t1.variant_id = t2.variant_id`
+
+  const queryParams = { id, pos }
+  const filters = ['t1.global_bp = @pos', 'UPPER(t1.variant_id) = UPPER(@id)']
 
   // Add filter for matching cell type ids
   if (cellTypeIds?.length && Array.isArray(cellTypeIds)) {
@@ -182,14 +187,11 @@ const fetchVariantAssociations = async (
 
 /**
  * @param {string} id
- * @param {{type?: string, config?: object}} options
+ * @param {{config?: object}} options
  *
  * @returns {Promise<object|null>}
  */
-const fetchVariantAssociationAggregate = async (
-  id,
-  { type = ExpressionOptions.choices.log_cpm, config = {} } = {}
-) => {
+const fetchVariantAssociationAggregate = async (id, { config = {} } = {}) => {
   if (!id) throw new Error("Parameter 'id' is required.")
 
   const cellTypes = await fetchCellTypes({ config })
@@ -200,7 +202,7 @@ const fetchVariantAssociationAggregate = async (
       const skew = sampleNormal({ min: 1, max: 4, skew: 1 })
       return {
         gene_id: g.gene_id,
-        gene_symbol: g[GENE_SYMBOL_COLUMN],
+        gene_symbol: g.symbol,
         cell_type_id: c.cell_type_id || c.id,
         min_p_value: sampleNormal({ min: 0, max: 1e4, skew: 6 }) / 1e4,
         mean_log_cpm: sampleNormal({ min: 0, max: 15, skew }),
