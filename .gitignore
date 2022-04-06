@@ -49,3 +49,4 @@ hail-*.log
 
 # Yarn error logs
 yarn-*.log
+*.log
