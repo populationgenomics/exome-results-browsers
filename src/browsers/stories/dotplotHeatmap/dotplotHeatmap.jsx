@@ -8,7 +8,7 @@ export const Heatmap = ({ numRows }) => {
   const columnNames = Object.keys(defaultCellTypeColors())
   const rowNames = Array.from({ length: numRows }, (_, i) => `Gene${i}`)
   const data = Array.from({ length: 14 * numRows }, (_, i) => ({
-    pvalue: Math.random(),
+    pvalue: -1 * Math.log(Math.random()),
     expression: Math.random(),
     x: columnNames[i % 14],
     y: rowNames[Math.floor(i / 14)],
@@ -45,14 +45,14 @@ export const Heatmap = ({ numRows }) => {
       id="Test"
       data={data}
       options={{
-        // title: 'Title',
+        title: 'My Big Title Here',
         width,
         height,
         margin,
         // xScale,
         // yScale,
-        colorScale,
-        sizeScale,
+        // colorScale,
+        // sizeScale,
         accessors: { x: xAccessor, y: yAccessor, color: colorAccessor, size: sizeAccessor },
       }}
     />
