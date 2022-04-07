@@ -155,9 +155,9 @@ const fetchGeneAssociations = async (
 ) => {
   if (!id) throw new Error("Parameter 'id' is required.")
 
-  // Gene was not studied, which is different from no associations from being found which instead
-  // will return an empty array
-  const gene = await resolveGene(id, { config })
+  // Get the min and max gene coordinates to optimise query since its range partitioned on global
+  // coordinates.
+  const gene = await fetchGeneById(id, { config })
   if (!gene) return null
 
   // Gene is included in the study, continue to query associations
@@ -168,9 +168,17 @@ const fetchGeneAssociations = async (
   // occur after.
   const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.association}`
   const select = `SELECT *, RAND() ld FROM ${table}`
-  const filters = [`UPPER(${ASSOCIATION_GENE_ID_COLUMN}) = UPPER(@id)`]
+  const filters = [
+    'global_bp >= @min',
+    'global_bp <= @max',
+    `UPPER(${ASSOCIATION_GENE_ID_COLUMN}) = UPPER(@id)`,
+  ]
 
-  const queryParams = { id: gene.id }
+  const queryParams = {
+    id: gene.gene_id,
+    min: gene.global_start - 0.5e4,
+    max: gene.global_stop + 0.5e4,
+  }
 
   // Add filter for matching cell type ids
   if (cellTypeIds?.length && Array.isArray(cellTypeIds)) {
