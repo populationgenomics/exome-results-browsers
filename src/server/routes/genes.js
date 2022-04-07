@@ -129,6 +129,11 @@ const setup = (app) => {
    *          format: float
    *          example: null
    *        - in: query
+   *          name: ld_reference
+   *          description: Locus to display LD relative to
+   *          type: string
+   *          example: null
+   *        - in: query
    *          name: rounds
    *          description: Conditioning rounds, comma delimited.
    *          type: string

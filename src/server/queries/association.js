@@ -47,7 +47,7 @@ const fetchAssociations = async ({
   const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
 
   const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.association}`
-  const selectClause = `SELECT * FROM ${table}`
+  const selectClause = `SELECT *, RAND() ld FROM ${table}`
 
   const queryParams = {}
   const filters = []

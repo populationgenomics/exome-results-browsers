@@ -167,7 +167,7 @@ const fetchGeneAssociations = async (
   // occur in this order to improve query performance and reduce cost. All other filters should
   // occur after.
   const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.association}`
-  const select = `SELECT * FROM ${table}`
+  const select = `SELECT *, RAND() ld FROM ${table}`
   const filters = [`UPPER(${ASSOCIATION_GENE_ID_COLUMN}) = UPPER(@id)`]
 
   const queryParams = { id: gene.id }

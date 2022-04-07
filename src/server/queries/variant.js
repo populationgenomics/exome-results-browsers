@@ -137,7 +137,7 @@ const fetchVariantAssociations = async (
 
   const sourceTable = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.association}`
   const joinTable = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.variant}`
-  const selectClause = `SELECT * FROM ${sourceTable} AS t1`
+  const selectClause = `SELECT *, RAND() ld FROM ${sourceTable} AS t1`
   const joinClause = `LEFT JOIN ${joinTable} AS t2 ON t1.variant_id = t2.variant_id`
 
   const queryParams = { id, pos }
