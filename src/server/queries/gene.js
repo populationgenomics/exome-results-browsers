@@ -44,7 +44,7 @@ const resolveGene = async (query, { config = {} } = {}) => {
  * @returns {Promise<{id: string, symbol: string}[]>}
  */
 const resolveGenes = async (queries, { config = {} } = {}) => {
-  if (!queries) throw new Error("Parameter 'query' is required.")
+  if (!queries) return []
 
   const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
 
@@ -135,6 +135,31 @@ const fetchGeneById = async (id, { config = {} } = {}) => {
   })
 
   return gene
+}
+
+/**
+ * @param {string} id
+ * @param {{config?: object}} options
+ *
+ * @returns {Promise<object|null>}
+ */
+const fetchGenesById = async (ids, { config = {} } = {}) => {
+  if (!ids) return []
+
+  const geneRecords = await resolveGenes(ids, { config })
+  if (!geneRecords) return []
+
+  const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
+  const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneModel}`
+  const select = `SELECT * FROM ${table}`
+  const filter = 'UPPER(gene_id) IN UNNEST(@ids)'
+
+  const genes = await submitQuery({
+    query: [select, `WHERE ${filter}`].join('\n'),
+    options: { ...queryOptions, params: { ids: geneRecords.map((g) => g.id.toUpperCase()) } },
+  })
+
+  return genes
 }
 
 /**
@@ -315,6 +340,7 @@ const fetchGeneAssociationAggregate = async (id, { config = {} } = {}) => {
 module.exports = {
   fetchGenes,
   fetchGeneById,
+  fetchGenesById,
   fetchGeneAssociations,
   fetchGeneAssociationAggregate,
   fetchGeneExpression,
