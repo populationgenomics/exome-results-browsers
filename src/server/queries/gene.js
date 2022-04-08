@@ -3,71 +3,10 @@
 const { mean } = require('lodash')
 const { quantileSeq } = require('mathjs')
 
-const { config: serverConfig } = require('../config')
-
 const { tableIds, defaultQueryOptions, submitQuery, sampleNormal } = require('./utilities')
 const { fetchCellTypes } = require('./cellType')
-
-const GENE_SYMBOL_COLUMN = serverConfig.enableNewDatabase ? 'gene_symbol' : 'symbol'
-const ASSOCIATION_GENE_ID_COLUMN = serverConfig.enableNewDatabase ? 'gene_id' : 'ensembl_gene_id'
-
-/**
- * @param {string} query
- * @param {{config?: object}} options
- *
- * @returns {Promise<{id: string, symbol: string}|null>}
- */
-const resolveGene = async (query, { config = {} } = {}) => {
-  if (!query) throw new Error("Parameter 'query' is required.")
-
-  const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
-
-  const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneLookup}`
-  const selectStatement = `SELECT DISTINCT gene_id id, ${GENE_SYMBOL_COLUMN} symbol FROM ${table}`
-  const filters = ['UPPER(gene_id) = UPPER(@query)', `UPPER(${GENE_SYMBOL_COLUMN}) = UPPER(@query)`]
-  const sqlQuery = [selectStatement, filters.length ? `WHERE ${filters.join(' OR ')}` : null]
-    .filter((c) => !!c)
-    .join('\n')
-
-  const [gene] = await submitQuery({
-    query: sqlQuery,
-    options: { ...queryOptions, params: { query: query.toString().toUpperCase() } },
-  })
-
-  return gene
-}
-
-/**
- * @param {string[]} queries
- * @param {{config?: object}} options
- *
- * @returns {Promise<{id: string, symbol: string}[]>}
- */
-const resolveGenes = async (queries, { config = {} } = {}) => {
-  if (!queries) return []
-
-  const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
-
-  const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneLookup}`
-  const selectStatement = `SELECT DISTINCT gene_id id, ${GENE_SYMBOL_COLUMN} symbol FROM ${table}`
-  const filters = [
-    'UPPER(gene_id) IN UNNEST(@queries)',
-    `UPPER(${GENE_SYMBOL_COLUMN}) IN UNNEST(@queries)`,
-  ]
-  const sqlQuery = [selectStatement, filters.length ? `WHERE ${filters.join(' OR ')}` : null]
-    .filter((c) => !!c)
-    .join('\n')
-
-  const genes = await submitQuery({
-    query: sqlQuery,
-    options: {
-      ...queryOptions,
-      params: { queries: queries.map((s) => s.toString().toUpperCase()) },
-    },
-  })
-
-  return genes
-}
+const { fetchAssociations } = require('./association')
+const { resolveGene, resolveGenes } = require('./gene_lookup')
 
 /**
  * @param {{query?: string, expand?: boolean, limit?: number, config?: object}} options
@@ -180,61 +119,13 @@ const fetchGeneAssociations = async (
 ) => {
   if (!id) throw new Error("Parameter 'id' is required.")
 
-  // Get the min and max gene coordinates to optimise query since its range partitioned on global
-  // coordinates.
-  const gene = await fetchGeneById(id, { config })
-  if (!gene) return null
-
-  // Gene is included in the study, continue to query associations
-  const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
-
-  // NOTE: table cluster order is gene_id, cell_type_id, round. These filters should always
-  // occur in this order to improve query performance and reduce cost. All other filters should
-  // occur after.
-  const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.association}`
-  const select = `SELECT *, RAND() ld FROM ${table}`
-  const filters = [
-    'global_bp >= @min',
-    'global_bp <= @max',
-    `UPPER(${ASSOCIATION_GENE_ID_COLUMN}) = UPPER(@id)`,
-  ]
-
-  const queryParams = {
-    id: gene.gene_id,
-    min: gene.global_start - 0.5e4,
-    max: gene.global_stop + 0.5e4,
-  }
-
-  // Add filter for matching cell type ids
-  if (cellTypeIds?.length && Array.isArray(cellTypeIds)) {
-    queryParams.cellTypeIds = cellTypeIds.map((s) => s.toString().toLowerCase())
-    filters.push('LOWER(cell_type_id) IN UNNEST(@cellTypeIds)')
-  }
-
-  // Add filter for conditioning round
-  if (rounds?.length && Array.isArray(rounds)) {
-    queryParams.rounds = rounds.map(parseInt)
-    filters.push('round IN UNNEST(@rounds)')
-  }
-
-  // Add filter for FDR
-  if (Number.isFinite(fdr)) {
-    queryParams.fdr = parseFloat(fdr)
-    filters.push('fdr <= @fdr')
-  }
-
-  // Add clause for row limit. Default to serving all rows if no limit is provided.
-  let limitClause = ''
-  if (Number.isInteger(limit)) {
-    queryParams.limit = parseInt(limit, 10)
-    limitClause = 'LIMIT @limit'
-  }
-
-  const rows = await submitQuery({
-    query: [select, filters.length ? `WHERE ${filters.join(' AND ')}` : null, limitClause]
-      .filter((c) => !!c)
-      .join('\n'),
-    options: { ...queryOptions, params: queryParams },
+  const rows = await fetchAssociations({
+    genes: [id],
+    cellTypeIds,
+    rounds,
+    fdr,
+    limit,
+    config,
   })
 
   return rows
@@ -344,6 +235,4 @@ module.exports = {
   fetchGeneAssociations,
   fetchGeneAssociationAggregate,
   fetchGeneExpression,
-  resolveGene,
-  resolveGenes,
 }

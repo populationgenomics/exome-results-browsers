@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
-const { parseVariantId } = require('@gnomad/identifiers')
+const { parseVariantId, normalizeVariantId } = require('@gnomad/identifiers')
+const { fetchAssociations } = require('./association')
 
 const { fetchCellTypes } = require('./cellType')
 const { fetchGenes } = require('./gene')
@@ -125,61 +126,25 @@ const fetchVariantAssociations = async (
 ) => {
   if (!id) throw new Error("Parameter 'id' is required.")
 
-  // Gene is included in the study, continue to query associations
-  const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
-
   const variant = parseVariantId(id)
-  const { start: pos } = convertPositionToGlobalPosition({
+  const globalCoordinates = convertPositionToGlobalPosition({
     chrom: variant.chrom,
     start: variant.pos,
     stop: variant.pos,
   })
 
-  const sourceTable = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.association}`
-  const joinTable = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.variant}`
-  const selectClause = `SELECT *, RAND() ld FROM ${sourceTable} AS t1`
-  const joinClause = `LEFT JOIN ${joinTable} AS t2 ON t1.variant_id = t2.variant_id`
-
-  const queryParams = { id, pos }
-  const filters = ['t1.global_bp = @pos', 'UPPER(t1.variant_id) = UPPER(@id)']
-
-  // Add filter for matching cell type ids
-  if (cellTypeIds?.length && Array.isArray(cellTypeIds)) {
-    queryParams.cellTypeIds = cellTypeIds.map((s) => s.toString().toLowerCase())
-    filters.push('LOWER(cell_type_id) IN UNNEST(@cellTypeIds)')
-  }
-
-  // Add filter for conditioning round
-  if (rounds?.length && Array.isArray(rounds)) {
-    queryParams.rounds = rounds.map(parseInt)
-    filters.push('round IN UNNEST(@rounds)')
-  }
-
-  // Add filter for FDR
-  if (Number.isFinite(fdr)) {
-    queryParams.fdr = parseFloat(fdr)
-    filters.push('fdr <= @fdr')
-  }
-
-  // Add clause for row limit. Default to serving all rows if no limit is provided.
-  let limitClause = ''
-  if (Number.isInteger(limit)) {
-    queryParams.limit = parseInt(limit, 10)
-    limitClause = `LIMIT @limit`
-  }
-
-  const sqlQuery = [
-    selectClause,
-    joinClause,
-    filters.length ? `WHERE ${filters.join(' AND ')}` : null,
-    limitClause,
-  ]
-    .filter((c) => !!c)
-    .join('\n')
-
-  const rows = await submitQuery({
-    query: sqlQuery,
-    options: { ...queryOptions, params: queryParams },
+  const rows = await fetchAssociations({
+    cellTypeIds,
+    variantIds: [normalizeVariantId(id)],
+    range: {
+      chrom: globalCoordinates.chrom,
+      start: globalCoordinates.start - 0.5e4,
+      stop: globalCoordinates.stop + 0.5e4,
+    },
+    rounds,
+    fdr,
+    limit,
+    config,
   })
 
   return rows
