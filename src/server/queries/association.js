@@ -5,9 +5,8 @@ const { quantileSeq } = require('mathjs')
 
 const { config: serverConfig } = require('../config')
 
-const { isGeneSymbol, isEnsemblGeneId } = require('../identifiers')
 const { convertPositionToGlobalPosition } = require('./genome')
-const { resolveGene, resolveGenes } = require('./gene')
+const { fetchGenesById } = require('./gene')
 const {
   defaultQueryOptions,
   tableIds,
@@ -56,20 +55,48 @@ const fetchAssociations = async ({
   // query comes first since the table is partitioned on global coordinates.
 
   // Add filters for range query
-  if (range && Number.isInteger(range.start)) {
+  const hasRangeStart = range && Number.isInteger(range.start)
+  if (hasRangeStart) {
     queryParams.start = Number.parseInt(range.start, 10)
     filters.push('global_bp >= @start')
   }
 
-  if (range && Number.isInteger(range.stop)) {
+  const hasRangeStop = range && Number.isInteger(range.stop)
+  if (hasRangeStop) {
     queryParams.stop = Number.parseInt(range.stop, 10)
     filters.push('global_bp <= @stop')
   }
 
   // Add filter for matching gene ids
   if (genes?.length && Array.isArray(genes)) {
-    const geneRecords = await resolveGenes(genes, { config })
-    queryParams.genes = geneRecords.map((g) => g.id.toString().toUpperCase())
+    const geneRecords = await fetchGenesById(genes, { config })
+
+    // Optimise query by using the table's range partition
+    const start =
+      Math.min(
+        ...geneRecords
+          .map((g) => Number.parseInt(g.global_start, 10))
+          .filter((n) => Number.isInteger(n))
+      ) - 0.5e4
+
+    if (!hasRangeStart && Number.isInteger(start)) {
+      queryParams.start = start
+      filters.push('global_bp >= @start')
+    }
+
+    const stop =
+      Math.max(
+        ...geneRecords
+          .map((g) => Number.parseInt(g.global_stop, 10))
+          .filter((n) => Number.isInteger(n))
+      ) + 0.5e4
+
+    if (!hasRangeStop && Number.isInteger(stop)) {
+      queryParams.stop = stop
+      filters.push('global_bp <= @stop')
+    }
+
+    queryParams.genes = geneRecords.map((g) => g.gene_id.toString().toUpperCase())
     filters.push(`UPPER(${GENE_ID_COLUMN}) IN UNNEST(@genes)`)
   }
 
