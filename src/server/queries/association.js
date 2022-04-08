@@ -6,10 +6,9 @@ const { quantileSeq } = require('mathjs')
 const { config: serverConfig } = require('../config')
 
 const { convertPositionToGlobalPosition } = require('./genome')
-const { fetchGenesById } = require('./gene')
 const {
-  defaultQueryOptions,
   tableIds,
+  defaultQueryOptions,
   submitQuery,
   parseAssociationId,
   sampleNormal,
@@ -23,10 +22,13 @@ const GENE_SYMBOL_COLUMN = serverConfig.enableNewDatabase ? 'gene_symbol' : 'gen
  * @param {{
  *  genes?: string[],
  *  cellTypeIds?: string[],
+ *  variantIds: string[],
  *  rounds?: number[],
  *  fdr?: number,
  *  ids?: string[],
  *  range?: {chrom?: string | null, start?: number | null, stop?: number | null},
+ *  ldReference?: string,
+ *  ldOnly?: boolean,
  *  limit?: number,
  *  config?: object
  * }} options
@@ -36,11 +38,11 @@ const GENE_SYMBOL_COLUMN = serverConfig.enableNewDatabase ? 'gene_symbol' : 'gen
 const fetchAssociations = async ({
   genes = [],
   cellTypeIds = [],
+  variantIds = [],
   rounds = [],
   fdr = 0.05,
-  ids = [],
   range = { chrom: null, start: null, stop: null },
-  limit = 25,
+  ldReference: limit = 25,
   config = {},
 } = {}) => {
   const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
@@ -69,31 +71,36 @@ const fetchAssociations = async ({
 
   // Add filter for matching gene ids
   if (genes?.length && Array.isArray(genes)) {
+    // FIXME: circular dependency with gene.js queries
+    // eslint-disable-next-line global-require
+    const { fetchGenesById } = require('./gene')
+
+    // Optimise queries based on genes by setting a range query for each gene.
     const geneRecords = await fetchGenesById(genes, { config })
+    const rangeFilters = geneRecords
+      .map((record) => {
+        const start = record.global_start - 0.5e4
+        const stop = record.global_stop + 0.5e4
+        const geneRangeFilters = []
 
-    // Optimise query by using the table's range partition
-    const start =
-      Math.min(
-        ...geneRecords
-          .map((g) => Number.parseInt(g.global_start, 10))
-          .filter((n) => Number.isInteger(n))
-      ) - 0.5e4
+        if (!hasRangeStart && Number.isInteger(start)) {
+          queryParams[`${record.gene_id}Start`] = start
+          geneRangeFilters.push(`global_bp >= @${record.gene_id}Start`)
+        }
 
-    if (!hasRangeStart && Number.isInteger(start)) {
-      queryParams.start = start
-      filters.push('global_bp >= @start')
-    }
+        if (!hasRangeStop && Number.isInteger(stop)) {
+          queryParams[`${record.gene_id}Stop`] = stop
+          geneRangeFilters.push(`global_bp <= @${record.gene_id}Stop`)
 
-    const stop =
-      Math.max(
-        ...geneRecords
-          .map((g) => Number.parseInt(g.global_stop, 10))
-          .filter((n) => Number.isInteger(n))
-      ) + 0.5e4
+          return `(${geneRangeFilters.join(' AND ')})`
+        }
 
-    if (!hasRangeStop && Number.isInteger(stop)) {
-      queryParams.stop = stop
-      filters.push('global_bp <= @stop')
+        return null
+      })
+      .filter((f) => !!f)
+
+    if (rangeFilters.length) {
+      filters.push(`(${rangeFilters.join(' OR ')})`)
     }
 
     queryParams.genes = geneRecords.map((g) => g.gene_id.toString().toUpperCase())
@@ -114,17 +121,17 @@ const fetchAssociations = async ({
 
   // NOTE:  These oher filters have no order, they just need to come at the end.
 
-  // Add filter for matching variant ids
-  if (ids?.length && Array.isArray(ids)) {
-    queryParams.ids = ids.map((s) => s.toString().toUpperCase())
-    filters.push('UPPER(id) IN UNNEST(@ids)')
-  }
-
   // Add filter for chromosome number.
   // TODO: Can optimise performance by converting this to a range query over entire chromosome.
   if (range && range.chrom) {
     queryParams.chrom = range.chrom
     filters.push('chrom = @chrom')
+  }
+
+  // Filter for variant ids
+  if (variantIds?.length) {
+    queryParams.variantIds = variantIds.map((id) => id.toString().toUpperCase())
+    filters.push('UPPER(variant_id) IN UNNEST(@variantIds)')
   }
 
   // Add filter for FDR
