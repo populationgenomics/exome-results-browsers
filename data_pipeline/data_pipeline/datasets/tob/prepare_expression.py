@@ -35,8 +35,15 @@ def prepare_expression(symbol_mapping=None):
     # Create lookup table to update set gene identifier column from gene symbols column
     if symbol_mapping is None:
         mapping_file = f"{output_dir}/metadata/gene_symbol_to_id.json".replace(f"gs://{bucket.name}/", "")
+        print(f"Look for gene symbol map at location '{mapping_file}'")
+
         blob = bucket.get_blob(mapping_file)
         symbol_mapping = json.loads(blob.download_as_string()) if blob else None
+
+        if symbol_mapping:
+            print("Loading from existing mapping file")
+        else:
+            print("Mapping file not found. Gene symbols will not be mapped to Ensembl ids")
 
     # TODO: Update this regex once new expression files are ready #pylint: disable=fixme
     files_to_process = [str(path) for path in blobs if re.search(r"Residuals", str(path))]
@@ -65,7 +72,7 @@ def load_file(path, symbol_to_id=None):
         .melt(
             id_vars=["sample_id"],
             var_name="gene_symbol",
-            value_name="log_residual",
+            value_name="log_cpm",
         )
     )
 
@@ -75,9 +82,8 @@ def load_file(path, symbol_to_id=None):
     table["cell_type_id"] = cell_type
     table["chrom"] = chrom
     table["gene_id"] = table["gene_symbol"].apply(lambda x: (symbol_to_id or {}).get(x, None))
-    table["log_cpm"] = 0  # TODO: parse once updated expression files are ready #pylint: disable=fixme
 
-    column_order = ["sample_id", "cell_type_id", "gene_id", "gene_symbol", "chrom", "log_residual", "log_cpm"]
+    column_order = ["sample_id", "cell_type_id", "gene_id", "gene_symbol", "chrom", "log_cpm"]
 
     return table[column_order]
 
