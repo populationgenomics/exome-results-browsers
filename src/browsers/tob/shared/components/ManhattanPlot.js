@@ -19,8 +19,6 @@ const ManhattanPlot = ({
   categoryColors,
 }) => {
   const navigate = useNavigate()
-
-  // console.log(innerRegion)
   const xAccessor = (d) => d.bp
   const yAccessor = (d) => d.p_value
   const keyAccessor = (_, i) => i
