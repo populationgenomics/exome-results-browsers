@@ -1,13 +1,25 @@
-import React, { useRef, useMemo } from 'react'
+import React, { useRef, useMemo, useEffect } from 'react'
 import PropTypes from 'prop-types'
 
-import { scaleLinear, extent } from 'd3'
-// import { useNavigate } from 'react-router-dom'
+import { scaleLinear, extent, brushX, select } from 'd3'
 
-import { defaultCellTypeColors } from '../utilities/constants'
+import { TooltipAnchor } from '@gnomad/ui'
 
 const numberWithCommas = (x) => {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+}
+
+const DEFAULT_MARGIN = { left: 60, right: 40, top: 20, bottom: 60 }
+const DEFAULT_ACCESSORS = {
+  id: (d) => d.id,
+  x: (d) => d.x,
+  y: (d) => d.y,
+  color: (d) => d.color,
+  cellLine: (d) => d.cellLine,
+  opacity: (d) => d.opacity,
+  tooltip: (d) => d.tooltip,
+  isSelected: (d) => d.isSelected,
+  isReference: (d) => d.isReference,
 }
 
 const ManhattanPlotNew = ({
@@ -15,128 +27,63 @@ const ManhattanPlotNew = ({
   data,
   thresholds,
   onClick,
+  onBrush,
   title,
   xLabel,
   yLabel,
   width,
   height,
-  margin,
+  margins,
   accessors,
   xScale,
   yScale,
 }) => {
   const svg = useRef()
   const brushRef = useRef()
-
-  const innerWidth = width - margin.left - margin.right
-  const innerHeight = height - margin.top - margin.bottom
+  // eslint-disable-next-line no-underscore-dangle
+  const _margins = { ...DEFAULT_MARGIN, ...margins }
+  // eslint-disable-next-line no-underscore-dangle
+  const _accessors = { ...DEFAULT_ACCESSORS, ...accessors }
+  const innerWidth = width - _margins.left - _margins.right
+  const innerHeight = height - _margins.top - _margins.bottom
 
   const xScaleLocal = useMemo(
-    () => xScale || scaleLinear().domain(extent(data, accessors.x)).range([0, innerWidth]),
-    [(xScale, data, accessors.x)]
+    () => xScale || scaleLinear().domain(extent(data, _accessors.x)).range([0, innerWidth]).nice(),
+    [(xScale, data, _accessors.x)]
   )
 
   const yScaleLocal = useMemo(
-    () => yScale || scaleLinear().domain(extent(data, accessors.y)).range([innerHeight, 0]).nice(),
-    [(yScale, data, accessors.y)]
+    () => yScale || scaleLinear().domain(extent(data, _accessors.y)).range([innerHeight, 0]).nice(),
+    [(yScale, data, _accessors.y)]
   )
 
-  // useEffect(() => {
-  //   function updateChart(e) {
-  //     setInnerRegion({
-  //       chrom: innerRegion.chrom,
-  //       start: e.transform.rescaleX(xScale).domain()[0],
-  //       stop: e.transform.rescaleX(xScale).domain()[1],
-  //     })
-  //   }
+  useEffect(() => {
+    function updateBrush(e) {
+      if (e.selection) {
+        onBrush(xScaleLocal.invert(e.selection[0]), xScaleLocal.invert(e.selection[1]))
+        // eslint-disable-next-line no-use-before-define
+        select(brushRef.current).call(brushBehaviour.move, null)
+      }
+    }
 
-  //   function Emit(e) {
-  //     onChange({
-  //       chrom: innerRegion.chrom,
-  //       start: Math.round(e.transform.rescaleX(xScale).domain()[0]),
-  //       stop: Math.round(e.transform.rescaleX(xScale).domain()[1]),
-  //     })
-  //   }
+    const brushBehaviour = brushX()
+      .extent([
+        [0, 0],
+        [innerWidth, innerHeight],
+      ])
+      .on('end', (e) => updateBrush(e))
+    brushBehaviour(select(brushRef.current))
+  }, [xScaleLocal])
 
-  //   function updateBrush(e) {
-  //     if (e.selection) {
-  //       setInnerRegion({
-  //         chrom: innerRegion.chrom,
-  //         start: Math.round(xScale.invert(e.selection[0])),
-  //         stop: Math.round(xScale.invert(e.selection[1])),
-  //       })
-  //       onChange({
-  //         chrom: innerRegion.chrom,
-  //         start: Math.round(xScale.invert(e.selection[0])),
-  //         stop: Math.round(xScale.invert(e.selection[1])),
-  //       })
-  //       // eslint-disable-next-line no-use-before-define
-  //       select(brushRef.current).call(brushBehaviour.move, null)
-  //     }
-  //   }
-
-  //   const zoomBehaviour = zoom()
-  //     // FIXME: Zooming disabled until we fix responsiveness
-  //     .scaleExtent([1, 1]) // This control how much you can unzoom (x0.5) and zoom (x20)
-  //     .on('zoom', (e) => updateChart(e))
-  //     .on('end', (e) => Emit(e)) // emit region update here
-  //   zoomBehaviour(select(svg.current))
-
-  //   const brushBehaviour = brushX()
-  //     .extent([
-  //       [0, 0],
-  //       [innerWidth, innerHeight],
-  //     ])
-  //     .on('end', (e) => updateBrush(e))
-  //   brushBehaviour(select(brushRef.current))
-  // }, [xScale])
-
-  // function onMouseOver() {
-  //   select('.manhattanTooltip').style('opacity', 1)
-  // }
-
-  // function onMouseMove(e, d) {
-  //   select('.manhattanTooltip')
-  //     .html(
-  //       `<table>
-  //         <tr>
-  //           <td><b>Id: </b></td>
-  //           <td>${d.chrom}:${d.bp}:${d.a1}:${d.a2}</td>
-  //         </tr>
-  //         <tr>
-  //           <td><b>Gene: </b></td>
-  //           <td>${d.gene} </td>
-  //         </tr>
-  //         <tr>
-  //           <td><b>Cell type: </b></td>
-  //           <td>${accessors.color(d)} </td>
-  //         </tr>
-  //         <tr>
-  //           <td><b>P-value: </b></td>
-  //           <td>${accessors.y(d).toPrecision(2)} </td>
-  //         </tr>
-  //         <tr>
-  //           <td><b>-log\u2081\u2080(p): </b></td>
-  //           <td> ${-Math.log10(accessors.y(d)).toFixed(2)} </td>
-  //         </tr>
-  //         </tr>
-  //         <tr>
-  //           <td><b>Functional annotation: </b></td>
-  //           <td> ${d.functional_annotation ?? '?'} </td>
-  //         </tr>
-  //       </table>`
-  //     )
-  //     .style('left', `${pointer(e)[0] + 70}px`)
-  //     .style('top', `${pointer(e)[1]}px`)
-  // }
-
-  // function onMouseLeave() {
-  //   select('.manhattanTooltip')
-  //     .style('opacity', 0)
-  //     .style('left', `0px`)
-  //     .style('top', `0px`)
-  //     .html('')
-  // }
+  const renderTooltip = ({ d }) => {
+    if (_accessors?.tooltip(d)) {
+      if (React.isValidElement(_accessors.tooltip(d))) {
+        return _accessors.tooltip(d)
+      }
+      return <div>{_accessors.tooltip(d)}</div>
+    }
+    return null
+  }
 
   return (
     <>
@@ -144,12 +91,12 @@ const ManhattanPlotNew = ({
         <>
           <svg id={id} width={width} height={height}>
             {title && (
-              <g transform={`translate(${margin.left}, 40)`}>
+              <g transform={`translate(${_margins.left}, 40)`}>
                 <text style={{ fontSize: 12, textAnchor: 'left' }}>{title}</text>
               </g>
             )}
             {/* <rect width={width} height={height} fill="none" stroke="black" /> */}
-            <g transform={`translate(${margin.left}, ${margin.top})`}>
+            <g transform={`translate(${_margins.left}, ${_margins.top})`}>
               <defs>
                 <clipPath id="clipManhattanPlot">
                   <rect width={innerWidth} height={innerHeight} fill="none" pointerEvents="all" />
@@ -183,15 +130,17 @@ const ManhattanPlotNew = ({
               ))}
               <g ref={brushRef} />
               <g clipPath="url(#clipManhattanPlot)">
-                {data.map((d) => (
-                  <React.Fragment key={`${accessors.x(d)},${accessors.y(d)},${accessors.color(d)}`}>
-                    {(accessors.isSelected(d) || accessors.isReference(d)) && (
+                {data.map((d, index) => (
+                  <React.Fragment
+                    key={`${_accessors.x(d)},${_accessors.y(d)},${_accessors.color(d)}`}
+                  >
+                    {(_accessors.isSelected(d) || _accessors.isReference(d)) && (
                       <line
-                        key={`${accessors.x(d)},${accessors.y(d)},${accessors.color(
+                        key={`${_accessors.x(d)},${_accessors.y(d)},${_accessors.color(
                           d
                         )}SelectedLine`}
-                        x1={xScaleLocal(accessors.x(d))}
-                        x2={xScaleLocal(accessors.x(d))}
+                        x1={xScaleLocal(_accessors.x(d))}
+                        x2={xScaleLocal(_accessors.x(d))}
                         y1={0}
                         y2={innerHeight}
                         strokeDasharray={12}
@@ -199,39 +148,43 @@ const ManhattanPlotNew = ({
                         opacity="0.5"
                       />
                     )}
-                    {accessors.isReference(d) ? (
-                      <g
-                        transform={`translate(${xScaleLocal(accessors.x(d))}, ${yScaleLocal(
-                          accessors.y(d)
-                        )}),rotate(45)`}
+                    {_accessors.isReference(d) ? (
+                      <TooltipAnchor
+                        key={`${_accessors?.id(d) || index}-tooltip`}
+                        tooltipComponent={renderTooltip}
+                        d={d}
                       >
-                        <rect
-                          key={`${accessors.x(d)},${accessors.y(d)},${accessors.color(d)}`}
-                          width={10}
-                          height={10}
-                          fill={defaultCellTypeColors()[accessors.color(d)]}
-                          onClick={onClick}
-                          // onMouseOver={() => onMouseOver()}
-                          // onFocus={() => onMouseOver()}
-                          // onMouseMove={(e) => onMouseMove(e, d)}
-                          // onMouseLeave={() => onMouseLeave()}
-                        />
-                      </g>
+                        <g
+                          transform={`translate(${xScaleLocal(_accessors.x(d))}, ${yScaleLocal(
+                            _accessors.y(d)
+                          )}),rotate(45)`}
+                        >
+                          <rect
+                            key={`${_accessors.x(d)},${_accessors.y(d)},${_accessors.color(d)}`}
+                            width={10}
+                            height={10}
+                            fill={_accessors.color(d)}
+                            onClick={onClick}
+                            opacity={_accessors.opacity(d) || 0}
+                          />
+                        </g>
+                      </TooltipAnchor>
                     ) : (
-                      <circle
-                        key={`${accessors.x(d)},${accessors.y(d)},${accessors.color(d)}`}
-                        cx={xScaleLocal(accessors.x(d))}
-                        cy={yScaleLocal(Math.min(4, -Math.log10(accessors.y(d))))}
-                        r={accessors.isSelected(d) ? 6 : 3}
-                        fill={defaultCellTypeColors()[accessors.color(d)]}
-                        // fill={accessors.isSelected(d) ? 'black' : 'none'}
-                        // stroke="none"
-                        onClick={onClick}
-                        // onMouseOver={() => onMouseOver()}
-                        // onFocus={() => onMouseOver()}
-                        // onMouseMove={(e) => onMouseMove(e, d)}
-                        // onMouseLeave={() => onMouseLeave()}
-                      />
+                      <TooltipAnchor
+                        key={`${_accessors.id(d) || index}-tooltip`}
+                        tooltipComponent={renderTooltip}
+                        d={d}
+                      >
+                        <circle
+                          key={`${_accessors.x(d)},${_accessors.y(d)},${_accessors.color(d)}`}
+                          cx={xScaleLocal(_accessors.x(d))}
+                          cy={yScaleLocal(_accessors.y(d))}
+                          r={_accessors.isSelected(d) ? 6 : 3}
+                          fill={_accessors.color(d)}
+                          opacity={_accessors.opacity(d) || 0}
+                          onClick={onClick}
+                        />
+                      </TooltipAnchor>
                     )}
                   </React.Fragment>
                 ))}
@@ -241,16 +194,16 @@ const ManhattanPlotNew = ({
                   {/* FDR line */}
                   <text
                     x={innerWidth}
-                    y={yScaleLocal(-Math.log10(item)) - 4}
+                    y={yScaleLocal(item) - 4}
                     stroke="black"
                     opacity="0.5"
                     fontSize={12}
-                  >{`FDR < ${item}`}</text>
+                  >{`FDR < ${item.toPrecision(4)}`}</text>
                   <line
                     x1={0}
                     x2={innerWidth}
-                    y1={yScaleLocal(-Math.log10(item))}
-                    y2={yScaleLocal(-Math.log10(item))}
+                    y1={yScaleLocal(item)}
+                    y2={yScaleLocal(item)}
                     strokeDasharray={12}
                     stroke="black"
                     opacity="0.5"
@@ -266,7 +219,7 @@ const ManhattanPlotNew = ({
               <rect
                 transform={`translate(0, ${innerHeight})`}
                 width={innerWidth}
-                height={margin.bottom}
+                height={_margins.bottom}
                 fill="none"
                 // stroke="black"
                 ref={svg}
@@ -274,27 +227,12 @@ const ManhattanPlotNew = ({
               />
             </g>
           </svg>
-          <div
-            className="manhattanTooltip"
-            style={{
-              opacity: 0,
-              backgroundColor: 'white',
-              border: 'solid',
-              borderWidth: '1px',
-              borderRadius: '5px',
-              padding: '5px',
-              position: 'absolute',
-              zIndex: 1,
-            }}
-          >
-            HI
-          </div>
         </>
       ) : (
         <svg id={id} width={width} height={height}>
           <g
-            transform={`translate(${margin.left + innerWidth / 2}, ${
-              margin.top + innerHeight / 2
+            transform={`translate(${_margins.left + innerWidth / 2}, ${
+              _margins.top + innerHeight / 2
             })`}
           >
             <text style={{ textAnchor: 'middle', alignmentBaseline: 'middle', fontSize: 'larger' }}>
@@ -312,12 +250,13 @@ ManhattanPlotNew.propTypes = {
   data: PropTypes.arrayOf(PropTypes.object).isRequired,
   thresholds: PropTypes.arrayOf(PropTypes.number).isRequired,
   onClick: PropTypes.func,
+  onBrush: PropTypes.func,
   title: PropTypes.string,
   xLabel: PropTypes.string,
   yLabel: PropTypes.string,
   width: PropTypes.number,
   height: PropTypes.number,
-  margin: PropTypes.shape({
+  margins: PropTypes.shape({
     top: PropTypes.number,
     right: PropTypes.number,
     bottom: PropTypes.number,
@@ -328,6 +267,7 @@ ManhattanPlotNew.propTypes = {
     x: PropTypes.func,
     y: PropTypes.func,
     color: PropTypes.func,
+    cellLine: PropTypes.func,
     opacity: PropTypes.func,
     tooltip: PropTypes.func,
     isSelected: PropTypes.func,
@@ -339,17 +279,19 @@ ManhattanPlotNew.propTypes = {
 
 ManhattanPlotNew.defaultProps = {
   onClick: () => {},
+  onBrush: () => {},
   title: 'ManhattanPlot',
   xLabel: 'Chromosomal Position',
   yLabel: '-log\u2081\u2080(p)',
   height: 500,
   width: 500,
-  margin: { left: 60, right: 40, top: 20, bottom: 60 },
+  margins: { left: 60, right: 40, top: 20, bottom: 60 },
   accessors: {
     id: (d) => d.id,
     x: (d) => d.x,
     y: (d) => d.y,
     color: (d) => d.color,
+    cellLine: (d) => d.cellLine,
     opacity: (d) => d.opacity,
     tooltip: (d) => d.tooltip,
     isSelected: (d) => d.isSelected,
