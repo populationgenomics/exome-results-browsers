@@ -8,6 +8,7 @@ const config = {
   maxRegionSize: process.env.MAX_REGION || 2e6,
   isDevelopment: process.env.NODE_ENV === 'development',
   enableNewApi: process.env.ENABLE_NEW_API === 'true',
+  enableNewDatabase: process.env.DATASET_ID === 'test',
 }
 
 module.exports = { config }

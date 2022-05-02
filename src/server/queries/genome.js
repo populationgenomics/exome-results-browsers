@@ -1,3 +1,5 @@
+const { parseNumber } = require('../utils')
+
 class ReferenceGenome {
   static GENOMES = {
     grch37: 'grch37',
@@ -18,6 +20,13 @@ class ReferenceGenome {
 
   static grch38() {
     return this.GENOMES.grch38
+  }
+
+  static getFromEnv() {
+    if (process.env.REFERENCE_GENOME) {
+      return this.getReference(process.env.REFERENCE_GENOME)
+    }
+    return this.default()
   }
 
   static getReference(value) {
@@ -109,18 +118,30 @@ const getChromOffsets = () => {
   return offsets
 }
 
+/**
+ * @param {{chrom: string | number, start: number, stop: number, reference: string}}
+ * @returns {{chrom: string | number, start: number, stop: number}}
+ */
 const convertPositionToGlobalPosition = ({
   chrom,
   start,
   stop,
-  reference = ReferenceGenome.default(),
+  reference = ReferenceGenome.getFromEnv(),
 }) => {
+  if (!chrom) throw new Error('Range attribute `chrom` is required.')
+
   const refId = ReferenceGenome.getReference(reference)
 
   // Range end is not included
-  const offset = getChromOffsets()[refId][chrom] - 1
+  const offset = getChromOffsets()[refId][parseNumber(chrom, null)] - 1
 
-  return { chrom, start: start + offset, stop: stop + offset }
+  if (offset == null) throw new Error(`Could not find offset for chromosome '${chrom}'`)
+
+  return {
+    chrom,
+    start: Number.isInteger(start) ? start + offset : start,
+    stop: Number.isInteger(stop) ? stop + offset : stop,
+  }
 }
 
 module.exports = {

@@ -31,3 +31,25 @@ Results browsers for case-control studies of psychiatric diseases done at the Br
   The Bipolar Exome (BipEx) sequencing project is a collaboration between multiple institutions
   across the globe, which aims to increase our understanding of the disease architecture of
   bipolar disorder.
+
+# Env
+
+```
+# Enables the new API which is not backwards compatible with the existing API, defaults to false.
+ENABLE_NEW_API=true
+
+# Enables the SwaggerUI interface, defaults to false.
+ENABLE_SWAGGER_UI=true
+
+# Reference genome, defaults to grch37 if blank.
+REFERENCE=grch37
+
+# BigQuery dataset id, defaults to grch37 if blank.
+DATASET_ID=test
+```
+
+Example to run the new API for development:
+
+```
+ENABLE_NEW_API=true ENABLE_SWAGGER_UI=true REFERENCE=grch37 DATASET_ID=test yarn start TOB
+```
