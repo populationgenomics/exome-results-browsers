@@ -3,7 +3,7 @@ import React from 'react'
 import { Heatmap } from './dotplotHeatmap'
 
 export default {
-  title: 'Heatmap/DotplotHeatmap',
+  title: 'Components/DotplotHeatmap',
   component: Heatmap,
 }
 

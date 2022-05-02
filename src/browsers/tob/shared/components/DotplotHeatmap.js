@@ -158,7 +158,6 @@ const DotplotHeatmap = ({
                 </tspan>
                 <tspan dy="-1ex">(p)</tspan>
               </text>
-              <br />
               {sizeScaleLocal.ticks(3).map((tick, i) => (
                 <g
                   key={`sizeScaleLocal ${tick}`}
@@ -183,11 +182,9 @@ const DotplotHeatmap = ({
               <text fontSize={12} fontWeight="bold">
                 Mean logCPM
               </text>
-              <br />
               <text y="1.5em" fontSize={12} fontWeight="bold">
                 expression
               </text>
-              <br />
               <rect
                 transform={`translate(0, ${margin.top - 40})`}
                 height={innerHeight}
