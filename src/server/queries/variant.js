@@ -115,6 +115,7 @@ const fetchVariantById = async (id, { config = {} } = {}) => {
  *  rounds?: number[],
  *  fdr?: number,
  *  limit?: number,
+ *  ldReference?: string,
  *  config?: object
  * }} options
  *
@@ -122,7 +123,7 @@ const fetchVariantById = async (id, { config = {} } = {}) => {
  */
 const fetchVariantAssociations = async (
   id,
-  { cellTypeIds = [], rounds = [], fdr = 0.05, limit = 25, config = {} } = {}
+  { cellTypeIds = [], rounds = [], fdr = 0.05, limit = 25, ldReference = null, config = {} } = {}
 ) => {
   if (!id) throw new Error("Parameter 'id' is required.")
 
@@ -144,6 +145,7 @@ const fetchVariantAssociations = async (
     rounds,
     fdr,
     limit,
+    ldReference,
     config,
   })
 

@@ -28,7 +28,6 @@ const GENE_SYMBOL_COLUMN = serverConfig.enableNewDatabase ? 'gene_symbol' : 'gen
  *  ids?: string[],
  *  range?: {chrom?: string | null, start?: number | null, stop?: number | null},
  *  ldReference?: string,
- *  ldOnly?: boolean,
  *  limit?: number,
  *  config?: object
  * }} options
@@ -42,13 +41,19 @@ const fetchAssociations = async ({
   rounds = [],
   fdr = 0.05,
   range = { chrom: null, start: null, stop: null },
-  ldReference: limit = 25,
+  ldReference = null,
+  limit = 25,
   config = {},
 } = {}) => {
   const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
 
   const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.association}`
-  const selectClause = `SELECT *, RAND() ld FROM ${table}`
+
+  // TODO: Implement LD reference scores
+  let selectClause = `SELECT *, NULL ld, NULL ld_reference FROM ${table}`
+  if (ldReference) {
+    selectClause = `SELECT *, RAND() ld, "${ldReference}" ld_reference FROM ${table}`
+  }
 
   const queryParams = {}
   const filters = []

@@ -108,6 +108,7 @@ const fetchGenesById = async (ids, { config = {} } = {}) => {
  *  rounds?: number[],
  *  fdr?: number,
  *  limit?: number,
+ *  ldReference?: string,
  *  config?: object
  * }} options
  *
@@ -115,7 +116,7 @@ const fetchGenesById = async (ids, { config = {} } = {}) => {
  */
 const fetchGeneAssociations = async (
   id,
-  { cellTypeIds = [], rounds = [], fdr = 0.05, limit = 25, config = {} } = {}
+  { cellTypeIds = [], rounds = [], fdr = 0.05, limit = 25, ldReference = null, config = {} } = {}
 ) => {
   if (!id) throw new Error("Parameter 'id' is required.")
 
@@ -125,6 +126,7 @@ const fetchGeneAssociations = async (
     rounds,
     fdr,
     limit,
+    ldReference,
     config,
   })
 

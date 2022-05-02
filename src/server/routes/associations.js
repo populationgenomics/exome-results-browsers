@@ -99,6 +99,7 @@ const setup = (app) => {
         ids: (req.query.ids?.split(',') || []).map((s) => s.trim()).filter((s) => !!s),
         rounds: (req.query.rounds?.split(',') || []).map(parseInt).filter(Number.isInteger),
         range: globalRange,
+        ldReference: req.query.ld_reference,
         fdr: Number.isFinite(parseFloat(req.query.fdr)) ? parseFloat(req.query.fdr) : null,
         limit: parseNumber(req.query.limit, 25),
       })

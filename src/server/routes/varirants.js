@@ -172,6 +172,7 @@ const setup = (app) => {
           .map((s) => s.trim())
           .filter((s) => !!s),
         rounds: (req.query.rounds?.split(',') || []).map(parseInt).filter(Number.isInteger),
+        ldReference: req.query.ld_reference,
         fdr: Number.isFinite(parseFloat(req.query.fdr)) ? parseFloat(req.query.fdr) : null,
         limit: parseNumber(req.query.limit, 25),
       })
