@@ -9,7 +9,7 @@ const numberWithCommas = (x) => {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 }
 
-const DEFAULT_MARGIN = { left: 60, right: 40, top: 20, bottom: 60 }
+const DEFAULT_MARGIN = { left: 80, right: 220, top: 80, bottom: 80 }
 const DEFAULT_ACCESSORS = {
   id: (d) => d.id,
   x: (d) => d.x,
@@ -284,8 +284,8 @@ ManhattanPlotNew.defaultProps = {
   xLabel: 'Chromosomal Position',
   yLabel: '-log\u2081\u2080(p)',
   height: 500,
-  width: 500,
-  margins: { left: 60, right: 40, top: 20, bottom: 60 },
+  width: 1000,
+  margins: { left: 80, right: 220, top: 80, bottom: 80 },
   accessors: {
     id: (d) => d.id,
     x: (d) => d.x,

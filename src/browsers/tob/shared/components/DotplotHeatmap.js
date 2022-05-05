@@ -5,29 +5,52 @@ import { scaleBand, scaleLinear, scaleSequential, interpolateRgb, extent } from 
 const tileSpacing = 0.05
 const rowHeight = 60
 
+const DEFAULT_MARGINS = { left: 80, right: 220, top: 80, bottom: 80 }
+const DEFAULT_ACCESSORS = {
+  x: (d) => d.x,
+  y: (d) => d.y,
+  size: (d) => d.size,
+  color: (d) => d.color,
+  tooltip: (d) => d.tooltip,
+  selected: (d) => d.selected,
+}
+
 const DotplotHeatmap = ({
   id,
   data,
   onClick,
-  options: { title, width, margin, accessors, xScale, yScale, colorScale, sizeScale },
+  title,
+  width,
+  margins,
+  accessors,
+  tooltip,
+  selected,
+  xScale,
+  yScale,
+  colorScale,
+  sizeScale,
 }) => {
+  // eslint-disable-next-line no-underscore-dangle
+  const _margins = { ...DEFAULT_MARGINS, ...margins }
+  // eslint-disable-next-line no-underscore-dangle
+  const _accessors = { ...DEFAULT_ACCESSORS, ...accessors }
   const height = useMemo(
     () =>
-      [...new Set(data.map((item) => accessors.y(item)))].length * rowHeight +
-      margin.top +
-      margin.bottom,
+      [...new Set(data.map((item) => _accessors.y(item)))].length * rowHeight +
+      _margins.top +
+      _margins.bottom,
     [data]
   )
-  const innerHeight = height - margin.top - margin.bottom
-  const innerWidth = width - margin.left - margin.right
+  const innerHeight = height - _margins.top - _margins.bottom
+  const innerWidth = width - _margins.left - _margins.right
   const xScaleLocal = useMemo(
     () =>
       xScale ||
       scaleBand()
         .range([0, innerWidth])
-        .domain([...new Set(data.map((item) => accessors.x(item)))])
+        .domain([...new Set(data.map((item) => _accessors.x(item)))])
         .padding(tileSpacing),
-    [xScale, data, accessors.x]
+    [xScale, data, _accessors.x]
   )
 
   const yScaleLocal = useMemo(
@@ -35,9 +58,9 @@ const DotplotHeatmap = ({
       yScale ||
       scaleBand()
         .range([innerHeight, 0])
-        .domain([...new Set(data.map((item) => accessors.y(item)))])
+        .domain([...new Set(data.map((item) => _accessors.y(item)))])
         .padding(tileSpacing),
-    [yScale, data, accessors.y]
+    [yScale, data, _accessors.y]
   )
 
   const colorScaleLocal = useMemo(
@@ -45,15 +68,15 @@ const DotplotHeatmap = ({
       colorScale ||
       scaleSequential()
         .interpolator(interpolateRgb('#FFFFFF', '#CC0000'))
-        .domain(extent(data, accessors.color))
+        .domain(extent(data, _accessors.color))
         .range(['#FFFFFF', '#CC0000'])
         .nice(),
-    [colorScale, data, accessors.color]
+    [colorScale, data, _accessors.color]
   )
 
   const sizeScaleLocal = useMemo(
-    () => sizeScale || scaleLinear().domain(extent(data, accessors.size)).range([0, 20]).nice(),
-    [sizeScale, data, accessors.size, xScaleLocal, yScaleLocal]
+    () => sizeScale || scaleLinear().domain(extent(data, _accessors.size)).range([0, 20]).nice(),
+    [sizeScale, data, _accessors.size, xScaleLocal, yScaleLocal]
   )
 
   return (
@@ -61,8 +84,8 @@ const DotplotHeatmap = ({
       {data.length ? (
         <svg id={id} width={width} height={height}>
           {title && (
-            <g transform={`translate(${margin.left}, 40)`}>
-              <text style={{ fontSize: 12, textAnchor: 'left' }}>{title}</text>
+            <g transform={`translate(${_margins.left}, 40)`}>
+              <text style={{ fontWeight: 'bold', fontSize: 12, textAnchor: 'start' }}>{title}</text>
             </g>
           )}
           <defs>
@@ -80,7 +103,7 @@ const DotplotHeatmap = ({
               <stop offset="100%" stopColor={`${colorScaleLocal.range()[1]}`} />
             </linearGradient>
           </defs>
-          <g transform={`translate(${margin.left}, ${margin.top})`}>
+          <g transform={`translate(${_margins.left}, ${_margins.top})`}>
             <g id="x-axis">
               <line x2={`${innerWidth}`} stroke="black" />
               <line
@@ -135,21 +158,23 @@ const DotplotHeatmap = ({
             <g id="tiles">
               {data.map((item) => (
                 <circle
-                  key={`${accessors.x(item)},${accessors.y(item)}`}
-                  r={sizeScaleLocal(accessors.size(item))}
-                  cx={xScaleLocal(accessors.x(item)) + xScaleLocal.bandwidth() / 2}
-                  cy={yScaleLocal(accessors.y(item)) + yScaleLocal.bandwidth() / 2}
+                  key={`${_accessors.x(item)},${_accessors.y(item)}`}
+                  r={sizeScaleLocal(_accessors.size(item))}
+                  cx={xScaleLocal(_accessors.x(item)) + xScaleLocal.bandwidth() / 2}
+                  cy={yScaleLocal(_accessors.y(item)) + yScaleLocal.bandwidth() / 2}
                   stroke="black"
-                  fill={`${colorScaleLocal(accessors.color(item))}`}
+                  fill={`${colorScaleLocal(_accessors.color(item))}`}
                   onClick={onClick}
                 />
               ))}
             </g>
           </g>
-          {data.length && (
+          {data.length > 1 && (
             <g
               id="sizeLegend"
-              transform={`translate(${width - margin.right + sizeScaleLocal.range()[1] + 15}, 40)`}
+              transform={`translate(${
+                width - _margins.right + sizeScaleLocal.range()[1] + 15
+              }, 40)`}
             >
               <text fontSize={12} fontWeight="bold">
                 Max -log
@@ -161,7 +186,9 @@ const DotplotHeatmap = ({
               {sizeScaleLocal.ticks(3).map((tick, i) => (
                 <g
                   key={`sizeScaleLocal ${tick}`}
-                  transform={`translate(0, ${margin.top - 40 + sizeScaleLocal.range()[1] * 2 * i})`}
+                  transform={`translate(0, ${
+                    _margins.top - 40 + sizeScaleLocal.range()[1] * 2 * i
+                  })`}
                 >
                   <circle r={sizeScaleLocal(tick)} stroke="black" fill="none" />
                   <text
@@ -174,10 +201,12 @@ const DotplotHeatmap = ({
               ))}
             </g>
           )}
-          {data.length && (
+          {data.length > 1 && (
             <g
               id="colourLegend"
-              transform={`translate(${width - margin.right + sizeScaleLocal.range()[1] + 100}, 40)`}
+              transform={`translate(${
+                width - _margins.right + sizeScaleLocal.range()[1] + 100
+              }, 40)`}
             >
               <text fontSize={12} fontWeight="bold">
                 Mean logCPM
@@ -186,7 +215,7 @@ const DotplotHeatmap = ({
                 expression
               </text>
               <rect
-                transform={`translate(0, ${margin.top - 40})`}
+                transform={`translate(0, ${_margins.top - 40})`}
                 height={innerHeight}
                 width="40"
                 fill="url(#linear-gradient)"
@@ -194,7 +223,7 @@ const DotplotHeatmap = ({
               />
               <g
                 key={`colorScaleLocal ${colorScaleLocal.domain()[1]}`}
-                transform={`translate(40, ${margin.top - 40})`}
+                transform={`translate(40, ${_margins.top - 40})`}
               >
                 <line x2={5} stroke="black" />
                 <text dx={7} style={{ alignmentBaseline: 'middle' }}>
@@ -203,7 +232,7 @@ const DotplotHeatmap = ({
               </g>
               <g
                 key={`colorScaleLocal ${colorScaleLocal.domain()[0]}`}
-                transform={`translate(40, ${margin.top - 40 + innerHeight})`}
+                transform={`translate(40, ${_margins.top - 40 + innerHeight})`}
               >
                 <line x2={5} stroke="black" />
                 <text dx={7} style={{ alignmentBaseline: 'middle' }}>
@@ -216,8 +245,8 @@ const DotplotHeatmap = ({
       ) : (
         <svg id={id} width={width} height={height}>
           <g
-            transform={`translate(${margin.left + innerWidth / 2}, ${
-              margin.top + innerHeight / 2
+            transform={`translate(${_margins.left + innerWidth / 2}, ${
+              _margins.top + innerHeight / 2
             })`}
           >
             <text style={{ textAnchor: 'middle', alignmentBaseline: 'middle', fontSize: 'larger' }}>
@@ -234,45 +263,45 @@ DotplotHeatmap.propTypes = {
   id: PropTypes.string.isRequired,
   data: PropTypes.arrayOf(PropTypes.object).isRequired,
   onClick: PropTypes.func,
-  options: PropTypes.shape({
-    title: PropTypes.string,
-    width: PropTypes.number,
-    margin: PropTypes.shape({
-      top: PropTypes.number,
-      right: PropTypes.number,
-      bottom: PropTypes.number,
-      left: PropTypes.number,
-    }),
-    accessors: PropTypes.shape({
-      x: PropTypes.func,
-      y: PropTypes.func,
-      size: PropTypes.func,
-      color: PropTypes.func,
-    }),
-    toolip: PropTypes.func,
-    selected: PropTypes.func,
-    xScale: PropTypes.func,
-    yScale: PropTypes.func,
-    sizeScale: PropTypes.func,
-    colorScale: PropTypes.func,
+  title: PropTypes.string,
+  width: PropTypes.number,
+  margins: PropTypes.shape({
+    top: PropTypes.number,
+    right: PropTypes.number,
+    bottom: PropTypes.number,
+    left: PropTypes.number,
   }),
+  accessors: PropTypes.shape({
+    x: PropTypes.func,
+    y: PropTypes.func,
+    size: PropTypes.func,
+    color: PropTypes.func,
+  }),
+  tooltip: PropTypes.func,
+  selected: PropTypes.func,
+  xScale: PropTypes.func,
+  yScale: PropTypes.func,
+  sizeScale: PropTypes.func,
+  colorScale: PropTypes.func,
 }
 
 DotplotHeatmap.defaultProps = {
   onClick: () => {},
-  options: {
-    title: 'Heatmap',
-    width: 1000,
-    margin: { top: 50, right: 50, left: 50, bottom: 50 },
-    accessors: {
-      x: (d) => d.x,
-      y: (d) => d.y,
-      size: (d) => d.size,
-      color: (d) => d.color,
-    },
-    tooltip: (d) => d.tooltip,
-    selected: (d) => d.selected,
+  title: 'Heatmap',
+  width: 1000,
+  margins: { left: 80, right: 220, top: 80, bottom: 80 },
+  accessors: {
+    x: (d) => d.x,
+    y: (d) => d.y,
+    size: (d) => d.size,
+    color: (d) => d.color,
   },
+  tooltip: (d) => d.tooltip,
+  selected: (d) => d.selected,
+  xScale: null,
+  yScale: null,
+  sizeScale: null,
+  colorScale: null,
 }
 
 export default DotplotHeatmap

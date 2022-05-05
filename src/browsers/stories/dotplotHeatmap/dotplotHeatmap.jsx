@@ -44,17 +44,15 @@ export const Heatmap = ({ numRows }) => {
     <DotplotHeatmap
       id="Test"
       data={data}
-      options={{
-        title: 'My Big Title Here',
-        width,
-        height,
-        margin,
-        // xScale,
-        // yScale,
-        // colorScale,
-        // sizeScale,
-        accessors: { x: xAccessor, y: yAccessor, color: colorAccessor, size: sizeAccessor },
-      }}
+      title="My Big Title Here"
+      width={width}
+      height={height}
+      margin={margin}
+      // xScale,
+      // yScale,
+      // colorScale,
+      // sizeScale,
+      accessors={{ x: xAccessor, y: yAccessor, color: colorAccessor, size: sizeAccessor }}
     />
   )
 }
