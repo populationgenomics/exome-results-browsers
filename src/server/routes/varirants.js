@@ -67,7 +67,7 @@ const setup = (app) => {
       .fetchVariants({
         query: req.query.search,
         range: globalRange,
-        limit: parseNumber(req.query.limit, 25),
+        limit: req.query.limit ? parseNumber(req.query.limit, 25) : null,
       })
       .catch(next)
 
@@ -174,7 +174,7 @@ const setup = (app) => {
         rounds: (req.query.rounds?.split(',') || []).map(parseInt).filter(Number.isInteger),
         ldReference: req.query.ld_reference,
         fdr: Number.isFinite(parseFloat(req.query.fdr)) ? parseFloat(req.query.fdr) : null,
-        limit: parseNumber(req.query.limit, 25),
+        limit: req.query.limit ? parseNumber(req.query.limit, 25) : null,
       })
       .catch(next)
 

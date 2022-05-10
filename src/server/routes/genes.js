@@ -58,7 +58,7 @@ const setup = (app) => {
       .fetchGenes({
         query: req.query.search,
         expand: req.query.expand === 'true',
-        limit: parseNumber(req.query.limit, 25),
+        limit: req.query.limit ? parseNumber(req.query.limit, 25) : null,
       })
       .catch(next)
 
@@ -166,7 +166,7 @@ const setup = (app) => {
         rounds: (req.query.rounds?.split(',') || []).map(parseInt).filter(Number.isInteger),
         fdr: Number.isFinite(parseFloat(req.query.fdr)) ? parseFloat(req.query.fdr) : null,
         ldReference: req.query.ld_reference,
-        limit: parseNumber(req.query.limit, 25),
+        limit: req.query.limit ? parseNumber(req.query.limit, 25) : null,
       })
       .catch(next)
 
@@ -269,35 +269,6 @@ module.exports = { setup }
  *              required:
  *                - id
  *                - counts
- *              properties:
- *                id:
- *                  description: Group id (cell type or genotype id)
- *                  type: string
- *                counts:
- *                  type: array
- *                  items:
- *                    type: number
- *                    format: int32
- *          bins:
- *            type: array
- *            items:
- *              type: object
- *              required:
- *                - min
- *                - max
- *              properties:
- *                min:
- *                  type: number
- *                  format: float
- *                max:
- *                  type: number
- *                  format: float
- *          statistics:
- *            type: array
- *            items:
- *              type: object
- *              required:
- *                - id
  *                - min
  *                - max
  *                - mean
@@ -311,6 +282,11 @@ module.exports = { setup }
  *                id:
  *                  description: Group id (cell type or genotype id)
  *                  type: string
+ *                counts:
+ *                  type: array
+ *                  items:
+ *                    type: number
+ *                    format: int32
  *                min:
  *                  type: number
  *                  format: float
@@ -336,6 +312,20 @@ module.exports = { setup }
  *                  type: number
  *                  format: float
  *                iqr_max:
+ *                  type: number
+ *                  format: float
+ *          bins:
+ *            type: array
+ *            items:
+ *              type: object
+ *              required:
+ *                - min
+ *                - max
+ *              properties:
+ *                min:
+ *                  type: number
+ *                  format: float
+ *                max:
  *                  type: number
  *                  format: float
  */
