@@ -3,6 +3,8 @@ import PropTypes from 'prop-types'
 
 import ReactLoadingOverlay from 'react-loading-overlay'
 
+ReactLoadingOverlay.propTypes = undefined // fix from https://github.com/derrickpelletier/react-loading-overlay/pull/57
+
 const LoadingOverlay = ({ active, text, children }) => {
   return (
     <ReactLoadingOverlay
