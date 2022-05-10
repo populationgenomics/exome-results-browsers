@@ -141,6 +141,7 @@ const Umap = ({
 
       // if the closest point is within 20 pixels, show the annotation
       if (closestDatum) {
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         newData = data
           .filter((d) => d.label !== closestDatum.label)
           .concat(data.filter((d) => d.label === closestDatum.label))
