@@ -34,9 +34,7 @@ const ViolinPlot = ({
 }) => {
   const svg = useRef()
 
-  // eslint-disable-next-line no-underscore-dangle
   const _margins = { ...DEFAULT_MARGIN, ...margins }
-  // eslint-disable-next-line no-underscore-dangle
   const _accessors = { ...DEFAULT_ACCESSORS, ...accessors }
 
   const innerWidth = width - _margins.left - _margins.right
