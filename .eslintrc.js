@@ -1,5 +1,5 @@
 module.exports = {
-  extends: ['airbnb', 'prettier', 'prettier/react'],
+  extends: ['airbnb', 'prettier', 'prettier/react', 'plugin:react-hooks/recommended'],
   env: {
     browser: true,
   },
@@ -9,6 +9,7 @@ module.exports = {
     'prettier/prettier': 'error',
     'react/jsx-filename-extension': ['error', { extensions: ['.js', '.jsx'] }],
     'react/jsx-props-no-spreading': 'off',
+    'no-underscore-dangle': 'off',
   },
   overrides: [
     {
