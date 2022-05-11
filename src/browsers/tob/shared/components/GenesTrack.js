@@ -124,7 +124,7 @@ const GenesTrack = ({
       .on('end', (e) => Emit(e)) // emit region update here
 
     zoomBehaviour(select(svgGenes.current))
-  }, [xScale])
+  }, [xScale, innerRegion.chrom, setInnerRegion, onChange])
 
   return (
     <>

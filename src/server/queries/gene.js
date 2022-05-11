@@ -63,6 +63,7 @@ const fetchGeneById = async (id, { config = {} } = {}) => {
   const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
 
   const geneRecord = await resolveGene(id, { config })
+  if (!geneRecord) return null
 
   const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneModel}`
   const select = `SELECT * FROM ${table}`
@@ -86,7 +87,7 @@ const fetchGenesById = async (ids, { config = {} } = {}) => {
   if (!ids) return []
 
   const geneRecords = await resolveGenes(ids, { config })
-  if (!geneRecords) return []
+  if (!geneRecords?.length) return []
 
   const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
   const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneModel}`
@@ -119,6 +120,8 @@ const fetchGeneAssociations = async (
   { cellTypeIds = [], rounds = [], fdr = 0.05, limit = 25, ldReference = null, config = {} } = {}
 ) => {
   if (!id) throw new Error("Parameter 'id' is required.")
+  const gene = await resolveGene(id, { config })
+  if (!gene) return null
 
   const rows = await fetchAssociations({
     genes: [id],
@@ -166,23 +169,16 @@ const fetchGeneExpression = async (id, { config = {} } = {}) => {
     return { min: min + step * i, max: min + step * (i + 1) }
   })
 
-  // Compute bin counts
+  // Compute bin counts and distribution statistics
   const histograms = distributions.map((d) => {
-    return {
-      id: d.id,
-      counts: bins.map((b) => {
-        return d.data.filter((n) => n >= b.min && n < b.max).length
-      }),
-    }
-  })
-
-  // Compute box plot statistic
-  const statistics = distributions.map((d) => {
     const [q1, median, q3] = quantileSeq(d.data, [0.25, 0.5, 0.75])
     const iqr = q3 - q1
 
     return {
       id: d.id,
+      counts: bins.map((b) => {
+        return d.data.filter((n) => n >= b.min && n < b.max).length
+      }),
       min: Math.min(...d.data),
       max: Math.max(...d.data),
       mean: mean(d.data),
@@ -198,7 +194,6 @@ const fetchGeneExpression = async (id, { config = {} } = {}) => {
   return {
     histograms,
     bins,
-    statistics,
   }
 }
 

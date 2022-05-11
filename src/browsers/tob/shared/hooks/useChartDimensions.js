@@ -1,22 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-const DEFAULT_MARGIN = Object.freeze({ top: 10, right: 10, bottom: 10, left: 10 })
-const DEFAULT_HEIGHT = 400
-const DEFAULT_WIDTH = 400
+const DEFAULT_MARGIN = Object.freeze({ top: 0, right: 0, bottom: 0, left: 0 })
 
-const computeChartDimensions = ({
-  width = null,
-  height = DEFAULT_HEIGHT,
-  margin = DEFAULT_MARGIN,
-} = {}) => {
+const computeChartDimensions = ({ width = null, height = null, margin = DEFAULT_MARGIN } = {}) => {
   const dims = {
     width,
-    height: height || DEFAULT_HEIGHT,
+    height,
     margin: {
-      top: margin.top || 10,
-      right: margin.right || 10,
-      bottom: margin.bottom || 10,
-      left: margin.top || 10,
+      top: margin.top || DEFAULT_MARGIN.top,
+      right: margin.right || DEFAULT_MARGIN.right,
+      bottom: margin.bottom || DEFAULT_MARGIN.bottom,
+      left: margin.top || DEFAULT_MARGIN.left,
     },
   }
 
@@ -27,16 +21,13 @@ const computeChartDimensions = ({
   }
 }
 
-const useChartDimensions = ({
-  width = null,
-  height = DEFAULT_HEIGHT,
-  margin = DEFAULT_MARGIN,
-  container = null, // React ref object containing the parent element to watch
-} = {}) => {
+const useChartDimensions = ({ width = null, height = null, margin = DEFAULT_MARGIN } = {}) => {
+  const ref = useRef()
+
   const dimensions = computeChartDimensions({
     // No user-specified width or parent container to retreive width from. We will set width
     // to a sensible default here so the plot will still display.
-    width: !container && !width ? DEFAULT_WIDTH : width,
+    width,
     height,
     margin,
   })
@@ -45,6 +36,9 @@ const useChartDimensions = ({
   const [observedHeight, setObservedHeight] = useState(0)
 
   useEffect(() => {
+    if (dimensions.width && dimensions.height) return
+
+    const element = ref.current
     const observer = new ResizeObserver((entries) => {
       // Guard against case when there are no elements being observed.
       if (!Array.isArray(entries)) return
@@ -63,13 +57,13 @@ const useChartDimensions = ({
           setObservedHeight(entry.contentRect.height)
         }
       }
-    })
+    }, [])
 
-    if (container) observer.observe(container.current)
+    if (element) observer.observe(element)
 
     // eslint-disable-next-line consistent-return
-    return () => (container ? observer.unobserve(container.current) : null)
-  }, [])
+    return () => (element ? observer.unobserve(element) : null)
+  })
 
   // Keep user defined width and height if they were passed in to keep chart area constant and
   // non-responsive.
@@ -79,7 +73,7 @@ const useChartDimensions = ({
     margin,
   })
 
-  return updatedDimensions
+  return [ref, updatedDimensions]
 }
 
 export default useChartDimensions
