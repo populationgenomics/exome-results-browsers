@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { scaleBand, scaleLinear, scaleSequential, interpolateRgb, extent } from 'd3'
+import { TooltipAnchor } from '@gnomad/ui'
 
 const tileSpacing = 0.05
 const rowHeight = 60
@@ -23,8 +24,6 @@ const DotplotHeatmap = ({
   width,
   margins,
   accessors,
-  tooltip,
-  selected,
   xScale,
   yScale,
   colorScale,
@@ -78,6 +77,16 @@ const DotplotHeatmap = ({
     () => sizeScale || scaleLinear().domain(extent(data, _accessors.size)).range([0, 20]).nice(),
     [sizeScale, data, _accessors.size, xScaleLocal, yScaleLocal]
   )
+
+  const renderTooltip = ({ item }) => {
+    if (_accessors?.tooltip(item)) {
+      if (React.isValidElement(_accessors.tooltip(item))) {
+        return _accessors.tooltip(item)
+      }
+      return <div>{_accessors.tooltip(item)}</div>
+    }
+    return null
+  }
 
   return (
     <>
@@ -156,16 +165,22 @@ const DotplotHeatmap = ({
               ))}
             </g>
             <g id="tiles">
-              {data.map((item) => (
-                <circle
-                  key={`${_accessors.x(item)},${_accessors.y(item)}`}
-                  r={sizeScaleLocal(_accessors.size(item))}
-                  cx={xScaleLocal(_accessors.x(item)) + xScaleLocal.bandwidth() / 2}
-                  cy={yScaleLocal(_accessors.y(item)) + yScaleLocal.bandwidth() / 2}
-                  stroke="black"
-                  fill={`${colorScaleLocal(_accessors.color(item))}`}
-                  onClick={onClick}
-                />
+              {data.map((item, index) => (
+                <TooltipAnchor
+                  key={`${_accessors?.x(item) - _accessors?.y(item) || index}-tooltip`}
+                  tooltipComponent={renderTooltip}
+                  item={item}
+                >
+                  <circle
+                    key={`${_accessors.x(item)},${_accessors.y(item)}`}
+                    r={sizeScaleLocal(_accessors.size(item))}
+                    cx={xScaleLocal(_accessors.x(item)) + xScaleLocal.bandwidth() / 2}
+                    cy={yScaleLocal(_accessors.y(item)) + yScaleLocal.bandwidth() / 2}
+                    stroke="black"
+                    fill={`${colorScaleLocal(_accessors.color(item))}`}
+                    onClick={onClick}
+                  />
+                </TooltipAnchor>
               ))}
             </g>
           </g>
@@ -276,9 +291,9 @@ DotplotHeatmap.propTypes = {
     y: PropTypes.func,
     size: PropTypes.func,
     color: PropTypes.func,
+    tooltip: PropTypes.func,
+    selected: PropTypes.func,
   }),
-  tooltip: PropTypes.func,
-  selected: PropTypes.func,
   xScale: PropTypes.func,
   yScale: PropTypes.func,
   sizeScale: PropTypes.func,
@@ -295,9 +310,9 @@ DotplotHeatmap.defaultProps = {
     y: (d) => d.y,
     size: (d) => d.size,
     color: (d) => d.color,
+    tooltip: (d) => d.tooltip,
+    selected: (d) => d.selected,
   },
-  tooltip: (d) => d.tooltip,
-  selected: (d) => d.selected,
   xScale: null,
   yScale: null,
   sizeScale: null,

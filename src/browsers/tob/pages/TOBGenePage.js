@@ -62,6 +62,43 @@ const TOBGenePage = ({ gene }) => {
     </table>
   )
 
+  const dotplotTooltip = (d) => (
+    <table>
+      <tbody>
+        <tr>
+          <td>
+            <b>Gene: </b>
+          </td>
+          <td>{d.gene_symbol}</td>
+        </tr>
+        <tr>
+          <td>
+            <b>Cell type: </b>
+          </td>
+          <td>{d.cell_type_id} </td>
+        </tr>
+        <tr>
+          <td>
+            <b>Min P-value: </b>
+          </td>
+          <td>{d.min_p_value.toPrecision(2)} </td>
+        </tr>
+        <tr>
+          <td>
+            <b>Max -log10(p): </b>
+          </td>
+          <td>{-1 * Math.log(d.min_p_value).toPrecision(2)} </td>
+        </tr>
+        <tr>
+          <td>
+            <b>Mean Log CPM: </b>
+          </td>
+          <td> {d.mean_log_cpm.toPrecision(2)} </td>
+        </tr>
+      </tbody>
+    </table>
+  )
+
   useEffect(() => {
     setIsLoading(true)
     const aggregateGenePath = `/api/genes/${gene}/aggregate/`
@@ -178,6 +215,7 @@ const TOBGenePage = ({ gene }) => {
               y: (d) => d.gene_symbol,
               size: (d) => -Math.log(d.min_p_value),
               color: (d) => d.mean_log_cpm,
+              tooltip: dotplotTooltip,
             }}
           />
         </PlotWrapper>

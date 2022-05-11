@@ -58,7 +58,7 @@ const setup = (app) => {
       .fetchGenes({
         query: req.query.search,
         expand: req.query.expand === 'true',
-        limit: parseNumber(req.query.limit, 25),
+        limit: req.query.limit ? parseNumber(req.query.limit, 25) : null,
       })
       .catch(next)
 
@@ -166,7 +166,7 @@ const setup = (app) => {
         rounds: (req.query.rounds?.split(',') || []).map(parseInt).filter(Number.isInteger),
         fdr: Number.isFinite(parseFloat(req.query.fdr)) ? parseFloat(req.query.fdr) : null,
         ldReference: req.query.ld_reference,
-        limit: parseNumber(req.query.limit, 25),
+        limit: req.query.limit ? parseNumber(req.query.limit, 25) : null,
       })
       .catch(next)
 
