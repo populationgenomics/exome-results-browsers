@@ -104,7 +104,7 @@ const ViolinPlot = ({
           })`}
         >
           <text textAnchor="middle" alignmentBaseline="middle" fontSize={16}>
-            No data to display.
+            No data to display
           </text>
         </g>
       </svg>
