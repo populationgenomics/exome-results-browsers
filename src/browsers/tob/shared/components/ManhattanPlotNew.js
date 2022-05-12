@@ -229,7 +229,7 @@ const ManhattanPlotNew = ({
                     r={_accessors.isSelected(d) ? 6 : 3}
                     fill={_accessors.color(d)}
                     opacity={_accessors.opacity(d) || 0}
-                    onClick={onClick}
+                    onClick={() => _accessors.onClick(d)}
                   />
                 </TooltipAnchor>
               )}

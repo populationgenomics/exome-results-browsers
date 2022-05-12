@@ -57,10 +57,10 @@ const ViolinPlot = ({
     [yScale, innerHeight, max]
   )
 
-  const maxCount = useMemo(
-    () => Math.max(...histograms.flatMap(_accessors.y)),
-    [_accessors.y, histograms]
-  )
+  const maxCount = useMemo(() => Math.max(...histograms.flatMap(_accessors.y)), [
+    _accessors.y,
+    histograms,
+  ])
 
   const binHeightScale = useMemo(
     () => scaleLinear().range([0, xScaleLocal.bandwidth()]).domain([-maxCount, maxCount]),
@@ -117,7 +117,7 @@ const ViolinPlot = ({
         {/* Title */}
         {title && (
           <g id={`${id}-title`} transform={`translate(${_margins.left}, 40)`}>
-            <text textAnchor="start" fontSize={16}>
+            <text textAnchor="start" fontSize={16} fontWeight="bold">
               {title}
             </text>
           </g>

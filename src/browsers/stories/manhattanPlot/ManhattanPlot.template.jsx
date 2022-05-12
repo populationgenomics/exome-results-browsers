@@ -70,7 +70,7 @@ const ManhattanPlotTemplate = ({ numCellLines, selected, referenced }) => {
   }
 
   const height = 500
-  const margins = { left: 80, right: 100, top: 80, bottom: 100 }
+  const margins = { left: 80, right: 220, top: 80, bottom: 80 }
   const thresholds = [0.05, 0.01].map((item) => -1 * Math.log(item))
 
   useEffect(() => {
