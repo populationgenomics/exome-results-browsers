@@ -43,7 +43,7 @@ const fetchGenes = async ({
         '(',
         [
           '(global_start >= @start AND global_stop <= @stop)',
-          '(global_start <= @start AND global_stop <= @start AND global_stop <= @stop)',
+          '(global_start <= @start AND global_stop >= @start AND global_stop <= @stop)',
           '(global_start >= @start AND global_start <= @stop AND global_stop >= @stop)',
           '(global_start <= @start AND global_stop >= @stop)',
         ].join(' OR '),
