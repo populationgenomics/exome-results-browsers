@@ -139,8 +139,8 @@ const fetchVariantAssociations = async (
     variantIds: [normalizeVariantId(id)],
     range: {
       chrom: globalCoordinates.chrom,
-      start: globalCoordinates.start - 0.5e6,
-      stop: globalCoordinates.stop + 0.5e6,
+      start: globalCoordinates.start - 1e6,
+      stop: globalCoordinates.stop + 1e6,
     },
     rounds,
     fdr,
