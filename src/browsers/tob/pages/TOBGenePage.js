@@ -209,8 +209,9 @@ const TOBGenePage = ({ gene }) => {
           <DotplotHeatmap
             id="Heatmap"
             title="eQTL maxmimum association strength and mean gene expression"
-            data={heatmapResponse.filter((item) => cellTypes[item.cell_type_id]) || []}
+            data={heatmapResponse || []}
             accessors={{
+              id: (d) => `${d.cell_type_id}-${d.gene_symbol}`,
               x: (d) => d.cell_type_id,
               y: (d) => d.gene_symbol,
               size: (d) => -Math.log(d.min_p_value),
@@ -240,8 +241,10 @@ const TOBGenePage = ({ gene }) => {
             <ManhattanPlotNew
               id="ManhattanPlot"
               data={
-                manhattanResponse.filter((item) => item.bp >= coords[0] && item.bp <= coords[1]) ||
-                []
+                manhattanResponse.filter(
+                  (item) =>
+                    item.bp >= coords[0] && item.bp <= coords[1] && cellTypes[item.cell_type_id]
+                ) || []
               }
               thresholds={[]}
               onBrush={handleBrush}

@@ -1,13 +1,13 @@
 import React from 'react'
 
-import { Heatmap } from './dotplotHeatmap'
+import DotplotHeatmapTemplate from './DotplotHeatmap.template'
 
 export default {
   title: 'Components/DotplotHeatmap',
-  component: Heatmap,
+  component: DotplotHeatmapTemplate,
 }
 
-const Template = (args) => <Heatmap {...args} />
+const Template = (args) => <DotplotHeatmapTemplate {...args} />
 
 export const Main = Template.bind({})
 Main.args = {

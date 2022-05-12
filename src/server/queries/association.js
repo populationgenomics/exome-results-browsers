@@ -108,8 +108,10 @@ const fetchAssociations = async ({
       filters.push(`(${rangeFilters.join(' OR ')})`)
     }
 
-    queryParams.genes = geneRecords.map((g) => g.gene_id.toString().toUpperCase())
     filters.push(`UPPER(${GENE_ID_COLUMN}) IN UNNEST(@genes)`)
+    queryParams.genes = geneRecords?.length
+      ? geneRecords.map((g) => g.gene_id.toString().toUpperCase())
+      : genes
   }
 
   // Add filter for matching cell type ids
@@ -252,23 +254,16 @@ const fetchAssociationEffect = async (id, { config = {} } = {}) => {
     return { min: min + step * i, max: min + step * (i + 1) }
   })
 
-  // Compute bin counts
+  // Compute bin counts and distribution statistics
   const histograms = distributions.map((d) => {
-    return {
-      id: d.id,
-      counts: bins.map((b) => {
-        return d.data.filter((n) => n >= b.min && n < b.max).length
-      }),
-    }
-  })
-
-  // Compute box plot statistic
-  const statistics = distributions.map((d) => {
     const [q1, median, q3] = quantileSeq(d.data, [0.25, 0.5, 0.75])
     const iqr = q3 - q1
 
     return {
       id: d.id,
+      counts: bins.map((b) => {
+        return d.data.filter((n) => n >= b.min && n < b.max).length
+      }),
       min: Math.min(...d.data),
       max: Math.max(...d.data),
       mean: lodash.mean(d.data),
@@ -284,7 +279,6 @@ const fetchAssociationEffect = async (id, { config = {} } = {}) => {
   return {
     histograms,
     bins,
-    statistics,
   }
 }
 

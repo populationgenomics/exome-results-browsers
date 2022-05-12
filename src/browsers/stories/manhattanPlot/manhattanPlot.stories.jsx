@@ -1,13 +1,13 @@
 import React from 'react'
 
-import { ManhattanPlot } from './manhattanPlot'
+import ManhattanPlotTemplate from './ManhattanPlot.template'
 
 export default {
   title: 'Components/ManhattanPlot',
-  component: ManhattanPlot,
+  component: ManhattanPlotTemplate,
 }
 
-const Template = (args) => <ManhattanPlot {...args} />
+const Template = (args) => <ManhattanPlotTemplate {...args} />
 
 export const someSelected = Template.bind({})
 someSelected.args = {
