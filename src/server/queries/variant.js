@@ -162,7 +162,22 @@ const fetchVariantAssociationAggregate = async (id, { config = {} } = {}) => {
   if (!id) throw new Error("Parameter 'id' is required.")
 
   const cellTypes = await fetchCellTypes({ config })
-  const genes = await fetchGenes({ limit: 5, expand: false })
+
+  const variant = parseVariantId(id)
+  const globalCoordinates = convertPositionToGlobalPosition({
+    chrom: variant.chrom,
+    start: variant.pos,
+    stop: variant.pos,
+  })
+
+  const genes = await fetchGenes({
+    range: {
+      chrom: globalCoordinates.chrom,
+      start: globalCoordinates.start - 1e6,
+      stop: globalCoordinates.stop + 1e6,
+    },
+    expand: false,
+  })
 
   return cellTypes.flatMap((c) => {
     return genes.map((g) => {
