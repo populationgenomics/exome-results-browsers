@@ -1,9 +1,9 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef } from 'react'
 import PropTypes from 'prop-types'
 
 import { Link } from '@gnomad/ui'
 
-import { scaleLinear, zoom, select } from 'd3'
+import { scaleLinear } from 'd3'
 
 const layoutRows = (genes, scalePosition) => {
   if (genes.length === 0) {
@@ -83,48 +83,51 @@ const GenesTrack = ({
   margin,
   rowHeight,
   width,
-  innerRegion,
-  setInnerRegion,
-  onChange,
+  start,
+  stop,
+  // innerRegion,
+  // setInnerRegion,
+  // onChange,
   topPadding,
 }) => {
   const svgGenes = useRef()
 
   const xScale = scaleLinear()
-    .domain([innerRegion.start, innerRegion.stop])
+    .domain([start, stop])
     .range([0, width - margin.left - margin.right])
 
   const rows = layoutRows(genes, xScale)
+  console.log(rows)
   const innerHeight = rows.length * rowHeight + topPadding
 
   const innerWidth = width - margin.left - margin.right
   const height = innerHeight + margin.top + margin.bottom
 
-  useEffect(() => {
-    function updateChart(e) {
-      setInnerRegion({
-        chrom: innerRegion.chrom,
-        start: e.transform.rescaleX(xScale).domain()[0],
-        stop: e.transform.rescaleX(xScale).domain()[1],
-      })
-    }
+  // useEffect(() => {
+  //   function updateChart(e) {
+  //     setInnerRegion({
+  //       chrom: innerRegion.chrom,
+  //       start: e.transform.rescaleX(xScale).domain()[0],
+  //       stop: e.transform.rescaleX(xScale).domain()[1],
+  //     })
+  //   }
 
-    function Emit(e) {
-      onChange({
-        chrom: innerRegion.chrom,
-        start: Math.round(e.transform.rescaleX(xScale).domain()[0]),
-        stop: Math.round(e.transform.rescaleX(xScale).domain()[1]),
-      })
-    }
+  //   function Emit(e) {
+  //     onChange({
+  //       chrom: innerRegion.chrom,
+  //       start: Math.round(e.transform.rescaleX(xScale).domain()[0]),
+  //       stop: Math.round(e.transform.rescaleX(xScale).domain()[1]),
+  //     })
+  //   }
 
-    const zoomBehaviour = zoom()
-      // FIXME: Zooming disabled until we fix responsiveness
-      .scaleExtent([1, 1]) // This control how much you can unzoom (x0.5) and zoom (x20)
-      .on('zoom', (e) => updateChart(e))
-      .on('end', (e) => Emit(e)) // emit region update here
+  //   const zoomBehaviour = zoom()
+  //     // FIXME: Zooming disabled until we fix responsiveness
+  //     .scaleExtent([1, 1]) // This control how much you can unzoom (x0.5) and zoom (x20)
+  //     .on('zoom', (e) => updateChart(e))
+  //     .on('end', (e) => Emit(e)) // emit region update here
 
-    zoomBehaviour(select(svgGenes.current))
-  }, [xScale, innerRegion.chrom, setInnerRegion, onChange])
+  //   zoomBehaviour(select(svgGenes.current))
+  // }, [xScale, innerRegion.chrom, setInnerRegion, onChange])
 
   return (
     <>
@@ -196,14 +199,16 @@ GenesTrack.propTypes = {
   }),
   rowHeight: PropTypes.number,
   width: PropTypes.number,
-  innerRegion: PropTypes.shape({
-    chrom: PropTypes.string.isRequired,
-    start: PropTypes.number.isRequired,
-    stop: PropTypes.number.isRequired,
-  }).isRequired,
-  onChange: PropTypes.func.isRequired,
+  // innerRegion: PropTypes.shape({
+  //   chrom: PropTypes.string.isRequired,
+  //   start: PropTypes.number.isRequired,
+  //   stop: PropTypes.number.isRequired,
+  // }).isRequired,
+  // onChange: PropTypes.func.isRequired,
   topPadding: PropTypes.number,
-  setInnerRegion: PropTypes.func.isRequired,
+  // setInnerRegion: PropTypes.func.isRequired,
+  start: PropTypes.number.isRequired,
+  stop: PropTypes.number.isRequired,
 }
 
 GenesTrack.defaultProps = {

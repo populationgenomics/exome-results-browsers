@@ -17,6 +17,7 @@ geneQuery.args = {
 export const eqtlQuery = Template.bind({})
 eqtlQuery.args = {
   query: '17:41216206:T:C:ENSG00000012048:nk:1',
+  // query: '17:41245471:C:T:ENSG00000012048:cd4nc:1',
 }
 
 export const geneDoesNotExist = Template.bind({})
