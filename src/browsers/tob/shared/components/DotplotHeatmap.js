@@ -6,7 +6,7 @@ import { TooltipAnchor } from '@gnomad/ui'
 const tileSpacing = 0.05
 const rowHeight = 60
 
-const DEFAULT_MARGINS = { left: 60, right: 40, top: 20, bottom: 60 }
+const DEFAULT_MARGINS = { left: 80, right: 220, top: 80, bottom: 80 }
 const DEFAULT_ACCESSORS = {
   id: (d) => `${d.x}-${d.y}`,
   x: (d) => d.x,
@@ -114,8 +114,8 @@ const DotplotHeatmap = ({
     <svg id={id} width={width} height={height}>
       {/* title */}
       {title && (
-        <g id={`${id}-title`} transform={`translate(${_margins.left}, 40)`}>
-          <text style={{ fontSize: 16, textAnchor: 'start' }}>{title}</text>
+        <g id={`${id}-title`} transform={`translate(${_margins.left}, 20)`}>
+          <text style={{ fontWeight: 'bold', fontSize: 16, textAnchor: 'start' }}>{title}</text>
         </g>
       )}
 
@@ -220,7 +220,7 @@ const DotplotHeatmap = ({
       {data.length && (
         <g
           id={`${id}-size-legend`}
-          transform={`translate(${width - _margins.right + sizeScaleLocal.range()[1] + 15}, 40)`}
+          transform={`translate(${width - _margins.right + sizeScaleLocal.range()[1] + 15}, 20)`}
         >
           <text fontSize={12}>
             Max -log
@@ -232,7 +232,7 @@ const DotplotHeatmap = ({
           {sizeScaleLocal.ticks(3).map((tick, i) => (
             <g
               key={`sizeScaleLocal ${tick}`}
-              transform={`translate(0, ${_margins.top - 40 + sizeScaleLocal.range()[1] * 2 * i})`}
+              transform={`translate(0, ${_margins.top - 20 + sizeScaleLocal.range()[1] * 2 * i})`}
             >
               <circle r={sizeScaleLocal(tick)} stroke="black" fill="none" />
               <text
@@ -250,14 +250,14 @@ const DotplotHeatmap = ({
       {data.length && (
         <g
           id={`${id}-color-legend`}
-          transform={`translate(${width - _margins.right + sizeScaleLocal.range()[1] + 100}, 40)`}
+          transform={`translate(${width - _margins.right + sizeScaleLocal.range()[1] + 100}, 20)`}
         >
           <text fontSize={12}>Mean logCPM</text>
           <text y="1.5em" fontSize={12}>
             expression
           </text>
           <rect
-            transform={`translate(0, ${_margins.top - 40})`}
+            transform={`translate(0, ${_margins.top - 20})`}
             height={innerHeight}
             width="40"
             fill="url(#linear-gradient)"
@@ -265,7 +265,7 @@ const DotplotHeatmap = ({
           />
           <g
             key={`colorScaleLocal ${colorScaleLocal.domain()[1]}`}
-            transform={`translate(40, ${_margins.top - 40})`}
+            transform={`translate(40, ${_margins.top - 20})`}
           >
             <line x2={5} stroke="black" />
             <text dx={7} style={{ alignmentBaseline: 'middle' }}>
@@ -274,7 +274,7 @@ const DotplotHeatmap = ({
           </g>
           <g
             key={`colorScaleLocal ${colorScaleLocal.domain()[0]}`}
-            transform={`translate(40, ${_margins.top - 40 + innerHeight})`}
+            transform={`translate(40, ${_margins.top - 20 + innerHeight})`}
           >
             <line x2={5} stroke="black" />
             <text dx={7} style={{ alignmentBaseline: 'middle' }}>
