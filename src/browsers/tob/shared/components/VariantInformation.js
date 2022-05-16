@@ -26,7 +26,7 @@ const VariantInformation = ({ variant, referenceGenome }) => {
         </AttributeList.Item>
         <AttributeList.Item label="Frequency in HRC">{variant.a2_freq_hrc}</AttributeList.Item>
         <AttributeList.Item label="Region">
-          {variant.chrom}:{variant.bp}-{variant.bp}
+          {variant.chrom}:{Math.max(1, variant.bp - 1e6)}-{variant.bp + 1e6}
         </AttributeList.Item>
         <AttributeList.Item label="External resources">
           <ExternalLink href={ucscUrl}>UCSC Browser</ExternalLink>,{' '}
@@ -52,6 +52,6 @@ VariantInformation.propTypes = {
   referenceGenome: PropTypes.string,
 }
 
-VariantInformation.defaultProps = { referenceGenome: 'grch37' }
+VariantInformation.defaultProps = { referenceGenome: 'GRCh37' }
 
 export default VariantInformation
