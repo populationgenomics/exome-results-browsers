@@ -12,6 +12,7 @@ const DEFAULT_ACCESSORS = {
   y: (d) => d.y,
   q1: (d) => d.q1,
   median: (d) => d.median,
+  mean: (d) => d.mean,
   q3: (d) => d.q3,
   iqr: (d) => d.iqr,
   min: (d) => d.min,
@@ -27,18 +28,18 @@ const ViolinPlot = ({
   yLabel,
   width,
   height,
-  margins,
+  margin,
   accessors,
   xScale,
   yScale,
 }) => {
   const svg = useRef()
 
-  const _margins = { ...DEFAULT_MARGIN, ...margins }
+  const _margin = { ...DEFAULT_MARGIN, ...margin }
   const _accessors = { ...DEFAULT_ACCESSORS, ...accessors }
 
-  const innerWidth = width - _margins.left - _margins.right
-  const innerHeight = height - _margins.top - _margins.bottom
+  const innerWidth = width - _margin.left - _margin.right
+  const innerHeight = height - _margin.top - _margin.bottom
 
   const bins = useMemo(() => data?.bins ?? [], [data])
   const max = useMemo(() => Math.max(...bins.map((item) => item.max)), [bins])
@@ -99,8 +100,8 @@ const ViolinPlot = ({
     return (
       <svg id={id} width={width} height={height}>
         <g
-          transform={`translate(${_margins.left + innerWidth / 2}, ${
-            _margins.top + innerHeight / 2
+          transform={`translate(${_margin.left + innerWidth / 2}, ${
+            _margin.top + innerHeight / 2
           })`}
         >
           <text textAnchor="middle" alignmentBaseline="middle" fontSize={16}>
@@ -116,7 +117,7 @@ const ViolinPlot = ({
       <svg ref={svg} id={id} width={width} height={height}>
         {/* Title */}
         {title && (
-          <g id={`${id}-title`} transform={`translate(${_margins.left}, 40)`}>
+          <g id={`${id}-title`} transform={`translate(${_margin.left}, 40)`}>
             <text textAnchor="start" fontSize={16}>
               {title}
             </text>
@@ -131,7 +132,7 @@ const ViolinPlot = ({
         </defs>
 
         {/* Main plot */}
-        <g transform={`translate(${_margins.left}, ${_margins.top})`}>
+        <g transform={`translate(${_margin.left}, ${_margin.top})`}>
           {/* x-axis */}
           <g id={`${id}_x-axis`} transform={`translate(0, ${innerHeight})`}>
             <line x2={`${innerWidth}`} stroke="black" />
@@ -289,7 +290,7 @@ ViolinPlot.propTypes = {
   yLabel: PropTypes.string,
   width: PropTypes.number,
   height: PropTypes.number,
-  margins: PropTypes.shape({
+  margin: PropTypes.shape({
     top: PropTypes.number,
     right: PropTypes.number,
     bottom: PropTypes.number,
@@ -301,6 +302,7 @@ ViolinPlot.propTypes = {
     y: PropTypes.func,
     q1: PropTypes.func,
     median: PropTypes.func,
+    mean: PropTypes.func,
     q3: PropTypes.func,
     iqr: PropTypes.func,
     max: PropTypes.func,
@@ -318,7 +320,7 @@ ViolinPlot.defaultProps = {
   yLabel: null,
   height: 500,
   width: 500,
-  margins: { ...DEFAULT_MARGIN },
+  margin: { ...DEFAULT_MARGIN },
   accessors: { ...DEFAULT_ACCESSORS },
   xScale: null,
   yScale: null,
