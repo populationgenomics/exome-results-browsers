@@ -37,6 +37,12 @@ const AssociationTooltip = ({ association }) => {
         </tr>
         <tr>
           <td>
+            <b>FDR: </b>
+          </td>
+          <td>{association.fdr.toPrecision(2)} </td>
+        </tr>
+        <tr>
+          <td>
             <b>-log10(p): </b>
           </td>
           <td> {-1 * Math.log10(association.p_value).toFixed(2)} </td>
