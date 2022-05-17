@@ -90,7 +90,7 @@ const ViolinPlotTemplate = ({ query, data }) => {
         width={dimensions.boundedWidth}
         title={`${query} ${isEqtl ? 'Effect' : 'Expression'}`}
         yLabel={`${isEqtl ? 'Effect' : 'Expression'}`}
-        margins={{ left: 80, right: 80, top: 80, bottom: 200 }}
+        margin={{ left: 80, right: 80, top: 80, bottom: 200 }}
         accessors={accessors}
       />
     </div>

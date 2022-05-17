@@ -139,8 +139,8 @@ const fetchVariantAssociations = async (
     variantIds: [normalizeVariantId(id)],
     range: {
       chrom: globalCoordinates.chrom,
-      start: globalCoordinates.start - 0.5e4,
-      stop: globalCoordinates.stop + 0.5e4,
+      start: globalCoordinates.start - 1e6,
+      stop: globalCoordinates.stop + 1e6,
     },
     rounds,
     fdr,
@@ -162,16 +162,34 @@ const fetchVariantAssociationAggregate = async (id, { config = {} } = {}) => {
   if (!id) throw new Error("Parameter 'id' is required.")
 
   const cellTypes = await fetchCellTypes({ config })
-  const genes = await fetchGenes({ limit: 10, expand: false })
 
-  return cellTypes.map((c) => {
+  const variant = parseVariantId(id)
+  const globalCoordinates = convertPositionToGlobalPosition({
+    chrom: variant.chrom,
+    start: variant.pos,
+    stop: variant.pos,
+  })
+
+  const genes = await fetchGenes({
+    range: {
+      chrom: globalCoordinates.chrom,
+      start: globalCoordinates.start - 1e6,
+      stop: globalCoordinates.stop + 1e6,
+    },
+    limit: null,
+    expand: false,
+  })
+
+  return cellTypes.flatMap((c) => {
     return genes.map((g) => {
       const skew = sampleNormal({ min: 1, max: 4, skew: 1 })
+      const pval = sampleNormal({ min: 0, max: 1e4, skew: 6 }) / 1e4
       return {
         gene_id: g.gene_id,
         gene_symbol: g.symbol,
         cell_type_id: c.cell_type_id || c.id,
-        min_p_value: sampleNormal({ min: 0, max: 1e4, skew: 6 }) / 1e4,
+        min_p_value: pval,
+        log10_min_p_value: -Math.log10(pval),
         mean_log_cpm: sampleNormal({ min: 0, max: 15, skew }),
       }
     })

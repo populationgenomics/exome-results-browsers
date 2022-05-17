@@ -126,7 +126,7 @@ const setup = (app) => {
    *          type: string
    *          example: 2-42752280-A-G
    *        - in: query
-   *          name: cellTypes
+   *          name: cell_types
    *          description: Cell type identifiers, comma delimited.
    *          type: string
    *          example: bin,bmem
@@ -168,7 +168,7 @@ const setup = (app) => {
   app.get('/api/variants/:id/associations', async (req, res, next) => {
     const associations = await queries
       .fetchVariantAssociations(req.params.id, {
-        cellTypeIds: (req.query.cellTypes?.split(',') || [])
+        cellTypeIds: (req.query.cell_types?.split(',') || [])
           .map((s) => s.trim())
           .filter((s) => !!s),
         rounds: (req.query.rounds?.split(',') || []).map(parseInt).filter(Number.isInteger),

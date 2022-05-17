@@ -84,8 +84,8 @@ const fetchAssociations = async ({
     const geneRecords = await fetchGenesById(genes, { config })
     const rangeFilters = geneRecords
       .map((record) => {
-        const start = record.global_start - 0.5e4
-        const stop = record.global_stop + 0.5e4
+        const start = record.global_start - 0.5e6
+        const stop = record.global_stop + 0.5e6
         const geneRangeFilters = []
 
         if (!hasRangeStart && Number.isInteger(start)) {
