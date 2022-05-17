@@ -176,6 +176,7 @@ const fetchVariantAssociationAggregate = async (id, { config = {} } = {}) => {
       start: globalCoordinates.start - 1e6,
       stop: globalCoordinates.stop + 1e6,
     },
+    limit: null,
     expand: false,
   })
 
