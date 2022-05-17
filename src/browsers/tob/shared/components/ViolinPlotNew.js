@@ -73,8 +73,8 @@ const ViolinPlot = ({
       area()
         .x0((bin) => binHeightScale(-bin.count))
         .x1((bin) => binHeightScale(bin.count))
-        .y0((bin) => yScaleLocal(bin.min))
-        .y1((bin) => yScaleLocal(bin.max))
+        .y((bin) => yScaleLocal(bin.min))
+        // .y1((bin) => yScaleLocal(bin.max))
         .curve(curveCatmullRom),
     [binHeightScale, yScaleLocal]
   )
