@@ -8,7 +8,7 @@ const margin = PropTypes.shape({
 })
 
 const region = PropTypes.shape({
-  chrom: PropTypes.string.isRequired,
+  chrom: PropTypes.string,
   start: PropTypes.number.isRequired,
   stop: PropTypes.number.isRequired,
 })
