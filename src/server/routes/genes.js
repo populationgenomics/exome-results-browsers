@@ -137,7 +137,7 @@ const setup = (app) => {
    *          type: string
    *          example: ENSG00000104432
    *        - in: query
-   *          name: cellTypes
+   *          name: cell_types
    *          description: Cell type identifiers, comma delimited.
    *          type: string
    *          example: bin,bmem
@@ -179,7 +179,7 @@ const setup = (app) => {
   app.get('/api/genes/:id/associations', async (req, res, next) => {
     const associations = await queries
       .fetchGeneAssociations(req.params.id, {
-        cellTypeIds: (req.query.cellTypes?.split(',') || [])
+        cellTypeIds: (req.query.cell_types?.split(',') || [])
           .map((s) => s.trim())
           .filter((s) => !!s),
         rounds: (req.query.rounds?.split(',') || []).map(parseInt).filter(Number.isInteger),
