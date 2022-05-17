@@ -10,26 +10,32 @@ const TableColumn = styled.th``
 const ColumnDefinition = styled.div`
   cursor: ${(props) => (props.title ? 'help' : 'initial')};
   font-size: 12px;
+  text-align: left;
 `
 
 const RowDefinition = styled.td`
   cursor: ${(props) => (props.title ? 'help' : 'initial')};
-  transform: rotate(-45deg);
   font-size: 12px;
+  text-align: left;
 `
 
 const ClearButton = styled.button`
   margin-top: 2px;
   font-size: 12px;
+  float: left;
 `
 
 const TableRow = styled.tr`
   height: 200px;
+  text-align: left;
 `
 
 const TableCell = styled.td`
+  min-width: 350px;
+  max-width: 350px;
   width: 350px;
   height: 200px;
+  text-align: left;
 `
 
 const EffectGrid = ({ columns, rows, data, missing, width, height, margin }) => {
@@ -37,14 +43,23 @@ const EffectGrid = ({ columns, rows, data, missing, width, height, margin }) => 
 
   const tableStyle = useMemo(() => {
     return {
-      width,
-      height,
+      width: width ?? (columns?.length ?? 0) * 350,
+      height: height ?? (rows?.length ?? 0) * 250,
       marginTop: _margin.top,
       marginRight: _margin.right,
       marginBottom: _margin.bottom,
       marginLeft: _margin.left,
     }
-  }, [_margin, width, height])
+  }, [
+    _margin?.top,
+    _margin?.right,
+    _margin?.bottom,
+    _margin?.left,
+    width,
+    height,
+    rows?.length,
+    columns?.length,
+  ])
 
   const tableHeader = useMemo(() => {
     return (
@@ -80,7 +95,11 @@ const EffectGrid = ({ columns, rows, data, missing, width, height, margin }) => 
           {columns.slice(1).map((column) => {
             const cell = data.find((d) => d.row === row.key && d.column === column.key)
             return (
-              <TableCell onMouseEnter={cell?.onMouseEnter} onMouseLeave={cell?.onMouseLeave}>
+              <TableCell
+                key={`${row.key}-${column.key}-cell`}
+                onMouseEnter={cell?.onMouseEnter}
+                onMouseLeave={cell?.onMouseLeave}
+              >
                 {cell?.content ?? missing}
               </TableCell>
             )
@@ -143,7 +162,7 @@ EffectGrid.defaultProps = {
   columns: [],
   rows: [],
   data: [],
-  missing: <div style={{ textAlign: 'center' }}>¯\_(ツ)_/¯</div>,
+  missing: <div style={{ textAlign: 'left' }}>¯\_(ツ)_/¯</div>,
   width: null,
   height: null,
   margin: {},
