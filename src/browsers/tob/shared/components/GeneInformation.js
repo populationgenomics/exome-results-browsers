@@ -16,18 +16,15 @@ const GeneInformation = ({ gene, referenceGenome }) => {
   return (
     gene && (
       <AttributeList style={{ marginTop: '1.25em' }}>
-        <AttributeList.Item label="Genome Build">{referenceGenome}</AttributeList.Item>
-
-        <AttributeList.Item label="Ensembl Gene ID">{gene.gene_id}</AttributeList.Item>
-
+        <AttributeList.Item label="Genome build">{referenceGenome}</AttributeList.Item>
+        <AttributeList.Item label="Ensembl ID">{gene.gene_id}</AttributeList.Item>
+        <AttributeList.Item label="Gene name">{gene.name}</AttributeList.Item>
         <AttributeList.Item label="Ensembl canonical transcript">
           {gene.canonical_transcript_id}
         </AttributeList.Item>
-
         <AttributeList.Item label="Region">
           {gene.chrom}:{gene.start}-{gene.stop}
         </AttributeList.Item>
-
         <AttributeList.Item label="External resources">
           <ExternalLink href={ensemblGeneUrl}>Ensembl</ExternalLink>,{' '}
           <ExternalLink href={ucscUrl}>UCSC Browser</ExternalLink>,{' '}
@@ -43,6 +40,7 @@ const GeneInformation = ({ gene, referenceGenome }) => {
 GeneInformation.propTypes = {
   gene: PropTypes.shape({
     gene_id: PropTypes.string,
+    name: PropTypes.string,
     symbol: PropTypes.string,
     canonical_transcript_id: PropTypes.string,
     chrom: PropTypes.string,

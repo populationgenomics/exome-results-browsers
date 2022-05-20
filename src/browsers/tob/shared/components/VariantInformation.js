@@ -17,7 +17,7 @@ const VariantInformation = ({ variant, referenceGenome }) => {
   return (
     variant && (
       <AttributeList style={{ marginTop: '1.25em' }}>
-        <AttributeList.Item label="Genome Build">{referenceGenome}</AttributeList.Item>
+        <AttributeList.Item label="Genome build">{referenceGenome}</AttributeList.Item>
         <AttributeList.Item label="Variant ID">{variant.variant_id}</AttributeList.Item>
         <AttributeList.Item label="Reference allele">{variant.a1}</AttributeList.Item>
         <AttributeList.Item label="Alternative allele">{variant.a2}</AttributeList.Item>
