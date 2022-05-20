@@ -63,7 +63,7 @@ jobs:
           --memory=1Gi \
           --region=australia-southeast1 \
           --platform=managed \
-          --set-env-vars=IAP_AUDIENCE="$IAP_AUDIENCE" \
+          --set-env-vars=IAP_AUDIENCE="$IAP_AUDIENCE",DATASET_ID="${{ secrets.DATASET_ID }}",REFERENCE_GENOME="${{ secrets.REFERENCE_GENOME }}" \
           --service-account="$CLOUD_RUN_SA" \
           --image=$DOCKER_IMAGE \
           --no-allow-unauthenticated
