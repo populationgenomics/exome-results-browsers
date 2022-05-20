@@ -137,6 +137,134 @@ const ManhattanPlotNew = ({
     [_accessors.tooltip]
   )
 
+  const renderLine = useCallback(
+    (d, index) => {
+      return (
+        <line
+          key={`${_accessors?.id(d) || index}-selected-line`}
+          x1={xScaleLocal(_accessors.x(d))}
+          x2={xScaleLocal(_accessors.x(d))}
+          y1={0}
+          y2={innerHeight}
+          strokeDasharray={12}
+          stroke="black"
+          opacity="0.5"
+        />
+      )
+    },
+    [_accessors, innerHeight, xScaleLocal]
+  )
+
+  const renderDataPoint = useCallback(
+    (d, index) => {
+      let strokeColor = null
+      if (_accessors.isHighlighted(d)) {
+        strokeColor = 'red'
+      } else if (_accessors.isSelected(d) || _accessors.isReference(d)) {
+        strokeColor = 'black'
+      }
+
+      let strokeWidth = 0
+      if (_accessors.isHighlighted(d)) {
+        strokeWidth = 2
+      } else if (_accessors.isSelected(d) || _accessors.isReference(d)) {
+        strokeWidth = 1
+      }
+
+      if (_accessors.isReference(d)) {
+        return (
+          <React.Fragment key={`${_accessors?.id(d) || index}-fragment`}>
+            <TooltipAnchor
+              key={`${_accessors?.id(d) || index}-tooltip`}
+              tooltipComponent={renderTooltip}
+              d={d}
+            >
+              <g
+                transform={`translate(${xScaleLocal(_accessors.x(d))}, ${yScaleLocal(
+                  _accessors.y(d)
+                )}),rotate(45)`}
+              >
+                <rect
+                  key={`${_accessors.id(d) || index}-reference`}
+                  width={20}
+                  height={20}
+                  fill={_accessors.color(d)}
+                  opacity={_accessors.opacity(d) || 0}
+                  stroke={strokeColor}
+                  strokeWidth={strokeWidth}
+                  onClick={(e) => {
+                    if (e.shiftKey) {
+                      onShiftClick(d)
+                    }
+                    onClick(d)
+                  }}
+                />
+              </g>
+            </TooltipAnchor>
+            <text
+              x={xScaleLocal(_accessors.x(d)) + 8}
+              y={_margin.top}
+              stroke="black"
+              opacity="0.5"
+              fontSize={12}
+            >
+              LD reference
+            </text>
+          </React.Fragment>
+        )
+      }
+
+      return (
+        <React.Fragment key={`${_accessors?.id(d) || index}-fragment`}>
+          <TooltipAnchor
+            key={`${_accessors.id(d) || index}-tooltip`}
+            tooltipComponent={renderTooltip}
+            d={d}
+          >
+            <circle
+              key={`${_accessors.id(d) || index}-point`}
+              cx={xScaleLocal(_accessors.x(d))}
+              cy={yScaleLocal(_accessors.y(d))}
+              r={_accessors.isSelected(d) ? 12 : 3}
+              fill={_accessors.color(d)}
+              stroke={strokeColor}
+              strokeWidth={strokeWidth}
+              opacity={_accessors.opacity(d) || 0}
+              onClick={(e) => (e.shiftKey ? onShiftClick(d) : onClick(d))}
+              cursor={onClick ? 'pointer' : null}
+            />
+          </TooltipAnchor>
+        </React.Fragment>
+      )
+    },
+    [_margin.top, onClick, onShiftClick, xScaleLocal, yScaleLocal, _accessors, renderTooltip]
+  )
+
+  const _data = useMemo(() => {
+    const split = { reference: [], selected: [], rest: [] }
+
+    data.forEach((d) => {
+      const isReference = _accessors.isReference(d)
+      const isSelectedOrHighlighted = _accessors.isSelected(d) || _accessors.isHighlighted(d)
+
+      if (isReference) {
+        split.reference.push(d)
+      } else if (isSelectedOrHighlighted) {
+        split.selected.push(d)
+      } else {
+        split.rest.push(d)
+      }
+    })
+
+    return split
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, _accessors.isReference, _accessors.isHighlighted, _accessors.isSelected])
+
+  const _lines = useMemo(() => {
+    return uniqBy([..._data.selected, ..._data.reference], (d) => _accessors.x(d))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [_accessors.x, _data])
+
   if (data == null) {
     return (
       <svg id={id} width={width} height={height}>
@@ -294,81 +422,11 @@ const ManhattanPlotNew = ({
 
         {/* Data points */}
         <g id={`${id}-data`} clipPath="url(#clipManhattanPlot)">
-          {data.map((d, index) => (
-            <React.Fragment key={`${_accessors?.id(d) || index}-fragment`}>
-              {_accessors.isReference(d) ? (
-                <text
-                  x={xScaleLocal(_accessors.x(d)) + 8}
-                  y={_margin.top}
-                  stroke="black"
-                  opacity="0.5"
-                  fontSize={12}
-                >
-                  LD reference
-                </text>
-              ) : null}
-              {(_accessors.isSelected(d) || _accessors.isReference(d)) && (
-                <line
-                  key={`${_accessors?.id(d) || index}-selected-line`}
-                  x1={xScaleLocal(_accessors.x(d))}
-                  x2={xScaleLocal(_accessors.x(d))}
-                  y1={0}
-                  y2={innerHeight}
-                  strokeDasharray={12}
-                  stroke="black"
-                  opacity="0.5"
-                />
-              )}
-              {_accessors.isReference(d) ? (
-                <TooltipAnchor
-                  key={`${_accessors?.id(d) || index}-tooltip`}
-                  tooltipComponent={renderTooltip}
-                  d={d}
-                >
-                  <g
-                    transform={`translate(${xScaleLocal(_accessors.x(d))}, ${yScaleLocal(
-                      _accessors.y(d)
-                    )}),rotate(45)`}
-                  >
-                    <rect
-                      key={`${_accessors.id(d) || index}-reference`}
-                      width={20}
-                      height={20}
-                      fill={_accessors.color(d)}
-                      opacity={_accessors.opacity(d) || 0}
-                      stroke={_accessors.isHighlighted(d) ? 'red' : null}
-                      strokeWidth={_accessors.isHighlighted(d) ? 2 : 0}
-                      onClick={(e) => {
-                        if (e.shiftKey) {
-                          onShiftClick(d)
-                        }
-                        onClick(d)
-                      }}
-                    />
-                  </g>
-                </TooltipAnchor>
-              ) : (
-                <TooltipAnchor
-                  key={`${_accessors.id(d) || index}-tooltip`}
-                  tooltipComponent={renderTooltip}
-                  d={d}
-                >
-                  <circle
-                    key={`${_accessors.id(d) || index}-point`}
-                    cx={xScaleLocal(_accessors.x(d))}
-                    cy={yScaleLocal(_accessors.y(d))}
-                    r={_accessors.isSelected(d) ? 12 : 3}
-                    fill={_accessors.color(d)}
-                    stroke={_accessors.isHighlighted(d) ? 'red' : null}
-                    strokeWidth={_accessors.isHighlighted(d) ? 2 : 0}
-                    opacity={_accessors.opacity(d) || 0}
-                    onClick={(e) => (e.shiftKey ? onShiftClick(d) : onClick(d))}
-                    cursor={onClick ? 'pointer' : null}
-                  />
-                </TooltipAnchor>
-              )}
-            </React.Fragment>
-          ))}
+          {/* z-index order. Last painted has highest z-index */}
+          {_lines.map((d, index) => renderLine(d, index))}
+          {_data.rest.map((d, index) => renderDataPoint(d, index))}
+          {_data.selected.map((d, index) => renderDataPoint(d, index))}
+          {_data.reference.map((d, index) => renderDataPoint(d, index))}
         </g>
 
         {/* x-axis label */}
