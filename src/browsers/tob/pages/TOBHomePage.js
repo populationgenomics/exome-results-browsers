@@ -25,12 +25,7 @@ export default () => (
   <HomePageWrapper>
     <DocumentTitle title="TOB browser" />
     <HomePageHeading>Tasmanian Ophthalmic Biobank analysis</HomePageHeading>
-
     <Searchbox width="100%" />
-    <p style={{ marginTop: '0.25em' }}>
-      Or <Link to="/results">view all results</Link>
-    </p>
-
     <h2>Examples</h2>
     <ul>
       <li>
@@ -38,12 +33,6 @@ export default () => (
       </li>
       <li>
         <Link to="/variant/2-42752280-A-G">2-42752280-A-G</Link>
-      </li>
-      <li>
-        <Link to="/violin/BRCA1">BRCA1 Violin Plots</Link>
-      </li>
-      <li>
-        <Link to="/violin/IL7">IL7 Violin Plots</Link>
       </li>
     </ul>
 
