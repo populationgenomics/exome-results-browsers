@@ -130,11 +130,11 @@ const TOBVariantPage = () => {
   }, [cellTypes.length])
 
   // // -------- Callback definitions ----------------------------------- //
-  const debounceSetFdrFilter = debounce((v) => setFdrFilter(Number.parseFloat(v)), 500)
+  const debounceSetFdrFilter = debounce((v) => setFdrFilter(Number.parseFloat(v)), 1000)
 
   const debounceSetConditioningRound = debounce(
     (v) => setCondioningRound(Number.parseInt(v, 10)),
-    500
+    1000
   )
 
   const onSelectAggregate = (v) => {
@@ -149,15 +149,16 @@ const TOBVariantPage = () => {
   )
 
   const onAssociationSelect = useCallback(
-    (associations) => {
+    (associations, type) => {
       let selected = [...selectedAssociations]
       const vids = [...selectedVariantIds]
 
       // Check if each point has already been selected and de-select it if it does
       associations.forEach((a) => {
-        if (selected.find((s) => s.association_id === a.association_id)) {
+        const isSelected = selected.find((s) => s.association_id === a.association_id)
+        if (isSelected && type !== 'append') {
           selected = selected.filter((s) => s.association_id !== a.association_id)
-        } else {
+        } else if (!isSelected) {
           selected.push(a)
         }
 
@@ -354,7 +355,7 @@ const TOBVariantPage = () => {
             highlightedAssociation={highlightedAssociation}
             width={dimensions.boundedWidth}
             height={500}
-            margin={{ top: 20, bottom: 140, left: 100 }}
+            margin={{ top: 20, bottom: 140, right: 10, left: 100 }}
             onBrush={setDisplayRegion}
             onDoubleClick={() => setDisplayRegion(fullRegion)}
             onClick={onAssociationSelect}
@@ -364,7 +365,7 @@ const TOBVariantPage = () => {
           <TOBGenesTrack
             queryRegion={fullRegion}
             displayRegion={displayRegion}
-            margin={{ bottom: 0, top: 0 }}
+            margin={{ bottom: 0, top: 0, right: 10, left: 100 }}
           />
         </section>
 
