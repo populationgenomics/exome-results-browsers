@@ -266,7 +266,7 @@ const TOBGenePage = () => {
       <LoadingOverlay active={isLoading}>
         <section>
           <DocumentTitle title={gene.gene_id} />
-          <PageHeading>{`${gene.symbol} ${gene.name}`}</PageHeading>
+          <PageHeading>{gene.symbol}</PageHeading>
           <GeneInformation gene={gene} />
         </section>
 
@@ -280,7 +280,7 @@ const TOBGenePage = () => {
             query={query.gene}
             selected={selectedGene}
             width={dimensions.boundedWidth}
-            margin={{ top: 20, right: 250, bottom: 75, left: 100 }}
+            margin={{ top: 20, right: 250, bottom: 100, left: 100 }}
             onClick={onSelectAggregate}
             onRowClick={onSelectAggregate}
           />
