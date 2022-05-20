@@ -48,7 +48,7 @@ const ManhattanPlotNew = ({
   const brushRef = useRef()
 
   const _margin = { ...DEFAULT_MARGIN, ...margin }
-  const _accessors = { ...DEFAULT_ACCESSORS, ...accessors }
+  const _accessors = useMemo(() => ({ ...DEFAULT_ACCESSORS, ...accessors }), [accessors])
 
   const innerWidth = width - _margin.left - _margin.right
   const innerHeight = height - _margin.top - _margin.bottom
