@@ -9,6 +9,8 @@ import BoxplotTooltip from '../shared/components/BoxplotTooltip'
 import StatusMessage from '../shared/components/StatusMessage'
 import LoadingOverlay from '../shared/components/LoadingOverlay'
 
+const CELL_COLORS = defaultCellTypeColors()
+
 const TOBViolinPlot = ({ query, margin, height }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -17,8 +19,8 @@ const TOBViolinPlot = ({ query, margin, height }) => {
 
   const isEqtl = useMemo(() => query?.toString()?.includes(':'), [query])
 
-  const accessors = useMemo(
-    () => ({
+  const accessors = useMemo(() => {
+    return {
       id: (d) => d.id,
       x: (d) => d.id,
       y: (d) => d.counts,
@@ -29,11 +31,13 @@ const TOBViolinPlot = ({ query, margin, height }) => {
       iqr: (d) => d.iqr,
       min: (d) => d.min,
       max: (d) => d.max,
-      color: () => defaultCellTypeColors()[query.split(':').at(-2)],
+      color: (d) => {
+        const key = query.includes(':') ? query.split(':').at(-2) : d.id
+        return CELL_COLORS[key]
+      },
       tooltip: (d) => <BoxplotTooltip statistics={d} />,
-    }),
-    [query]
-  )
+    }
+  }, [query])
 
   useEffect(() => {
     if (!query) return
