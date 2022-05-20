@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 
+import { sortBy } from 'lodash'
+
 import { defaultCellTypeColors } from '../shared/utilities/constants'
 import { useChartDimensions } from '../shared/hooks'
 
@@ -53,7 +55,12 @@ const TOBViolinPlot = ({ query, margin, height }) => {
         if (r.ok) {
           r.json()
             .then((d) => {
-              setData(d)
+              if (!query.includes(':')) {
+                // Gene query, sort historgrams by cell type id
+                setData({ histograms: sortBy(d.histograms, 'id'), bins: d.bins })
+              } else {
+                setData(d)
+              }
               setError(null)
             })
             .catch((e) => setError(e))
