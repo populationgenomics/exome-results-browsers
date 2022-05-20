@@ -60,7 +60,7 @@ const DotplotHeatmapTemplate = ({ numRows }) => {
         data={data}
         title="My Big Title Here"
         width={dimensions.boundedWidth}
-        margins={{ left: 80, right: 220, top: 80, bottom: 80 }}
+        margin={{ left: 80, right: 220, top: 80, bottom: 80 }}
         accessors={accessors}
         onClick={(d) => {
           if (`${d.x}-${d.y}` === `${selected?.x}-${selected?.y}`) {

@@ -51,27 +51,27 @@ const ManhattanPlotTooltip = ({ d }) => {
 ManhattanPlotTooltip.propTypes = { d: PropTypes.object.isRequired }
 ManhattanPlotTooltip.defaultProps = {}
 
+const accessors = {
+  id: (d) => d.id,
+  x: (d) => d.position,
+  y: (d) => -1 * Math.log10(d.pvalue),
+  color: (d) => d.cellColour,
+  isSelected: (d) => d.selected,
+  isReference: (d) => d.referenced,
+  opacity: (d) => d.opacity,
+  tooltip: (d) => <ManhattanPlotTooltip d={d} />,
+}
+
 const ManhattanPlotTemplate = ({ numCellLines, selected, referenced }) => {
   const [isLoading, setIsLoading] = useState(true)
-  const [data, setData] = useState()
-  const [coords, setCoords] = useState()
+  const [data, setData] = useState(null)
+  const [coords, setCoords] = useState(null)
+  const [orginalCoords, setOriginalCoords] = useState(null)
   const [ref, dimensions] = useChartDimensions()
 
-  const accessors = {
-    id: (d) => d.id,
-    x: (d) => d.position,
-    y: (d) => -1 * Math.log(d.pvalue),
-    color: (d) => d.cellColour,
-    cellLine: (d) => d.cellLine,
-    isSelected: (d) => d.selected,
-    isReference: (d) => d.referenced,
-    opacity: (d) => d.opacity,
-    tooltip: (d) => <ManhattanPlotTooltip d={d} />,
-  }
-
   const height = 500
-  const margins = { left: 80, right: 220, top: 80, bottom: 80 }
-  const thresholds = [0.05, 0.01].map((item) => -1 * Math.log(item))
+  const margin = { left: 80, right: 100, top: 80, bottom: 100 }
+  const thresholds = [0.05, 0.01].map((item) => -1 * Math.log10(item))
 
   useEffect(() => {
     setIsLoading(true)
@@ -79,7 +79,6 @@ const ManhattanPlotTemplate = ({ numCellLines, selected, referenced }) => {
       pvalue: Math.random(),
       opacity: Math.random(),
       position: Math.floor(Math.random() * 4e6),
-      cellLine: cellLines[i % numCellLines],
       cellColour: defaultCellTypeColors()[cellLines[i % numCellLines]],
       selected: selected ? Math.random() < 0.01 : false,
       referenced: referenced ? Math.random() < 0.01 : false,
@@ -87,16 +86,23 @@ const ManhattanPlotTemplate = ({ numCellLines, selected, referenced }) => {
     }))
 
     setData(myData)
-    setCoords([
-      Math.min(...myData.map((d) => d.position)),
-      Math.max(...myData.map((d) => d.position)),
-    ])
+
+    const region = {
+      x: {
+        start: Math.min(...myData.map(accessors.x)),
+        stop: Math.max(...myData.map(accessors.x)),
+      },
+      y: {
+        start: Math.min(...myData.map(accessors.y)),
+        stop: Math.max(...myData.map(accessors.y)),
+      },
+    }
+
+    setCoords(region)
+    setOriginalCoords(region)
+
     setIsLoading(false)
   }, [numCellLines, referenced, selected])
-
-  const handleBrush = (start, end) => {
-    setCoords([start, end])
-  }
 
   if (isLoading) {
     return <div>Loading...</div>
@@ -107,12 +113,20 @@ const ManhattanPlotTemplate = ({ numCellLines, selected, referenced }) => {
       <ManhattanPlot
         id="my-manhattan-plot"
         title="My Manhattan Plot"
-        data={data.filter((item) => item.position >= coords[0] && item.position <= coords[1])}
+        data={data.filter((item) =>
+          coords?.x && coords?.y
+            ? accessors.x(item) >= coords?.x?.start &&
+              accessors.x(item) <= coords?.x?.stop &&
+              accessors.y(item) >= coords?.y?.start &&
+              accessors.y(item) <= coords?.y?.stop
+            : true
+        )}
         thresholds={thresholds}
         width={dimensions.boundedWidth}
         height={height}
-        margins={margins}
-        onBrush={handleBrush}
+        margin={margin}
+        onBrush={(r) => setCoords(r)}
+        onDoubleClick={() => setCoords(orginalCoords)}
         accessors={accessors}
       />
     </div>

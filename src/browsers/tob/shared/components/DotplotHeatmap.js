@@ -1,12 +1,13 @@
 import React, { useMemo, useCallback } from 'react'
 import PropTypes from 'prop-types'
+
 import { scaleBand, scaleLinear, scaleSequential, interpolateRgb, extent, select } from 'd3'
 import { TooltipAnchor } from '@gnomad/ui'
 
 const tileSpacing = 0.05
 const rowHeight = 60
 
-const DEFAULT_MARGINS = { left: 80, right: 220, top: 80, bottom: 80 }
+const DEFAULT_MARGIN = { left: 60, right: 40, top: 20, bottom: 60 }
 const DEFAULT_ACCESSORS = {
   id: (d) => `${d.x}-${d.y}`,
   x: (d) => d.x,
@@ -21,34 +22,35 @@ const DotplotHeatmap = ({
   id,
   data,
   onClick,
+  onRowClick,
   title,
   width,
-  margins,
+  margin,
   accessors,
   xScale,
   yScale,
   colorScale,
   sizeScale,
 }) => {
-  const _margins = useMemo(() => ({ ...DEFAULT_MARGINS, ...margins }), [margins])
+  const _margin = useMemo(() => ({ ...DEFAULT_MARGIN, ...margin }), [margin])
   const _accessors = useMemo(() => ({ ...DEFAULT_ACCESSORS, ...accessors }), [accessors])
 
   const height = useMemo(
     () =>
       [...new Set(data.map((item) => _accessors.y(item)))].length * rowHeight +
-      _margins.top +
-      _margins.bottom,
-    [data, _accessors, _margins]
+      _margin.top +
+      _margin.bottom,
+    [data, _accessors, _margin]
   )
-  const innerHeight = height - _margins.top - _margins.bottom
-  const innerWidth = width - _margins.left - _margins.right
+  const innerHeight = height - _margin.top - _margin.bottom
+  const innerWidth = width - _margin.left - _margin.right
 
   const xScaleLocal = useMemo(
     () =>
       xScale ||
       scaleBand()
         .range([0, innerWidth])
-        .domain([...new Set(data.map(_accessors.x))])
+        .domain([...[...new Set(data.map(_accessors.x))].sort()])
         .padding(tileSpacing),
     [xScale, data, _accessors.x, innerWidth]
   )
@@ -58,7 +60,7 @@ const DotplotHeatmap = ({
       yScale ||
       scaleBand()
         .range([innerHeight, 0])
-        .domain([...new Set(data.map(_accessors.y))])
+        .domain([...[...new Set(data.map(_accessors.y))].sort().reverse()]) // renders from bottom to top
         .padding(tileSpacing),
     [yScale, data, _accessors.y, innerHeight]
   )
@@ -94,16 +96,23 @@ const DotplotHeatmap = ({
     [_accessors.tooltip]
   )
 
+  const shouldHighlightTick = useCallback(
+    (tick) => {
+      return data.filter(_accessors.isSelected).filter((d) => _accessors.y(d) === tick).length > 0
+    },
+    [_accessors, data]
+  )
+
   if (!data?.length) {
     return (
       <svg id={id} width={width} height={height}>
         <g
-          transform={`translate(${_margins.left + innerWidth / 2}, ${
-            _margins.top + innerHeight / 2
+          transform={`translate(${_margin.left + innerWidth / 2}, ${
+            _margin.top + innerHeight / 2
           })`}
         >
           <text style={{ textAnchor: 'middle', alignmentBaseline: 'middle', fontSize: 16 }}>
-            No data to display.
+            No data to display
           </text>
         </g>
       </svg>
@@ -114,8 +123,8 @@ const DotplotHeatmap = ({
     <svg id={id} width={width} height={height}>
       {/* title */}
       {title && (
-        <g id={`${id}-title`} transform={`translate(${_margins.left}, 20)`}>
-          <text style={{ fontWeight: 'bold', fontSize: 16, textAnchor: 'start' }}>{title}</text>
+        <g id={`${id}-title`} transform={`translate(${_margin.left}, 40)`}>
+          <text style={{ fontSize: 16, textAnchor: 'start' }}>{title}</text>
         </g>
       )}
 
@@ -137,7 +146,7 @@ const DotplotHeatmap = ({
       </defs>
 
       {/* Main plot */}
-      <g transform={`translate(${_margins.left}, ${_margins.top})`}>
+      <g transform={`translate(${_margin.left}, ${_margin.top})`}>
         {/* x-axis */}
         <g id={`${id}-x-axis`}>
           <line x2={`${innerWidth}`} stroke="black" />
@@ -150,8 +159,8 @@ const DotplotHeatmap = ({
               }, ${innerHeight})`}
             >
               <text
-                transform="translate(0, 10)rotate(-45)"
                 y={8}
+                transform="translate(0, 10)rotate(-45)"
                 textAnchor="end"
                 alignmentBaseline="middle"
                 fontSize={14}
@@ -178,8 +187,17 @@ const DotplotHeatmap = ({
                 textAnchor="end"
                 alignmentBaseline="middle"
                 fontSize={14}
+                fontWeight={shouldHighlightTick(tick) ? 600 : null}
                 x={-8}
                 y={3}
+                cursor={onRowClick ? 'pointer' : null}
+                onMouseOver={(e) => select(e.target).attr('font-weight', 600)}
+                onMouseOut={(e) =>
+                  select(e.target).attr('font-weight', shouldHighlightTick(tick) ? 600 : null)
+                }
+                onClick={() => {
+                  onRowClick(data.filter((d) => _accessors.y(d) === tick) ?? [])
+                }}
               >
                 {tick}
               </text>
@@ -210,6 +228,7 @@ const DotplotHeatmap = ({
                 }
                 fill={`${colorScaleLocal(_accessors.color(item))}`}
                 onClick={() => onClick(item)}
+                cursor={onClick ? 'pointer' : null}
               />
             </TooltipAnchor>
           ))}
@@ -220,7 +239,9 @@ const DotplotHeatmap = ({
       {data.length && (
         <g
           id={`${id}-size-legend`}
-          transform={`translate(${width - _margins.right + sizeScaleLocal.range()[1] + 15}, 20)`}
+          transform={`translate(${width - _margin.right + sizeScaleLocal.range()[1] + 15}, ${
+            _margin.top
+          })`}
         >
           <text fontSize={12}>
             Max -log
@@ -232,7 +253,7 @@ const DotplotHeatmap = ({
           {sizeScaleLocal.ticks(3).map((tick, i) => (
             <g
               key={`sizeScaleLocal ${tick}`}
-              transform={`translate(0, ${_margins.top - 20 + sizeScaleLocal.range()[1] * 2 * i})`}
+              transform={`translate(0, ${_margin.top + 20 + sizeScaleLocal.range()[1] * 2 * i})`}
             >
               <circle r={sizeScaleLocal(tick)} stroke="black" fill="none" />
               <text
@@ -250,34 +271,36 @@ const DotplotHeatmap = ({
       {data.length && (
         <g
           id={`${id}-color-legend`}
-          transform={`translate(${width - _margins.right + sizeScaleLocal.range()[1] + 100}, 20)`}
+          transform={`translate(${width - _margin.right + sizeScaleLocal.range()[1] + 110}, ${
+            _margin.top
+          })`}
         >
-          <text fontSize={12}>Mean logCPM</text>
+          <text fontSize={12}>Mean log(CPM)</text>
           <text y="1.5em" fontSize={12}>
             expression
           </text>
           <rect
-            transform={`translate(0, ${_margins.top - 20})`}
-            height={innerHeight}
+            transform={`translate(0, ${_margin.top + 20})`}
+            height={innerHeight - 20}
             width="40"
             fill="url(#linear-gradient)"
             stroke="black"
           />
           <g
             key={`colorScaleLocal ${colorScaleLocal.domain()[1]}`}
-            transform={`translate(40, ${_margins.top - 20})`}
+            transform={`translate(40, ${_margin.top + 20})`}
           >
             <line x2={5} stroke="black" />
-            <text dx={7} style={{ alignmentBaseline: 'middle' }}>
+            <text dx={7} style={{ alignmentBaseline: 'middle', fontSize: 12 }}>
               {colorScaleLocal.domain()[1].toFixed(1)}
             </text>
           </g>
           <g
             key={`colorScaleLocal ${colorScaleLocal.domain()[0]}`}
-            transform={`translate(40, ${_margins.top - 20 + innerHeight})`}
+            transform={`translate(40, ${_margin.top + innerHeight})`}
           >
             <line x2={5} stroke="black" />
-            <text dx={7} style={{ alignmentBaseline: 'middle' }}>
+            <text dx={7} style={{ alignmentBaseline: 'middle', fontSize: 12 }}>
               {colorScaleLocal.domain()[0].toFixed(1)}
             </text>
           </g>
@@ -291,9 +314,10 @@ DotplotHeatmap.propTypes = {
   id: PropTypes.string.isRequired,
   data: PropTypes.arrayOf(PropTypes.object).isRequired,
   onClick: PropTypes.func,
+  onRowClick: PropTypes.func,
   title: PropTypes.string,
   width: PropTypes.number,
-  margins: PropTypes.shape({
+  margin: PropTypes.shape({
     top: PropTypes.number,
     right: PropTypes.number,
     bottom: PropTypes.number,
@@ -316,9 +340,10 @@ DotplotHeatmap.propTypes = {
 
 DotplotHeatmap.defaultProps = {
   onClick: () => {},
-  title: 'Heatmap',
+  onRowClick: () => {},
+  title: null,
   width: 1000,
-  margins: { ...DEFAULT_MARGINS },
+  margin: { ...DEFAULT_MARGIN },
   accessors: { ...DEFAULT_ACCESSORS },
   xScale: null,
   yScale: null,
