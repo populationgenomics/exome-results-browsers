@@ -278,7 +278,7 @@ const TOBVariantPage = () => {
             query={query.variant}
             selected={selectedGene}
             width={dimensions.boundedWidth}
-            margin={{ top: 20, right: 250, bottom: 100, left: 100 }}
+            margin={{ top: 20, right: 250, bottom: 125, left: 100 }}
             onClick={onSelectAggregate}
             onRowClick={onSelectAggregate}
           />
