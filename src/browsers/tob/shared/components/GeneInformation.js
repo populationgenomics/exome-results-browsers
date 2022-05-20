@@ -53,7 +53,7 @@ GeneInformation.propTypes = {
 }
 
 GeneInformation.defaultProps = {
-  referenceGenome: 'grch37',
+  referenceGenome: 'GRCh37',
 }
 
 export default GeneInformation
