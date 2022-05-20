@@ -271,6 +271,11 @@ const TOBGenePage = () => {
         </section>
 
         <section>
+          <SectionHeading>Cell type expression</SectionHeading>
+          <TOBViolinPlot query={query.gene} height={500} margin={{ left: 100, bottom: 75 }} />
+        </section>
+
+        <section>
           <SectionHeading>Association strength</SectionHeading>
           <p>
             This plot shows the maximum association significance and mean expression across all cell
@@ -280,7 +285,7 @@ const TOBGenePage = () => {
             query={query.gene}
             selected={selectedGene}
             width={dimensions.boundedWidth}
-            margin={{ top: 20, right: 250, bottom: 100, left: 100 }}
+            margin={{ top: 20, right: 250, bottom: 125, left: 100 }}
             onClick={onSelectAggregate}
             onRowClick={onSelectAggregate}
           />
