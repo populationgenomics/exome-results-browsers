@@ -60,9 +60,9 @@ const fetchGenes = async ({
         [
           'UPPER(gene_id) = UPPER(@query)',
           'UPPER(canonical_transcript_id) = UPPER(@query)',
-          `UPPER(symbol) = @query`,
-          `REGEXP_CONTAINS(UPPER(symbol), CONCAT('^', @query))`,
-          "REGEXP_CONTAINS(UPPER(gene_id), CONCAT('^', @query))",
+          `UPPER(symbol) = UPPER(@query)`,
+          `REGEXP_CONTAINS(UPPER(symbol), CONCAT('^', UPPER(@query)))`,
+          "REGEXP_CONTAINS(UPPER(gene_id), CONCAT('^', UPPER(@query)))",
         ].join(' OR '),
         ')',
       ].join('')
