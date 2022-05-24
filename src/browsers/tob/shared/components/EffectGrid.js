@@ -31,9 +31,9 @@ const TableRow = styled.tr`
 `
 
 const TableCell = styled.td`
+  width: 350px;
   min-width: 350px;
   max-width: 350px;
-  width: 350px;
   height: 200px;
   text-align: left;
 `
