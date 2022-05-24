@@ -100,11 +100,11 @@ const submitQuery = async ({ query, options }) => {
 }
 
 const parseAssociationId = (value) => {
-  const idRe = /^(\d+):(\d+):([ATCG]+):([ATCG]+):(ENSG\d{11}):([A-Z_]+):(\d+)$/i
+  // const idRe = /^(\d+):(\d+):([ATCG]+):([ATCG]+):(ENSG\d{11}):([A-Z_]+):(\d+)$/i
 
-  if (!idRe.test(value.toString())) {
-    throw new Error(`Association id '${value}' is not a valid identifier.`)
-  }
+  // if (!idRe.test(value.toString())) {
+  //   throw new Error(`Association id '${value}' is not a valid identifier.`)
+  // }
 
   const [chrom, pos, ref, alt, gene, cell, round] = value.split(':')
   return {

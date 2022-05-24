@@ -2,9 +2,12 @@
 
 const express = require('express')
 
+const { isRegionId, parseRegionId } = require('@gnomad/identifiers')
+
 const queries = require('../queries/gene')
-const { NotFound } = require('../errors')
+const { NotFound, InvalidQueryParameter } = require('../errors')
 const { parseNumber } = require('../utils')
+const { convertPositionToGlobalPosition } = require('../queries/genome')
 
 /**
  * @param {express.Express} app
@@ -25,6 +28,11 @@ const setup = (app) => {
    *          description: Search string
    *          type: string
    *          example: IL7
+   *        - in: query
+   *          name: region
+   *          description: Region identifier
+   *          type: string
+   *          example: null
    *        - in: query
    *          name: expand
    *          description: Return all database columns
@@ -54,11 +62,22 @@ const setup = (app) => {
    *                      type: string
    */
   app.get('/api/genes/', async (req, res, next) => {
+    if (req.query.region && !isRegionId(req.query.region)) {
+      return next(
+        new InvalidQueryParameter(`Region '${req.query.region}' is not a valid region id`)
+      )
+    }
+
+    const globalRange = isRegionId(req.query.region)
+      ? convertPositionToGlobalPosition(parseRegionId(req.query.region))
+      : { chrom: null, start: null, stop: null }
+
     const genes = await queries
       .fetchGenes({
         query: req.query.search,
         expand: req.query.expand === 'true',
-        limit: parseNumber(req.query.limit, 25),
+        range: globalRange,
+        limit: req.query.limit ? parseNumber(req.query.limit, 25) : null,
       })
       .catch(next)
 
@@ -118,7 +137,7 @@ const setup = (app) => {
    *          type: string
    *          example: ENSG00000104432
    *        - in: query
-   *          name: cellTypes
+   *          name: cell_types
    *          description: Cell type identifiers, comma delimited.
    *          type: string
    *          example: bin,bmem
@@ -160,13 +179,13 @@ const setup = (app) => {
   app.get('/api/genes/:id/associations', async (req, res, next) => {
     const associations = await queries
       .fetchGeneAssociations(req.params.id, {
-        cellTypeIds: (req.query.cellTypes?.split(',') || [])
+        cellTypeIds: (req.query.cell_types?.split(',') || [])
           .map((s) => s.trim())
           .filter((s) => !!s),
         rounds: (req.query.rounds?.split(',') || []).map(parseInt).filter(Number.isInteger),
         fdr: Number.isFinite(parseFloat(req.query.fdr)) ? parseFloat(req.query.fdr) : null,
         ldReference: req.query.ld_reference,
-        limit: parseNumber(req.query.limit, 25),
+        limit: req.query.limit ? parseNumber(req.query.limit, 25) : null,
       })
       .catch(next)
 
@@ -269,35 +288,6 @@ module.exports = { setup }
  *              required:
  *                - id
  *                - counts
- *              properties:
- *                id:
- *                  description: Group id (cell type or genotype id)
- *                  type: string
- *                counts:
- *                  type: array
- *                  items:
- *                    type: number
- *                    format: int32
- *          bins:
- *            type: array
- *            items:
- *              type: object
- *              required:
- *                - min
- *                - max
- *              properties:
- *                min:
- *                  type: number
- *                  format: float
- *                max:
- *                  type: number
- *                  format: float
- *          statistics:
- *            type: array
- *            items:
- *              type: object
- *              required:
- *                - id
  *                - min
  *                - max
  *                - mean
@@ -311,6 +301,11 @@ module.exports = { setup }
  *                id:
  *                  description: Group id (cell type or genotype id)
  *                  type: string
+ *                counts:
+ *                  type: array
+ *                  items:
+ *                    type: number
+ *                    format: int32
  *                min:
  *                  type: number
  *                  format: float
@@ -336,6 +331,20 @@ module.exports = { setup }
  *                  type: number
  *                  format: float
  *                iqr_max:
+ *                  type: number
+ *                  format: float
+ *          bins:
+ *            type: array
+ *            items:
+ *              type: object
+ *              required:
+ *                - min
+ *                - max
+ *              properties:
+ *                min:
+ *                  type: number
+ *                  format: float
+ *                max:
  *                  type: number
  *                  format: float
  */

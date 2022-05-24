@@ -9,11 +9,23 @@ const { fetchAssociations } = require('./association')
 const { resolveGene, resolveGenes } = require('./gene_lookup')
 
 /**
- * @param {{query?: string, expand?: boolean, limit?: number, config?: object}} options
+ * @param {{
+ *  query?: string,
+ *  range?: {chrom?: string, start?: number, stop?: number},
+ *  expand?: boolean,
+ *  limit?: number,
+ *  config?: object
+ * }} options
  *
  * @returns {Promise<object[]>}
  */
-const fetchGenes = async ({ query = null, expand = false, limit = 25, config = {} } = {}) => {
+const fetchGenes = async ({
+  query = null,
+  range = { chrom: null, start: null, stop: null },
+  expand = false,
+  limit = 25,
+  config = {},
+} = {}) => {
   const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
 
   const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneModel}`
@@ -22,17 +34,44 @@ const fetchGenes = async ({ query = null, expand = false, limit = 25, config = {
 
   const queryParams = {}
   const filters = []
+
+  if (range && Number.isInteger(range.start) && Number.isInteger(range.stop)) {
+    queryParams.start = Number.parseInt(range.start, 10)
+    queryParams.stop = Number.parseInt(range.stop, 10)
+    filters.push(
+      [
+        '(',
+        [
+          '(global_start >= @start AND global_stop <= @stop)',
+          '(global_start <= @start AND global_stop >= @start AND global_stop <= @stop)',
+          '(global_start >= @start AND global_start <= @stop AND global_stop >= @stop)',
+          '(global_start <= @start AND global_stop >= @stop)',
+        ].join(' OR '),
+        ')',
+      ].join('')
+    )
+  }
+
   if (query) {
     queryParams.query = query
     filters.push(
-      ...[
-        'UPPER(gene_id) = UPPER(@query)',
-        'UPPER(canonical_transcript_id) = UPPER(@query)',
-        `UPPER(symbol) = @query`,
-        `REGEXP_CONTAINS(UPPER(symbol), CONCAT('^', @query))`,
-        "REGEXP_CONTAINS(UPPER(gene_id), CONCAT('^', @query))",
-      ]
+      [
+        '(',
+        [
+          'UPPER(gene_id) = UPPER(@query)',
+          'UPPER(canonical_transcript_id) = UPPER(@query)',
+          `UPPER(symbol) = UPPER(@query)`,
+          `REGEXP_CONTAINS(UPPER(symbol), CONCAT('^', UPPER(@query)))`,
+          "REGEXP_CONTAINS(UPPER(gene_id), CONCAT('^', UPPER(@query)))",
+        ].join(' OR '),
+        ')',
+      ].join('')
     )
+  }
+
+  if (range && range.chrom) {
+    queryParams.chrom = range.chrom
+    filters.push('chrom = @chrom')
   }
 
   let limitClause = ''
@@ -42,7 +81,7 @@ const fetchGenes = async ({ query = null, expand = false, limit = 25, config = {
   }
 
   const rows = await submitQuery({
-    query: [selectStatement, filters.length ? `WHERE ${filters.join(' OR ')}` : null, limitClause]
+    query: [selectStatement, filters.length ? `WHERE ${filters.join(' AND ')}` : null, limitClause]
       .filter((c) => !!c)
       .join('\n'),
     options: { ...queryOptions, params: queryParams },
@@ -63,6 +102,7 @@ const fetchGeneById = async (id, { config = {} } = {}) => {
   const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
 
   const geneRecord = await resolveGene(id, { config })
+  if (!geneRecord) return null
 
   const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneModel}`
   const select = `SELECT * FROM ${table}`
@@ -86,7 +126,7 @@ const fetchGenesById = async (ids, { config = {} } = {}) => {
   if (!ids) return []
 
   const geneRecords = await resolveGenes(ids, { config })
-  if (!geneRecords) return []
+  if (!geneRecords?.length) return []
 
   const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
   const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.geneModel}`
@@ -119,6 +159,8 @@ const fetchGeneAssociations = async (
   { cellTypeIds = [], rounds = [], fdr = 0.05, limit = 25, ldReference = null, config = {} } = {}
 ) => {
   if (!id) throw new Error("Parameter 'id' is required.")
+  const gene = await resolveGene(id, { config })
+  if (!gene) return null
 
   const rows = await fetchAssociations({
     genes: [id],
@@ -166,23 +208,16 @@ const fetchGeneExpression = async (id, { config = {} } = {}) => {
     return { min: min + step * i, max: min + step * (i + 1) }
   })
 
-  // Compute bin counts
+  // Compute bin counts and distribution statistics
   const histograms = distributions.map((d) => {
-    return {
-      id: d.id,
-      counts: bins.map((b) => {
-        return d.data.filter((n) => n >= b.min && n < b.max).length
-      }),
-    }
-  })
-
-  // Compute box plot statistic
-  const statistics = distributions.map((d) => {
     const [q1, median, q3] = quantileSeq(d.data, [0.25, 0.5, 0.75])
     const iqr = q3 - q1
 
     return {
       id: d.id,
+      counts: bins.map((b) => {
+        return d.data.filter((n) => n >= b.min && n < b.max).length
+      }),
       min: Math.min(...d.data),
       max: Math.max(...d.data),
       mean: mean(d.data),
@@ -198,7 +233,6 @@ const fetchGeneExpression = async (id, { config = {} } = {}) => {
   return {
     histograms,
     bins,
-    statistics,
   }
 }
 
@@ -220,11 +254,13 @@ const fetchGeneAssociationAggregate = async (id, { config = {} } = {}) => {
 
   return cellTypes.map((c) => {
     const skew = sampleNormal({ min: 1, max: 4, skew: 1 })
+    const pval = sampleNormal({ min: 0, max: 1e4, skew: 6 }) / 1e4
     return {
       gene_id: gene.id,
       gene_symbol: gene.symbol,
       cell_type_id: c.cell_type_id || c.id,
-      min_p_value: sampleNormal({ min: 0, max: 1e4, skew: 6 }) / 1e4,
+      min_p_value: pval,
+      log10_min_p_value: -Math.log10(pval),
       mean_log_cpm: sampleNormal({ min: 0, max: 15, skew }),
     }
   })

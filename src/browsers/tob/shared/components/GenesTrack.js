@@ -1,9 +1,11 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useMemo } from 'react'
 import PropTypes from 'prop-types'
 
 import { Link } from '@gnomad/ui'
 
-import { scaleLinear, zoom, select } from 'd3'
+import { scaleLinear } from 'd3'
+
+const DEFAULT_MARGIN = { left: 10, right: 10, top: 10, bottom: 10 }
 
 const layoutRows = (genes, scalePosition) => {
   if (genes.length === 0) {
@@ -71,118 +73,88 @@ const featureTypeCompareFn = (r1, r2) =>
   featureTypeOrder[r1.feature_type] - featureTypeOrder[r2.feature_type]
 
 const renderGeneLabel = (gene) => (
-  <Link href={`/results/${gene.gene_id}`}>
+  <Link href={`/gene/${gene.gene_id}`}>
     <text fill="#1173bb" textAnchor="middle">
       {gene.symbol}
     </text>
   </Link>
 )
 
-const GenesTrack = ({
-  genes,
-  margin,
-  rowHeight,
-  width,
-  innerRegion,
-  setInnerRegion,
-  onChange,
-  topPadding,
-}) => {
-  const svgGenes = useRef()
+const GenesTrack = ({ region, genes, width, rowHeight, margin }) => {
+  const _margin = useMemo(() => ({ ...DEFAULT_MARGIN, ...margin }), [margin])
+  const innerWidth = useMemo(() => width - _margin.left - _margin.right, [
+    width,
+    _margin.left,
+    _margin.right,
+  ])
 
-  const xScale = scaleLinear()
-    .domain([innerRegion.start, innerRegion.stop])
-    .range([0, width - margin.left - margin.right])
+  const xScale = useMemo(
+    () =>
+      scaleLinear()
+        .domain([region.start, region.stop])
+        .range([0, width - _margin.left - _margin.right]),
+    [region.start, region.stop, width, _margin.left, _margin.right]
+  )
 
   const rows = layoutRows(genes, xScale)
-  const innerHeight = rows.length * rowHeight + topPadding
-
-  const innerWidth = width - margin.left - margin.right
-  const height = innerHeight + margin.top + margin.bottom
-
-  useEffect(() => {
-    function updateChart(e) {
-      setInnerRegion({
-        chrom: innerRegion.chrom,
-        start: e.transform.rescaleX(xScale).domain()[0],
-        stop: e.transform.rescaleX(xScale).domain()[1],
-      })
-    }
-
-    function Emit(e) {
-      onChange({
-        chrom: innerRegion.chrom,
-        start: Math.round(e.transform.rescaleX(xScale).domain()[0]),
-        stop: Math.round(e.transform.rescaleX(xScale).domain()[1]),
-      })
-    }
-
-    const zoomBehaviour = zoom()
-      // FIXME: Zooming disabled until we fix responsiveness
-      .scaleExtent([1, 1]) // This control how much you can unzoom (x0.5) and zoom (x20)
-      .on('zoom', (e) => updateChart(e))
-      .on('end', (e) => Emit(e)) // emit region update here
-
-    zoomBehaviour(select(svgGenes.current))
-  }, [xScale])
+  const innerHeight = rows.length * rowHeight + _margin.top
+  const height = innerHeight + _margin.top + _margin.bottom
 
   return (
-    <>
-      <svg width={width} height={height} ref={svgGenes} style={{ cursor: 'move' }}>
-        {/* <rect width={width} height={height} fill="none" stroke="black" /> */}
-        <g transform={`translate(${margin.left}, ${margin.top})`}>
-          <defs>
-            <clipPath id="clipGeneTrack">
-              <rect width={innerWidth} height={innerHeight} fill="none" pointerEvents="all" />
-            </clipPath>
-          </defs>
-          {/* <rect width={innerWidth} height={innerHeight} fill="none" stroke="black" /> */}
-          <g clipPath="url(#clipGeneTrack)">
-            {rows.map((track, trackNumber) =>
-              track.map((gene) => {
-                const labelY = rowHeight * trackNumber + 33
-                const featuresYPosition = rowHeight * trackNumber + 8
-                const geneStart = xScale(gene.start)
-                const geneStop = xScale(gene.stop)
-                return (
-                  <g key={gene.gene_id} transform={`translate(0, ${topPadding})`}>
-                    <g transform={`translate(${(geneStart + geneStop) / 2},${labelY})`}>
-                      {renderGeneLabel(gene)}
-                    </g>
-                    <line
-                      x1={geneStart}
-                      x2={geneStop}
-                      y1={featuresYPosition}
-                      y2={featuresYPosition}
-                      stroke="#424242"
-                      strokeWidth={1}
-                    />
-                    {[...(gene.canonical_transcript?.features || [])]
-                      .sort(featureTypeCompareFn)
-                      .map((f) => {
-                        const featureStart = xScale(f.start)
-                        const featureStop = xScale(f.stop)
-                        const { fill, height: featureHeight } = featureAttributes[f.feature_type]
-                        return (
-                          <rect
-                            key={`${gene.gene_id}-${f.feature_type}-${f.start}-${f.stop}`}
-                            x={featureStart}
-                            y={rowHeight * trackNumber + (16 - featureHeight) / 2}
-                            width={featureStop - featureStart}
-                            height={featureHeight}
-                            fill={fill}
-                            stroke={fill}
-                          />
-                        )
-                      })}
+    <svg width={width} height={height}>
+      {/* <rect width={width} height={height} fill="none" stroke="black" /> */}
+      <g transform={`translate(${_margin.left}, ${_margin.top})`}>
+        <defs>
+          <clipPath id="clipGeneTrack">
+            <rect width={innerWidth} height={innerHeight} fill="none" pointerEvents="all" />
+          </clipPath>
+        </defs>
+        {/* <rect width={innerWidth} height={innerHeight} fill="none" stroke="black" /> */}
+        <g clipPath="url(#clipGeneTrack)">
+          {rows.map((track, trackNumber) =>
+            track.map((gene) => {
+              const labelY = rowHeight * trackNumber + 33
+              const featuresYPosition = rowHeight * trackNumber + 8
+              const geneStart = xScale(gene.start)
+              const geneStop = xScale(gene.stop)
+              return (
+                <g key={gene.gene_id} transform={`translate(0, ${_margin.top})`}>
+                  <g transform={`translate(${(geneStart + geneStop) / 2},${labelY})`}>
+                    {renderGeneLabel(gene)}
                   </g>
-                )
-              })
-            )}
-          </g>
+                  <line
+                    x1={geneStart}
+                    x2={geneStop}
+                    y1={featuresYPosition}
+                    y2={featuresYPosition}
+                    stroke="#424242"
+                    strokeWidth={1}
+                  />
+                  {[...(gene.canonical_transcript?.features || [])]
+                    .sort(featureTypeCompareFn)
+                    .map((f) => {
+                      const featureStart = xScale(f.start)
+                      const featureStop = xScale(f.stop)
+                      const { fill, height: featureHeight } = featureAttributes[f.feature_type]
+                      return (
+                        <rect
+                          key={`${gene.gene_id}-${f.feature_type}-${f.start}-${f.stop}`}
+                          x={featureStart}
+                          y={rowHeight * trackNumber + (16 - featureHeight) / 2}
+                          width={featureStop - featureStart}
+                          height={featureHeight}
+                          fill={fill}
+                          stroke={fill}
+                        />
+                      )
+                    })}
+                </g>
+              )
+            })
+          )}
         </g>
-      </svg>
-    </>
+      </g>
+    </svg>
   )
 }
 
@@ -194,23 +166,18 @@ GenesTrack.propTypes = {
     top: PropTypes.number,
     bottom: PropTypes.number,
   }),
-  rowHeight: PropTypes.number,
-  width: PropTypes.number,
-  innerRegion: PropTypes.shape({
-    chrom: PropTypes.string.isRequired,
+  region: PropTypes.shape({
     start: PropTypes.number.isRequired,
     stop: PropTypes.number.isRequired,
   }).isRequired,
-  onChange: PropTypes.func.isRequired,
-  topPadding: PropTypes.number,
-  setInnerRegion: PropTypes.func.isRequired,
+  width: PropTypes.number,
+  rowHeight: PropTypes.number,
 }
 
 GenesTrack.defaultProps = {
-  topPadding: 20,
-  width: 200,
-  rowHeight: 50,
-  margin: { left: 60, right: 40, top: 20, bottom: 60 },
+  width: 1000,
+  rowHeight: 60,
+  margin: { ...DEFAULT_MARGIN },
 }
 
 export default GenesTrack

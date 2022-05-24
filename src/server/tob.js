@@ -86,7 +86,7 @@ app.use('/', (req, _, next) => {
 
 const datasetConfig = {
   tob: {
-    enableSwaggerUi: (process.env.ENABLE_SWAGGER_UI ?? '').toLowerCase() === 'true',
+    enableSwaggerUi: config.isDevelopment,
   },
 }
 

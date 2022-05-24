@@ -51,7 +51,7 @@ const TOBAssociationHeatmap = ({ query, gene, round, selectedTiles, onChange }) 
       })
       .catch((e) => setError(e.toString()))
       .finally(() => setIsLoading(false))
-  }, [query, gene, round])
+  }, [query, gene, round, onChange, selectedTiles])
 
   if (error) {
     return (

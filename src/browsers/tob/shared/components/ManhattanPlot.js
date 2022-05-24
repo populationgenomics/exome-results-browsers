@@ -94,7 +94,7 @@ const ManhattanPlot = ({
       ])
       .on('end', (e) => updateBrush(e))
     brushBehaviour(select(brushRef.current))
-  }, [xScale])
+  }, [xScale, innerWidth, innerHeight, innerRegion.chrom, onChange, setInnerRegion])
 
   function onMouseOver() {
     select('.manhattanTooltip').style('opacity', 1)

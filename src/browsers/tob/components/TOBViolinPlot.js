@@ -34,7 +34,7 @@ const TOBViolinPlot = ({ gene }) => {
       })
       .catch((e) => setError(e.toString()))
       .finally(() => setIsLoading(false))
-  }, [])
+  }, [gene])
 
   if (error) {
     return (

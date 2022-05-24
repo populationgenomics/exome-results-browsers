@@ -2,9 +2,10 @@ import React from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import { Searchbox as SearchboxInput } from '@gnomad/ui'
+import { isVariantId } from '@gnomad/identifiers'
 
-const fetchSearchResults = (query) =>
-  fetch(`/api/search?q=${query}`)
+const fetchSearchResults = (query) => {
+  const results = fetch(`/api/genes?search=${query}&expand=false`)
     .then((response) => {
       const isOk = response.ok
       return response.json().then((data) => {
@@ -14,7 +15,15 @@ const fetchSearchResults = (query) =>
         return data
       })
     })
-    .then((data) => data.results.map(({ label, url }) => ({ label, value: url })))
+    .then((data) => {
+      if (isVariantId(query)) {
+        return [{ label: query, value: `/variant/${query}` }]
+      }
+      return data.map((g) => ({ label: g.symbol, value: `/gene/${g.gene_id}` }))
+    })
+
+  return results
+}
 
 const Searchbox = (props) => {
   const location = useLocation()
@@ -24,7 +33,7 @@ const Searchbox = (props) => {
     <SearchboxInput
       // Clear input when URL changes
       key={location.pathname}
-      placeholder="Search results by gene, variant or region"
+      placeholder="Search results by gene or variant"
       fetchSearchResults={fetchSearchResults}
       onSelect={(url) => navigate(url)}
       {...props}

@@ -29,7 +29,7 @@ const setup = (app) => {
    *          type: string
    *          example: BRCA1
    *        - in: query
-   *          name: cellTypes
+   *          name: cell_types
    *          description: Cell type identifiers, comma delimited
    *          type: string
    *          example: bin,bmem
@@ -93,7 +93,7 @@ const setup = (app) => {
     const associations = await queries
       .fetchAssociations({
         genes: (req.query.genes?.split(',') || []).map((s) => s.trim()).filter((s) => !!s),
-        cellTypeIds: (req.query.cellTypes?.split(',') || [])
+        cellTypeIds: (req.query.cell_types?.split(',') || [])
           .map((s) => s.trim())
           .filter((s) => !!s),
         ids: (req.query.ids?.split(',') || []).map((s) => s.trim()).filter((s) => !!s),
@@ -101,7 +101,7 @@ const setup = (app) => {
         range: globalRange,
         ldReference: req.query.ld_reference,
         fdr: Number.isFinite(parseFloat(req.query.fdr)) ? parseFloat(req.query.fdr) : null,
-        limit: parseNumber(req.query.limit, 25),
+        limit: req.query.limit ? parseNumber(req.query.limit, 25) : null,
       })
       .catch(next)
 
