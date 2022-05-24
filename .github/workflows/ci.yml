@@ -34,7 +34,7 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile --non-interactive --no-progress
       - name: Run ESLint
-        run: yarn run lint:js
+        run: yarn run lint:js --fix
       - name: Run stylelint
         run: yarn run lint:css
       - name: Build browsers

@@ -82,10 +82,11 @@ const renderGeneLabel = (gene) => (
 
 const GenesTrack = ({ region, genes, width, rowHeight, margin }) => {
   const _margin = useMemo(() => ({ ...DEFAULT_MARGIN, ...margin }), [margin])
-  const innerWidth = useMemo(
-    () => width - _margin.left - _margin.right,
-    [width, _margin.left, _margin.right]
-  )
+  const innerWidth = useMemo(() => width - _margin.left - _margin.right, [
+    width,
+    _margin.left,
+    _margin.right,
+  ])
 
   const xScale = useMemo(
     () =>
