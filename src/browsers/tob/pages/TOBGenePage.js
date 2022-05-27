@@ -172,7 +172,7 @@ const TOBGenePage = () => {
     [selectedVariantIds, selectedAssociations]
   )
 
-  // // --------- Memoized values ------------------------------------ //
+  // --------- Memoized values ------------------------------------ //
   const cellTypeCategories = useMemo(() => {
     if (!cellTypes) return []
 
@@ -235,7 +235,7 @@ const TOBGenePage = () => {
             <TOBViolinPlot
               query={a.association_id}
               height={250}
-              margin={{ left: 60, bottom: 40 }}
+              margin={{ left: 60, bottom: 40, right: 0 }}
             />
           ),
           onMouseEnter: () => setHighlightedAssociation(a),

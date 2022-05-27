@@ -11,12 +11,14 @@ const ColumnDefinition = styled.div`
   cursor: ${(props) => (props.title ? 'help' : 'initial')};
   font-size: 12px;
   text-align: left;
+  margin-left: 40px;
 `
 
 const RowDefinition = styled.td`
   cursor: ${(props) => (props.title ? 'help' : 'initial')};
   font-size: 12px;
   text-align: left;
+  width: 150px;
 `
 
 const ClearButton = styled.button`
@@ -31,9 +33,9 @@ const TableRow = styled.tr`
 `
 
 const TableCell = styled.td`
-  width: 350px;
-  min-width: 350px;
-  max-width: 350px;
+  width: 250px;
+  min-width: 250px;
+  max-width: 250px;
   height: 200px;
   text-align: left;
 `
@@ -41,9 +43,13 @@ const TableCell = styled.td`
 const EffectGrid = ({ columns, rows, data, missing, width, height, margin }) => {
   const _margin = useMargin(margin, { top: 4, bottom: 4 })
 
+  const validCellTypes = useMemo(() => {
+    return ['variant', ...new Set(data.map((a) => a.column))]
+  }, [data])
+
   const tableStyle = useMemo(() => {
     return {
-      width: width ?? (columns?.length ?? 0) * 350,
+      width: width ?? (validCellTypes?.length ?? 0) * 250,
       height: height ?? (rows?.length ?? 0) * 250,
       marginTop: _margin.top,
       marginRight: _margin.right,
@@ -58,27 +64,29 @@ const EffectGrid = ({ columns, rows, data, missing, width, height, margin }) => 
     width,
     height,
     rows?.length,
-    columns?.length,
+    validCellTypes.length,
   ])
 
   const tableHeader = useMemo(() => {
     return (
       <tr>
-        {columns.map(({ key, help, content, onClear }) => {
-          return (
-            <TableColumn key={key}>
-              <ColumnDefinition title={help}>{content}</ColumnDefinition>
-              {onClear ? (
-                <ClearButton type="button" onClick={onClear}>
-                  Clear
-                </ClearButton>
-              ) : null}
-            </TableColumn>
-          )
-        })}
+        {columns
+          .filter((a) => validCellTypes.includes(a.key))
+          .map(({ key, help, content, onClear }) => {
+            return (
+              <TableColumn key={key}>
+                <ColumnDefinition title={help}>{content}</ColumnDefinition>
+                {onClear ? (
+                  <ClearButton type="button" onClick={onClear}>
+                    Clear
+                  </ClearButton>
+                ) : null}
+              </TableColumn>
+            )
+          })}
       </tr>
     )
-  }, [columns])
+  }, [columns, validCellTypes])
 
   const tableBody = useMemo(() => {
     return rows.map((row) => {
@@ -92,22 +100,25 @@ const EffectGrid = ({ columns, rows, data, missing, width, height, margin }) => 
               </ClearButton>
             ) : null}
           </RowDefinition>
-          {columns.slice(1).map((column) => {
-            const cell = data.find((d) => d.row === row.key && d.column === column.key)
-            return (
-              <TableCell
-                key={`${row.key}-${column.key}-cell`}
-                onMouseEnter={cell?.onMouseEnter}
-                onMouseLeave={cell?.onMouseLeave}
-              >
-                {cell?.content ?? missing}
-              </TableCell>
-            )
-          })}
+          {columns
+            .filter((a) => validCellTypes.includes(a.key))
+            .slice(1)
+            .map((column) => {
+              const cell = data.find((d) => d.row === row.key && d.column === column.key)
+              return (
+                <TableCell
+                  key={`${row.key}-${column.key}-cell`}
+                  onMouseEnter={cell?.onMouseEnter}
+                  onMouseLeave={cell?.onMouseLeave}
+                >
+                  {cell?.content ?? missing}
+                </TableCell>
+              )
+            })}
         </TableRow>
       )
     })
-  }, [rows, columns, data, missing])
+  }, [rows, columns, data, missing, validCellTypes])
 
   if (!rows?.length && !columns?.length) {
     return <StatusMessage style={{ fontSize: 16 }}>No data to display</StatusMessage>
