@@ -108,7 +108,7 @@ const TOBViolinPlot = ({ query, margin, height }) => {
           data={data}
           height={height}
           width={dimensions.boundedWidth}
-          yLabel="-log(CPM)"
+          yLabel="log(CPM)"
           margin={margin}
           accessors={accessors}
         />
