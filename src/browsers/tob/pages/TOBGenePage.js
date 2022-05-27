@@ -369,7 +369,6 @@ const TOBGenePage = () => {
             margin={{ top: 20, bottom: 140, right: 10, left: 100 }}
             onBrush={setDisplayRegion}
             onDoubleClick={() => setDisplayRegion(fullRegion)}
-            // onClick={test}
             onClick={onAssociationSelect}
             onShiftClick={onReferenceSelect}
           />

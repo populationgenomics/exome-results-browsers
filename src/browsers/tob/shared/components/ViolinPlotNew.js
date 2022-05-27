@@ -38,7 +38,7 @@ const ViolinPlot = ({
   const _margin = { ...DEFAULT_MARGIN, ...margin }
   const _accessors = { ...DEFAULT_ACCESSORS, ...accessors }
 
-  const innerWidth = width - _margin.left - _margin.right
+  const innerWidth = Math.max(0, width - _margin.left - _margin.right)
   const innerHeight = height - _margin.top - _margin.bottom
 
   const bins = useMemo(() => data?.bins ?? [], [data])
