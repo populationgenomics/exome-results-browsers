@@ -129,7 +129,7 @@ const TOBVariantPage = () => {
       .finally(() => setIsLoading(false))
   }, [cellTypes.length])
 
-  // // -------- Callback definitions ----------------------------------- //
+  // -------- Callback definitions ----------------------------------- //
   const debounceSetFdrFilter = debounce((v) => setFdrFilter(Number.parseFloat(v)), 1000)
 
   const debounceSetConditioningRound = debounce(
@@ -151,7 +151,7 @@ const TOBVariantPage = () => {
   const onAssociationSelect = useCallback(
     (associations, type) => {
       let selected = [...selectedAssociations]
-      const vids = [...selectedVariantIds]
+      let vids = [...selectedVariantIds]
 
       // Check if each point has already been selected and de-select it if it does
       associations.forEach((a) => {
@@ -162,18 +162,22 @@ const TOBVariantPage = () => {
           selected.push(a)
         }
 
-        if (!vids.includes(a.variant_id)) {
+        if (vids.includes(a.variant_id) && type !== 'append') {
+          vids = vids.filter((s) => s !== a.variant_id)
+        } else if (!vids.includes(a.variant_id)) {
           vids.push(a.variant_id)
         }
       })
 
+      selected = selected.filter((a) => cellTypeSelection[a.cell_type_id])
+
       setSelectedAssociations(selected)
-      setSelectedVariantIds(vids)
+      setSelectedVariantIds(selected.length ? vids : [])
     },
-    [selectedVariantIds, selectedAssociations]
+    [selectedVariantIds, selectedAssociations, cellTypeSelection]
   )
 
-  // // --------- Memoized values ------------------------------------ //
+  // --------- Memoized values ------------------------------------ //
   const cellTypeCategories = useMemo(() => {
     if (!cellTypes) return []
 
@@ -236,7 +240,7 @@ const TOBVariantPage = () => {
             <TOBViolinPlot
               query={a.association_id}
               height={250}
-              margin={{ left: 60, bottom: 40 }}
+              margin={{ left: 60, bottom: 40, right: 0 }}
             />
           ),
           onMouseEnter: () => setHighlightedAssociation(a),
