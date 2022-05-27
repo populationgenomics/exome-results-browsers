@@ -128,7 +128,7 @@ const TOBGenePage = () => {
       .finally(() => setIsLoading(false))
   }, [cellTypes.length])
 
-  // // -------- Callback definitions ----------------------------------- //
+  // -------- Callback definitions ----------------------------------- //
   const debounceSetFdrFilter = debounce((v) => setFdrFilter(Number.parseFloat(v)), 1000)
 
   const debounceSetConditioningRound = debounce(
@@ -150,7 +150,7 @@ const TOBGenePage = () => {
   const onAssociationSelect = useCallback(
     (associations, type) => {
       let selected = [...selectedAssociations]
-      const vids = [...selectedVariantIds]
+      let vids = [...selectedVariantIds]
 
       // Check if each point has already been selected and de-select it if it does
       associations.forEach((a) => {
@@ -161,15 +161,19 @@ const TOBGenePage = () => {
           selected.push(a)
         }
 
-        if (!vids.includes(a.variant_id)) {
+        if (vids.includes(a.variant_id) && type !== 'append') {
+          vids = vids.filter((s) => s !== a.variant_id)
+        } else if (!vids.includes(a.variant_id)) {
           vids.push(a.variant_id)
         }
       })
 
+      selected = selected.filter((a) => cellTypeSelection[a.cell_type_id])
+
       setSelectedAssociations(selected)
-      setSelectedVariantIds(vids)
+      setSelectedVariantIds(selected.length ? vids : [])
     },
-    [selectedVariantIds, selectedAssociations]
+    [selectedVariantIds, selectedAssociations, cellTypeSelection]
   )
 
   // --------- Memoized values ------------------------------------ //
@@ -191,7 +195,7 @@ const TOBGenePage = () => {
         content: vid,
         onClear: () => {
           setSelectedVariantIds(selectedVariantIds.filter((v) => v !== vid))
-          setSelectedAssociations(selectedAssociations.filter((a) => a.gene_id !== vid))
+          setSelectedAssociations(selectedAssociations.filter((a) => a.variant_id !== vid))
         },
       }
     })
@@ -365,6 +369,7 @@ const TOBGenePage = () => {
             margin={{ top: 20, bottom: 140, right: 10, left: 100 }}
             onBrush={setDisplayRegion}
             onDoubleClick={() => setDisplayRegion(fullRegion)}
+            // onClick={test}
             onClick={onAssociationSelect}
             onShiftClick={onReferenceSelect}
           />
