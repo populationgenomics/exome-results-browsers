@@ -150,7 +150,6 @@ const TOBGenePage = () => {
   const onAssociationSelect = useCallback(
     (associations, type) => {
       let selected = [...selectedAssociations]
-      let vids = [...selectedVariantIds]
 
       // Check if each point has already been selected and de-select it if it does
       associations.forEach((a) => {
@@ -160,20 +159,16 @@ const TOBGenePage = () => {
         } else if (!isSelected) {
           selected.push(a)
         }
-
-        if (vids.includes(a.variant_id) && type !== 'append') {
-          vids = vids.filter((s) => s !== a.variant_id)
-        } else if (!vids.includes(a.variant_id)) {
-          vids.push(a.variant_id)
-        }
       })
 
       selected = selected.filter((a) => cellTypeSelection[a.cell_type_id])
 
+      const vids = Array.from(new Set(selected.map((x) => x.variant_id)))
+
       setSelectedAssociations(selected)
-      setSelectedVariantIds(selected.length ? vids : [])
+      setSelectedVariantIds(vids)
     },
-    [selectedVariantIds, selectedAssociations, cellTypeSelection]
+    [selectedAssociations, cellTypeSelection]
   )
 
   // --------- Memoized values ------------------------------------ //
