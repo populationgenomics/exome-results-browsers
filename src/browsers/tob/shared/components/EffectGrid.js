@@ -9,16 +9,16 @@ const TableColumn = styled.th``
 
 const ColumnDefinition = styled.div`
   cursor: ${(props) => (props.title ? 'help' : 'initial')};
-  font-size: 12px;
   margin-left: 40px;
+  font-size: 12px;
   text-align: left;
 `
 
 const RowDefinition = styled.td`
   cursor: ${(props) => (props.title ? 'help' : 'initial')};
   font-size: 12px;
-  text-align: left;
   width: 150px;
+  text-align: left;
 `
 
 const ClearButton = styled.button`
@@ -33,11 +33,11 @@ const TableRow = styled.tr`
 `
 
 const TableCell = styled.td`
-  text-align: left;
   width: 250px;
+  height: 200px;
   min-width: 250px;
   max-width: 250px;
-  height: 200px;
+  text-align: left;
 `
 
 const EffectGrid = ({ columns, rows, data, missing, width, height, margin }) => {
