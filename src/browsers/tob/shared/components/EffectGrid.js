@@ -16,8 +16,8 @@ const ColumnDefinition = styled.div`
 
 const RowDefinition = styled.td`
   cursor: ${(props) => (props.title ? 'help' : 'initial')};
-  font-size: 12px;
   width: 150px;
+  font-size: 12px;
   text-align: left;
 `
 
@@ -34,9 +34,9 @@ const TableRow = styled.tr`
 
 const TableCell = styled.td`
   width: 250px;
-  height: 200px;
   min-width: 250px;
   max-width: 250px;
+  height: 200px;
   text-align: left;
 `
 
