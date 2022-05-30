@@ -250,9 +250,6 @@ const TOBVariantPage = () => {
     )
   }, [cellTypeSelection, selectedAssociations])
 
-  console.log(selectedVariantIds)
-  console.log(selectedAssociations)
-
   // --------- Render begin -------------------------------------- //
   if (error) {
     return (
