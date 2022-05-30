@@ -248,6 +248,12 @@ const TOBGenePage = () => {
       })
   }, [selectedGene, selectedAssociations])
 
+  const excludedColumns = useMemo(() => {
+    return Object.keys(cellTypeSelection).filter(
+      (x) => cellTypeSelection[x] && !selectedAssociations.map((y) => y.cell_type_id).includes(x)
+    )
+  }, [cellTypeSelection, selectedAssociations])
+
   // --------- Render begin -------------------------------------- //
   if (error) {
     return (
@@ -394,6 +400,19 @@ const TOBGenePage = () => {
               ) : null}
               {effectGridRows.length > 0 && effectGridColumns.length > 0 ? (
                 <>
+                  {excludedColumns.length > 0 && (
+                    <div>
+                      <br />
+                      <i>
+                        {`NOTE: The ${
+                          excludedColumns.slice(0, -1).join(', ') +
+                          (excludedColumns.length > 1 ? ' and ' : '') +
+                          excludedColumns.slice(-1)
+                        } cell types `}
+                        have no EQTLs for the current selection and have been omitted.
+                      </i>
+                    </div>
+                  )}
                   <InputWrapper>
                     <button
                       type="button"
@@ -406,7 +425,6 @@ const TOBGenePage = () => {
                       Clear all
                     </button>
                   </InputWrapper>
-
                   <EffectGrid
                     rows={effectGridRows}
                     columns={effectGridColumns}
