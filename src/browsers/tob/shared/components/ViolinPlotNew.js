@@ -32,6 +32,7 @@ const ViolinPlot = ({
   accessors,
   xScale,
   yScale,
+  fontSize,
 }) => {
   const svg = useRef()
 
@@ -104,7 +105,11 @@ const ViolinPlot = ({
             _margin.top + innerHeight / 2
           })`}
         >
-          <text textAnchor="middle" alignmentBaseline="middle" fontSize={16}>
+          <text
+            textAnchor="middle"
+            alignmentBaseline="middle"
+            fontSize={Math.floor(fontSize * 1.2)}
+          >
             No data to display
           </text>
         </g>
@@ -118,7 +123,7 @@ const ViolinPlot = ({
         {/* Title */}
         {title && (
           <g id={`${id}-title`} transform={`translate(${_margin.left}, 40)`}>
-            <text textAnchor="start" fontSize={16}>
+            <text textAnchor="start" fontSize={Math.floor(fontSize * 1.2)}>
               {title}
             </text>
           </g>
@@ -146,7 +151,7 @@ const ViolinPlot = ({
                   y={8}
                   textAnchor="end"
                   alignmentBaseline="middle"
-                  fontSize={14}
+                  fontSize={fontSize}
                 >
                   {tick}
                 </text>
@@ -158,13 +163,13 @@ const ViolinPlot = ({
           {/* y-axis */}
           <g id={`${id}_y-axis`}>
             <line y2={`${innerHeight}`} stroke="black" />
-            {yScaleLocal.ticks().map((tick) => (
+            {yScaleLocal.ticks(4).map((tick) => (
               <g key={tick} transform={`translate(0, ${yScaleLocal(tick)})`}>
                 <text
                   key={tick}
                   textAnchor="end"
                   alignmentBaseline="middle"
-                  fontSize={14}
+                  fontSize={fontSize}
                   x={-8}
                   y={3}
                 >
@@ -312,6 +317,7 @@ ViolinPlot.propTypes = {
   }),
   xScale: PropTypes.func,
   yScale: PropTypes.func,
+  fontSize: PropTypes.number,
 }
 
 ViolinPlot.defaultProps = {
@@ -324,6 +330,7 @@ ViolinPlot.defaultProps = {
   accessors: { ...DEFAULT_ACCESSORS },
   xScale: null,
   yScale: null,
+  fontSize: 14,
 }
 
 export default ViolinPlot
