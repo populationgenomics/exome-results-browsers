@@ -129,7 +129,7 @@ const TOBVariantPage = () => {
       .finally(() => setIsLoading(false))
   }, [cellTypes.length])
 
-  // // -------- Callback definitions ----------------------------------- //
+  // -------- Callback definitions ----------------------------------- //
   const debounceSetFdrFilter = debounce((v) => setFdrFilter(Number.parseFloat(v)), 1000)
 
   const debounceSetConditioningRound = debounce(
@@ -151,7 +151,6 @@ const TOBVariantPage = () => {
   const onAssociationSelect = useCallback(
     (associations, type) => {
       let selected = [...selectedAssociations]
-      const vids = [...selectedVariantIds]
 
       // Check if each point has already been selected and de-select it if it does
       associations.forEach((a) => {
@@ -161,19 +160,25 @@ const TOBVariantPage = () => {
         } else if (!isSelected) {
           selected.push(a)
         }
-
-        if (!vids.includes(a.variant_id)) {
-          vids.push(a.variant_id)
-        }
       })
+
+      selected = selected.filter((a) => cellTypeSelection[a.cell_type_id])
+
+      const vids = Array.from(new Set(selected.map((x) => x.variant_id)))
 
       setSelectedAssociations(selected)
       setSelectedVariantIds(vids)
     },
-    [selectedVariantIds, selectedAssociations]
+    [selectedAssociations, cellTypeSelection]
   )
 
-  // // --------- Memoized values ------------------------------------ //
+  // --------- Memoized values ------------------------------------ //
+  const excludedColumns = useMemo(() => {
+    return Object.keys(cellTypeSelection).filter(
+      (x) => cellTypeSelection[x] && !selectedAssociations.map((y) => y.cell_type_id).includes(x)
+    )
+  }, [cellTypeSelection, selectedAssociations])
+
   const cellTypeCategories = useMemo(() => {
     if (!cellTypes) return []
 
@@ -214,7 +219,7 @@ const TOBVariantPage = () => {
     return [
       variantIdCol,
       ...cellTypes.map((c) => {
-        return cellTypeSelection[c.cell_type_id]
+        return cellTypeSelection[c.cell_type_id] && !excludedColumns.includes(c.cell_type_id)
           ? {
               key: c.cell_type_id,
               help: c.cell_type_id,
@@ -223,11 +228,13 @@ const TOBVariantPage = () => {
           : null
       }),
     ].filter((c) => !!c)
-  }, [cellTypes, cellTypeSelection])
+  }, [cellTypes, cellTypeSelection, excludedColumns])
 
   const effectGridData = useMemo(() => {
     return selectedAssociations
-      .filter((a) => a.gene_id === selectedGene?.gene_id)
+      .filter(
+        (a) => a.gene_id === selectedGene?.gene_id && !excludedColumns.includes(a.cell_type_id)
+      )
       .map((a) => {
         return {
           column: a.cell_type_id,
@@ -235,15 +242,16 @@ const TOBVariantPage = () => {
           content: (
             <TOBViolinPlot
               query={a.association_id}
-              height={250}
-              margin={{ left: 60, bottom: 40 }}
+              height={150}
+              fontSize={12}
+              margin={{ left: 30, bottom: 40, right: 0 }}
             />
           ),
           onMouseEnter: () => setHighlightedAssociation(a),
           onMouseLeave: () => setHighlightedAssociation(null),
         }
       })
-  }, [selectedGene, selectedAssociations])
+  }, [selectedGene, selectedAssociations, excludedColumns])
 
   // --------- Render begin -------------------------------------- //
   if (error) {
@@ -375,7 +383,7 @@ const TOBVariantPage = () => {
             <>
               {selectedGene?.gene_id ? (
                 <div>
-                  <span>Viewing association effect on gene expression for </span>
+                  <span>Viewing association effect on log(CPM) gene expression for </span>
                   <span>
                     {selectedGene.gene_symbol} ({selectedGene.gene_id})
                   </span>
@@ -383,6 +391,19 @@ const TOBVariantPage = () => {
               ) : null}
               {effectGridRows.length > 0 && effectGridColumns.length > 0 ? (
                 <>
+                  {excludedColumns.length > 0 && (
+                    <div>
+                      <br />
+                      <i>
+                        {`NOTE: The ${
+                          excludedColumns.slice(0, -1).join(', ') +
+                          (excludedColumns.length > 1 ? ' and ' : '') +
+                          excludedColumns.slice(-1)
+                        } cell types `}
+                        have no EQTLs for the current selection and have been omitted.
+                      </i>
+                    </div>
+                  )}
                   <InputWrapper>
                     <button
                       type="button"
@@ -395,7 +416,6 @@ const TOBVariantPage = () => {
                       Clear all
                     </button>
                   </InputWrapper>
-
                   <EffectGrid
                     rows={effectGridRows}
                     columns={effectGridColumns}

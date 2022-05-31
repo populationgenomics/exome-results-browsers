@@ -9,12 +9,16 @@ const TableColumn = styled.th``
 
 const ColumnDefinition = styled.div`
   cursor: ${(props) => (props.title ? 'help' : 'initial')};
+  margin-left: ${(props) => (props.applyMarginLeft ? '30px' : null)};
   font-size: 12px;
   text-align: left;
 `
 
 const RowDefinition = styled.td`
   cursor: ${(props) => (props.title ? 'help' : 'initial')};
+  width: 125px;
+  min-width: 125px;
+  max-width: 125px;
   font-size: 12px;
   text-align: left;
 `
@@ -26,15 +30,15 @@ const ClearButton = styled.button`
 `
 
 const TableRow = styled.tr`
-  height: 200px;
+  height: auto;
   text-align: left;
 `
 
 const TableCell = styled.td`
-  width: 350px;
-  min-width: 350px;
-  max-width: 350px;
-  height: 200px;
+  width: 150px;
+  min-width: 150px;
+  max-width: 150px;
+  height: 150px;
   text-align: left;
 `
 
@@ -43,8 +47,8 @@ const EffectGrid = ({ columns, rows, data, missing, width, height, margin }) => 
 
   const tableStyle = useMemo(() => {
     return {
-      width: width ?? (columns?.length ?? 0) * 350,
-      height: height ?? (rows?.length ?? 0) * 250,
+      width: width ?? (columns?.length ?? 0) * 150,
+      height: height ?? (rows?.length ?? 0) * 150,
       marginTop: _margin.top,
       marginRight: _margin.right,
       marginBottom: _margin.bottom,
@@ -64,10 +68,12 @@ const EffectGrid = ({ columns, rows, data, missing, width, height, margin }) => 
   const tableHeader = useMemo(() => {
     return (
       <tr>
-        {columns.map(({ key, help, content, onClear }) => {
+        {columns.map(({ key, help, content, onClear }, i) => {
           return (
             <TableColumn key={key}>
-              <ColumnDefinition title={help}>{content}</ColumnDefinition>
+              <ColumnDefinition title={help} applyMarginLeft={i > 0}>
+                {content}
+              </ColumnDefinition>
               {onClear ? (
                 <ClearButton type="button" onClick={onClear}>
                   Clear
@@ -162,7 +168,7 @@ EffectGrid.defaultProps = {
   columns: [],
   rows: [],
   data: [],
-  missing: <div style={{ textAlign: 'left' }}>¯\_(ツ)_/¯</div>,
+  missing: <div style={{ textAlign: 'center', fontSize: 12 }}>No data</div>,
   width: null,
   height: null,
   margin: {},

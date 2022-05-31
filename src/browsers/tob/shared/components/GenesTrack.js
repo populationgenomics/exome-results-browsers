@@ -82,18 +82,15 @@ const renderGeneLabel = (gene) => (
 
 const GenesTrack = ({ region, genes, width, rowHeight, margin }) => {
   const _margin = useMemo(() => ({ ...DEFAULT_MARGIN, ...margin }), [margin])
-  const innerWidth = useMemo(() => width - _margin.left - _margin.right, [
+  const innerWidth = useMemo(() => Math.max(0, width - _margin.left - _margin.right), [
     width,
     _margin.left,
     _margin.right,
   ])
 
   const xScale = useMemo(
-    () =>
-      scaleLinear()
-        .domain([region.start, region.stop])
-        .range([0, width - _margin.left - _margin.right]),
-    [region.start, region.stop, width, _margin.left, _margin.right]
+    () => scaleLinear().domain([region.start, region.stop]).range([0, innerWidth]),
+    [region.start, region.stop, innerWidth]
   )
 
   const rows = layoutRows(genes, xScale)
