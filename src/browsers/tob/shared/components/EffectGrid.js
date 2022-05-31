@@ -62,7 +62,7 @@ const EffectGrid = ({ columns, rows, data, missing, width, height, margin }) => 
     width,
     height,
     rows?.length,
-    columns.length,
+    columns?.length,
   ])
 
   const tableHeader = useMemo(() => {
