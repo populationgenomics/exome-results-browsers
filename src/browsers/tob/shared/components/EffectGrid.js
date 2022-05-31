@@ -45,13 +45,9 @@ const TableCell = styled.td`
 const EffectGrid = ({ columns, rows, data, missing, width, height, margin }) => {
   const _margin = useMargin(margin, { top: 4, bottom: 4 })
 
-  const validCellTypes = useMemo(() => {
-    return ['variant', ...new Set(data.map((a) => a.column))]
-  }, [data])
-
   const tableStyle = useMemo(() => {
     return {
-      width: width ?? (validCellTypes?.length ?? 0) * 150,
+      width: width ?? (columns?.length ?? 0) * 150,
       height: height ?? (rows?.length ?? 0) * 150,
       marginTop: _margin.top,
       marginRight: _margin.right,
@@ -66,31 +62,29 @@ const EffectGrid = ({ columns, rows, data, missing, width, height, margin }) => 
     width,
     height,
     rows?.length,
-    validCellTypes.length,
+    columns.length,
   ])
 
   const tableHeader = useMemo(() => {
     return (
       <tr>
-        {columns
-          .filter((a) => validCellTypes.includes(a.key))
-          .map(({ key, help, content, onClear }, i) => {
-            return (
-              <TableColumn key={key}>
-                <ColumnDefinition title={help} applyMarginLeft={i > 0}>
-                  {content}
-                </ColumnDefinition>
-                {onClear ? (
-                  <ClearButton type="button" onClick={onClear}>
-                    Clear
-                  </ClearButton>
-                ) : null}
-              </TableColumn>
-            )
-          })}
+        {columns.map(({ key, help, content, onClear }, i) => {
+          return (
+            <TableColumn key={key}>
+              <ColumnDefinition title={help} applyMarginLeft={i > 0}>
+                {content}
+              </ColumnDefinition>
+              {onClear ? (
+                <ClearButton type="button" onClick={onClear}>
+                  Clear
+                </ClearButton>
+              ) : null}
+            </TableColumn>
+          )
+        })}
       </tr>
     )
-  }, [columns, validCellTypes])
+  }, [columns])
 
   const tableBody = useMemo(() => {
     return rows.map((row) => {
@@ -104,25 +98,22 @@ const EffectGrid = ({ columns, rows, data, missing, width, height, margin }) => 
               </ClearButton>
             ) : null}
           </RowDefinition>
-          {columns
-            .filter((a) => validCellTypes.includes(a.key))
-            .slice(1)
-            .map((column) => {
-              const cell = data.find((d) => d.row === row.key && d.column === column.key)
-              return (
-                <TableCell
-                  key={`${row.key}-${column.key}-cell`}
-                  onMouseEnter={cell?.onMouseEnter}
-                  onMouseLeave={cell?.onMouseLeave}
-                >
-                  {cell?.content ?? missing}
-                </TableCell>
-              )
-            })}
+          {columns.slice(1).map((column) => {
+            const cell = data.find((d) => d.row === row.key && d.column === column.key)
+            return (
+              <TableCell
+                key={`${row.key}-${column.key}-cell`}
+                onMouseEnter={cell?.onMouseEnter}
+                onMouseLeave={cell?.onMouseLeave}
+              >
+                {cell?.content ?? missing}
+              </TableCell>
+            )
+          })}
         </TableRow>
       )
     })
-  }, [rows, columns, data, missing, validCellTypes])
+  }, [rows, columns, data, missing])
 
   if (!rows?.length && !columns?.length) {
     return <StatusMessage style={{ fontSize: 16 }}>No data to display</StatusMessage>

@@ -171,6 +171,12 @@ const TOBGenePage = () => {
   )
 
   // --------- Memoized values ------------------------------------ //
+  const excludedColumns = useMemo(() => {
+    return Object.keys(cellTypeSelection).filter(
+      (x) => cellTypeSelection[x] && !selectedAssociations.map((y) => y.cell_type_id).includes(x)
+    )
+  }, [cellTypeSelection, selectedAssociations])
+
   const cellTypeCategories = useMemo(() => {
     if (!cellTypes) return []
 
@@ -211,7 +217,7 @@ const TOBGenePage = () => {
     return [
       geneIdCol,
       ...cellTypes.map((c) => {
-        return cellTypeSelection[c.cell_type_id]
+        return cellTypeSelection[c.cell_type_id] && !excludedColumns.includes(c.cell_type_id)
           ? {
               key: c.cell_type_id,
               help: c.cell_type_id,
@@ -220,11 +226,13 @@ const TOBGenePage = () => {
           : null
       }),
     ].filter((c) => !!c)
-  }, [cellTypes, cellTypeSelection])
+  }, [cellTypes, cellTypeSelection, excludedColumns])
 
   const effectGridData = useMemo(() => {
     return selectedAssociations
-      .filter((a) => a.gene_id === selectedGene?.gene_id)
+      .filter(
+        (a) => a.gene_id === selectedGene?.gene_id && !excludedColumns.includes(a.cell_type_id)
+      )
       .map((a) => {
         return {
           column: a.cell_type_id,
@@ -241,13 +249,7 @@ const TOBGenePage = () => {
           onMouseLeave: () => setHighlightedAssociation(null),
         }
       })
-  }, [selectedGene, selectedAssociations])
-
-  const excludedColumns = useMemo(() => {
-    return Object.keys(cellTypeSelection).filter(
-      (x) => cellTypeSelection[x] && !selectedAssociations.map((y) => y.cell_type_id).includes(x)
-    )
-  }, [cellTypeSelection, selectedAssociations])
+  }, [selectedGene, selectedAssociations, excludedColumns])
 
   // --------- Render begin -------------------------------------- //
   if (error) {
