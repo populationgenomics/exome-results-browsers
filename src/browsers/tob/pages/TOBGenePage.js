@@ -4,7 +4,6 @@ import styled from 'styled-components'
 import { useParams } from 'react-router-dom'
 import { debounce, sortBy } from 'lodash'
 
-// import { parseVariantId } from '@gnomad/identifiers'
 import { CategoryFilterControl, PageHeading } from '@gnomad/ui'
 
 import { useChartDimensions } from '../shared/hooks'
@@ -233,8 +232,9 @@ const TOBGenePage = () => {
           content: (
             <TOBViolinPlot
               query={a.association_id}
-              height={250}
-              margin={{ left: 60, bottom: 40, right: 0 }}
+              height={150}
+              fontSize={12}
+              margin={{ left: 30, bottom: 40, right: 0 }}
             />
           ),
           onMouseEnter: () => setHighlightedAssociation(a),
@@ -387,7 +387,7 @@ const TOBGenePage = () => {
             <>
               {selectedGene?.gene_id ? (
                 <div>
-                  <span>Viewing association effect on gene expression for </span>
+                  <span>Viewing association effect on log(CPM) gene expression for </span>
                   <span>
                     {selectedGene.gene_symbol} ({selectedGene.gene_id})
                   </span>

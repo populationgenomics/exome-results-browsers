@@ -234,8 +234,9 @@ const TOBVariantPage = () => {
           content: (
             <TOBViolinPlot
               query={a.association_id}
-              height={250}
-              margin={{ left: 60, bottom: 40, right: 0 }}
+              height={150}
+              fontSize={12}
+              margin={{ left: 30, bottom: 40, right: 0 }}
             />
           ),
           onMouseEnter: () => setHighlightedAssociation(a),
@@ -380,7 +381,7 @@ const TOBVariantPage = () => {
             <>
               {selectedGene?.gene_id ? (
                 <div>
-                  <span>Viewing association effect on gene expression for </span>
+                  <span>Viewing association effect on log(CPM) gene expression for </span>
                   <span>
                     {selectedGene.gene_symbol} ({selectedGene.gene_id})
                   </span>
