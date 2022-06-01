@@ -192,12 +192,7 @@ const ManhattanPlotNew = ({
                   opacity={_accessors.opacity(d) || 0}
                   stroke={strokeColor}
                   strokeWidth={strokeWidth}
-                  onClick={(e) => {
-                    if (e.shiftKey) {
-                      onShiftClick(d)
-                    }
-                    onClick(d)
-                  }}
+                  onClick={(e) => (e.shiftKey ? onShiftClick(d) : onClick(d))}
                 />
               </g>
             </TooltipAnchor>
