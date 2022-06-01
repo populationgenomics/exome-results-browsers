@@ -13,7 +13,7 @@ import LoadingOverlay from '../shared/components/LoadingOverlay'
 
 const CELL_COLORS = defaultCellTypeColors()
 
-const TOBViolinPlot = ({ query, margin, height, fontSize }) => {
+const TOBViolinPlot = ({ query, margin, height, yLabel, fontSize }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
   const [data, setData] = useState(null)
@@ -80,7 +80,15 @@ const TOBViolinPlot = ({ query, margin, height, fontSize }) => {
   // Render
   if (error) {
     return (
-      <div style={{ height, width: dimensions.boundedWidth, fontSize }}>
+      <div
+        style={{
+          height,
+          width: dimensions.boundedWidth,
+          fontSize,
+          display: 'flex',
+          justifyContent: 'center',
+        }}
+      >
         <StatusMessage>
           Unable to load results
           <div>
@@ -94,7 +102,15 @@ const TOBViolinPlot = ({ query, margin, height, fontSize }) => {
   // Catch initial load
   if (!data) {
     return (
-      <div style={{ height, width: dimensions.boundedWidth, fontSize }}>
+      <div
+        style={{
+          height,
+          width: dimensions.boundedWidth,
+          fontSize,
+          display: 'flex',
+          justifyContent: 'center',
+        }}
+      >
         <StatusMessage>Loading</StatusMessage>
       </div>
     )
@@ -108,7 +124,7 @@ const TOBViolinPlot = ({ query, margin, height, fontSize }) => {
           data={data}
           height={height}
           width={dimensions.boundedWidth}
-          yLabel={null}
+          yLabel={yLabel}
           margin={margin}
           accessors={accessors}
           fontSize={fontSize}
@@ -127,12 +143,14 @@ TOBViolinPlot.propTypes = {
     bottom: PropTypes.number,
     left: PropTypes.number,
   }),
+  yLabel: PropTypes.string,
   fontSize: PropTypes.number,
 }
 
 TOBViolinPlot.defaultProps = {
   height: 600,
   margin: {},
+  yLabel: 'log(CPM)',
   fontSize: 14,
 }
 

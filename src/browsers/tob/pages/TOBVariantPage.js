@@ -141,6 +141,7 @@ const TOBVariantPage = () => {
     setSelectedGene(Array.isArray(v) ? v[0] : v)
     setLdReference(null)
     setSelectedAssociations([])
+    setSelectedVariantIds([])
   }
 
   const onReferenceSelect = useCallback(
@@ -244,6 +245,7 @@ const TOBVariantPage = () => {
               query={a.association_id}
               height={150}
               fontSize={12}
+              yLabel={null}
               margin={{ left: 30, bottom: 40, right: 0 }}
             />
           ),

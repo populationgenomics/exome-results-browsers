@@ -139,6 +139,7 @@ const TOBGenePage = () => {
     setSelectedGene(Array.isArray(v) ? v[0] : v)
     setLdReference(null)
     setSelectedAssociations([])
+    setSelectedVariantIds([])
   }
 
   const onReferenceSelect = useCallback(
@@ -241,6 +242,7 @@ const TOBGenePage = () => {
             <TOBViolinPlot
               query={a.association_id}
               height={150}
+              yLabel={null}
               fontSize={12}
               margin={{ left: 30, bottom: 40, right: 0 }}
             />

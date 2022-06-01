@@ -151,12 +151,12 @@ const TOBAssociationsPlot = ({
 
   // Auto-select all cell types at each existing variant selection
   useEffect(() => {
-    const ids = _data.filter((d) => _accessors.isSelected(d)).map((d) => d.variant_id)
+    const ids = _data.filter(_accessors.isSelected).map((d) => d.variant_id)
     const selection = _data.filter((d) => ids.includes(d.variant_id) && cellTypes[d.cell_type_id])
     onClick(selection, 'append')
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cellTypes])
+  }, [cellTypes, _data])
 
   // Render
   if (error) {
