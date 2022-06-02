@@ -223,8 +223,8 @@ const TOBVariantPage = () => {
         return cellTypeSelection[c.cell_type_id] && !excludedColumns.includes(c.cell_type_id)
           ? {
               key: c.cell_type_id,
-              help: c.cell_type_id,
-              content: c.cell_type_name,
+              help: c.cell_type_name,
+              content: c.cell_type_id,
             }
           : null
       }),
@@ -291,6 +291,7 @@ const TOBVariantPage = () => {
             margin={{ top: 20, right: 250, bottom: 125, left: 100 }}
             onClick={onSelectAggregate}
             onRowClick={onSelectAggregate}
+            cellTypes={cellTypes}
           />
         </section>
 

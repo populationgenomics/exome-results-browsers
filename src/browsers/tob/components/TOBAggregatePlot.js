@@ -10,7 +10,16 @@ import DotplotHeatmap from '../shared/components/DotplotHeatmap'
 import StatusMessage from '../shared/components/StatusMessage'
 import AggregateTooltip from '../shared/components/AggregateTooltip'
 
-const TOBAggregatePlot = ({ query, selected, onClick, onRowClick, width, height, margin }) => {
+const TOBAggregatePlot = ({
+  query,
+  selected,
+  onClick,
+  onRowClick,
+  width,
+  height,
+  margin,
+  cellTypes,
+}) => {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [response, setResponse] = useState(null)
@@ -59,8 +68,9 @@ const TOBAggregatePlot = ({ query, selected, onClick, onRowClick, width, height,
         if (response) return d.gene_id === sortBy(response, ['gene_id'])[0]?.gene_id
         return false
       },
+      tickHelp: (d) => cellTypes?.find((x) => x.cell_type_id === d).cell_type_name,
     }
-  }, [selected, response])
+  }, [selected, response, cellTypes])
 
   if (error) {
     return (
@@ -105,6 +115,13 @@ TOBAggregatePlot.propTypes = {
   margin: appPropTypes.margin,
   onClick: PropTypes.func,
   onRowClick: PropTypes.func,
+  cellTypes: PropTypes.arrayOf(
+    PropTypes.shape({
+      cell_type_id: PropTypes.string,
+      cell_type_name: PropTypes.string,
+      description: PropTypes.string,
+    })
+  ),
 }
 
 TOBAggregatePlot.defaultProps = {
@@ -114,6 +131,7 @@ TOBAggregatePlot.defaultProps = {
   width: null,
   height: null,
   margin: { top: 20, right: 210, bottom: 0, left: 100 },
+  cellTypes: null,
 }
 
 export default TOBAggregatePlot

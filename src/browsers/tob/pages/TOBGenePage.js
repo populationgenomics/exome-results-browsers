@@ -221,8 +221,8 @@ const TOBGenePage = () => {
         return cellTypeSelection[c.cell_type_id] && !excludedColumns.includes(c.cell_type_id)
           ? {
               key: c.cell_type_id,
-              help: c.cell_type_id,
-              content: c.cell_type_name,
+              help: c.cell_type_name,
+              content: c.cell_type_id,
             }
           : null
       }),
@@ -281,7 +281,12 @@ const TOBGenePage = () => {
 
         <section>
           <SectionHeading>Cell type expression</SectionHeading>
-          <TOBViolinPlot query={query.gene} height={500} margin={{ left: 100, bottom: 75 }} />
+          <TOBViolinPlot
+            query={query.gene}
+            height={500}
+            margin={{ left: 100, bottom: 75 }}
+            cellTypes={cellTypes}
+          />
         </section>
 
         <section>
@@ -297,6 +302,7 @@ const TOBGenePage = () => {
             margin={{ top: 20, right: 250, bottom: 125, left: 100 }}
             onClick={onSelectAggregate}
             onRowClick={onSelectAggregate}
+            cellTypes={cellTypes}
           />
         </section>
 
