@@ -13,7 +13,7 @@ import LoadingOverlay from '../shared/components/LoadingOverlay'
 
 const CELL_COLORS = defaultCellTypeColors()
 
-const TOBViolinPlot = ({ query, margin, height, yLabel, fontSize }) => {
+const TOBViolinPlot = ({ query, margin, height, yLabel, fontSize, cellTypes }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
   const [data, setData] = useState(null)
@@ -38,8 +38,9 @@ const TOBViolinPlot = ({ query, margin, height, yLabel, fontSize }) => {
         return CELL_COLORS[key]
       },
       tooltip: (d) => <BoxplotTooltip statistics={d} />,
+      xTickHelp: (d) => cellTypes?.find((x) => x.cell_type_id === d).cell_type_name,
     }
-  }, [query])
+  }, [query, cellTypes])
 
   useEffect(() => {
     if (!query) return
@@ -128,6 +129,7 @@ const TOBViolinPlot = ({ query, margin, height, yLabel, fontSize }) => {
           margin={margin}
           accessors={accessors}
           fontSize={fontSize}
+          cellTypes={cellTypes}
         />
       </LoadingOverlay>
     </div>
@@ -145,6 +147,13 @@ TOBViolinPlot.propTypes = {
   }),
   yLabel: PropTypes.string,
   fontSize: PropTypes.number,
+  cellTypes: PropTypes.arrayOf(
+    PropTypes.shape({
+      cell_type_id: PropTypes.string,
+      cell_type_name: PropTypes.string,
+      description: PropTypes.string,
+    })
+  ),
 }
 
 TOBViolinPlot.defaultProps = {
@@ -152,6 +161,7 @@ TOBViolinPlot.defaultProps = {
   margin: {},
   yLabel: 'log(CPM)',
   fontSize: 14,
+  cellTypes: null,
 }
 
 export default TOBViolinPlot
