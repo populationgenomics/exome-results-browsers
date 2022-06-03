@@ -58,8 +58,6 @@ const TOBVariantPage = () => {
 
   // ------- QUERY: Variant Info --------------------------------------------------- //
   useEffect(() => {
-    if (variant?.variant_id) return
-
     setIsLoading(true)
     fetch(`/api/variants/${query.variant}`)
       .then((response) => {
@@ -103,7 +101,7 @@ const TOBVariantPage = () => {
         if (!response.ok) {
           response
             .json()
-            .then((e) => setError(`${e.message} (${e.type}`))
+            .then((e) => setError(`${e.message} (${e.type})`))
             .catch((e) => setError(e.toString()))
             .finally(() => setIsLoading(false))
         } else {

@@ -57,15 +57,13 @@ const TOBGenePage = () => {
 
   // ------- QUERY: Gene Info --------------------------------------------------- //
   useEffect(() => {
-    if (gene?.gene_id) return
-
     setIsLoading(true)
     fetch(`/api/genes/${query.gene}`)
       .then((response) => {
         if (!response.ok) {
           response
             .json()
-            .then((e) => setError(`${e.message} (${e.type}`))
+            .then((e) => setError(`${e.message} (${e.type})`))
             .catch((e) => setError(e.toString()))
             .finally(() => setIsLoading(false))
         } else {
