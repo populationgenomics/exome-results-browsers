@@ -81,21 +81,23 @@ const TOBViolinPlot = ({ query, margin, height, yLabel, fontSize, cellTypes }) =
   // Render
   if (error) {
     return (
-      <div
-        style={{
-          height,
-          width: dimensions.boundedWidth,
-          fontSize,
-          display: 'flex',
-          justifyContent: 'center',
-        }}
-      >
-        <StatusMessage>
-          Unable to load results
-          <div>
-            <small>{error.toString()}</small>
-          </div>
-        </StatusMessage>
+      <div ref={ref} style={{ width: '100%' }}>
+        <div
+          style={{
+            height,
+            width: dimensions.boundedWidth,
+            fontSize,
+            display: 'flex',
+            justifyContent: 'center',
+          }}
+        >
+          <StatusMessage>
+            Unable to load results
+            <div>
+              <small>{error.toString()}</small>
+            </div>
+          </StatusMessage>
+        </div>
       </div>
     )
   }
@@ -103,16 +105,18 @@ const TOBViolinPlot = ({ query, margin, height, yLabel, fontSize, cellTypes }) =
   // Catch initial load
   if (!data) {
     return (
-      <div
-        style={{
-          height,
-          width: dimensions.boundedWidth,
-          fontSize,
-          display: 'flex',
-          justifyContent: 'center',
-        }}
-      >
-        <StatusMessage>Loading</StatusMessage>
+      <div ref={ref} style={{ width: '100%' }}>
+        <div
+          style={{
+            height,
+            width: dimensions.boundedWidth,
+            fontSize,
+            display: 'flex',
+            justifyContent: 'center',
+          }}
+        >
+          <StatusMessage>Loading</StatusMessage>
+        </div>
       </div>
     )
   }
