@@ -38,7 +38,7 @@ const TOBViolinPlot = ({ query, margin, height, yLabel, fontSize, cellTypes }) =
         return CELL_COLORS[key]
       },
       tooltip: (d) => <BoxplotTooltip statistics={d} />,
-      tickHelp: (d) => cellTypes?.find((x) => x.cell_type_id === d).cell_type_name,
+      xTickHelp: (d) => cellTypes?.find((x) => x.cell_type_id === d).cell_type_name,
     }
   }, [query, cellTypes])
 

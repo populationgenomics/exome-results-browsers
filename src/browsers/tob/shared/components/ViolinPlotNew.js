@@ -18,7 +18,7 @@ const DEFAULT_ACCESSORS = {
   min: (d) => d.min,
   max: (d) => d.max,
   color: (d) => d.color,
-  tickHelp: (d) => d.tickHelp,
+  xTickHelp: (d) => d.xTickHelp,
 }
 
 const ViolinPlot = ({
@@ -156,7 +156,7 @@ const ViolinPlot = ({
                   cursor="help"
                 >
                   {tick}
-                  <title>{_accessors.tickHelp(tick)}</title>
+                  <title>{_accessors.xTickHelp(tick)}</title>
                 </text>
                 <line y2={6} stroke="black" />
               </g>

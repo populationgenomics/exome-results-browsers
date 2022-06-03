@@ -68,7 +68,7 @@ const TOBAggregatePlot = ({
         if (response) return d.gene_id === sortBy(response, ['gene_id'])[0]?.gene_id
         return false
       },
-      tickHelp: (d) => cellTypes?.find((x) => x.cell_type_id === d).cell_type_name,
+      xTickHelp: (d) => cellTypes?.find((x) => x.cell_type_id === d).cell_type_name,
     }
   }, [selected, response, cellTypes])
 

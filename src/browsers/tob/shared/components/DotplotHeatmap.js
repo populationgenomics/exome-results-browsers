@@ -16,7 +16,7 @@ const DEFAULT_ACCESSORS = {
   color: (d) => d.color,
   tooltip: (d) => d.tooltip,
   isSelected: (d) => d.selected,
-  tickHelp: (d) => d.tickHelp,
+  xTickHelp: (d) => d.xTickHelp,
 }
 
 const DotplotHeatmap = ({
@@ -168,7 +168,7 @@ const DotplotHeatmap = ({
                 cursor="help"
               >
                 {tick}
-                <title>{_accessors.tickHelp(tick)}</title>
+                <title>{_accessors.xTickHelp(tick)}</title>
               </text>
               <line y2={6} stroke="black" />
               <line y2={`-${innerHeight}`} stroke="lightgrey" />
