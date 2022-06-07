@@ -148,27 +148,31 @@ const TOBVariantPage = () => {
   )
 
   const onAssociationSelect = useCallback(
-    (associations, type) => {
+    (associations, type = 'toggle') => {
       let selected = [...selectedAssociations]
+      let vids = [...selectedVariantIds]
 
       // Check if each point has already been selected and de-select it if it does
-      associations.forEach((a) => {
-        const isSelected = selected.find((s) => s.association_id === a.association_id)
-        if (isSelected && type !== 'append') {
-          selected = selected.filter((s) => s.association_id !== a.association_id)
-        } else if (!isSelected) {
-          selected.push(a)
-        }
-      })
-
-      selected = selected.filter((a) => cellTypeSelection[a.cell_type_id])
-
-      const vids = Array.from(new Set(selected.map((x) => x.variant_id)))
+      if (type === 'toggle') {
+        associations.forEach((a) => {
+          const isSelected = selected.find((s) => s.association_id === a.association_id)
+          if (isSelected) {
+            selected = selected.filter((s) => s.association_id !== a.association_id)
+            vids = vids.filter((v) => v !== a.variant_id)
+          } else {
+            selected.push(a)
+            vids = Array.from(new Set([...vids, a.variant_id]))
+          }
+        })
+      } else if (type === 'replace') {
+        selected = associations
+        vids = Array.from(new Set(associations.map((a) => a.variant_id)))
+      }
 
       setSelectedAssociations(selected)
       setSelectedVariantIds(vids)
     },
-    [selectedAssociations, cellTypeSelection]
+    [selectedAssociations, selectedVariantIds]
   )
 
   // --------- Memoized values ------------------------------------ //
@@ -357,7 +361,7 @@ const TOBVariantPage = () => {
             rounds={condioningRound}
             cellTypes={cellTypeSelection}
             ldReference={ldReference}
-            selected={selectedAssociations}
+            selectedVariantIds={selectedVariantIds}
             selectedGene={selectedGene}
             queryRegion={fullRegion}
             displayRegion={displayRegion}
