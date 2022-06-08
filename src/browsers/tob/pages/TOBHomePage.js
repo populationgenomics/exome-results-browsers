@@ -29,6 +29,9 @@ export default () => (
     <h2>Examples</h2>
     <ul>
       <li>
+        <Link to="/gene/ENSG00000115944">COX7A2L</Link>
+      </li>
+      <li>
         <Link to="/gene/ENSG00000012048">BRCA1</Link>
       </li>
       <li>
