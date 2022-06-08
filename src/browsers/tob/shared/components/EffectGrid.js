@@ -68,14 +68,18 @@ const EffectGrid = ({ columns, rows, data, missing, width, height, margin }) => 
   const tableHeader = useMemo(() => {
     return (
       <tr>
-        {columns.map(({ key, help, content, onClear }, i) => {
+        {columns.map((column, i) => {
           return (
-            <TableColumn key={key}>
-              <ColumnDefinition title={help} applyMarginLeft={i > 0}>
-                {content}
+            <TableColumn
+              key={column.key}
+              onMouseEnter={column.onMouseEnter}
+              onMouseLeave={column.onMouseLeave}
+            >
+              <ColumnDefinition title={column.help} applyMarginLeft={i > 0}>
+                {column.content}
               </ColumnDefinition>
-              {onClear ? (
-                <ClearButton type="button" onClick={onClear}>
+              {column.onClear ? (
+                <ClearButton type="button" onClick={column.onClear}>
                   Clear
                 </ClearButton>
               ) : null}
@@ -89,7 +93,7 @@ const EffectGrid = ({ columns, rows, data, missing, width, height, margin }) => 
   const tableBody = useMemo(() => {
     return rows.map((row) => {
       return (
-        <TableRow key={row.key}>
+        <TableRow key={row.key} onMouseEnter={row.onMouseEnter} onMouseLeave={row.onMouseLeave}>
           <RowDefinition>
             <div title={row.help}>{row.content}</div>
             {row.onClear ? (
@@ -134,6 +138,8 @@ EffectGrid.propTypes = {
       help: PropTypes.string,
       content: PropTypes.oneOfType([PropTypes.string, PropTypes.node]),
       onClear: PropTypes.func,
+      onMouseEnter: PropTypes.func,
+      onMouseLeave: PropTypes.func,
     })
   ),
   rows: PropTypes.arrayOf(
@@ -142,6 +148,8 @@ EffectGrid.propTypes = {
       help: PropTypes.string,
       content: PropTypes.oneOfType([PropTypes.string, PropTypes.node]),
       onClear: PropTypes.func,
+      onMouseEnter: PropTypes.func,
+      onMouseLeave: PropTypes.func,
     })
   ),
   data: PropTypes.arrayOf(
