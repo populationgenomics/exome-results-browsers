@@ -138,6 +138,7 @@ const TOBGenePage = () => {
     setLdReference(null)
     setSelectedAssociations([])
     setSelectedVariantIds([])
+    setHighlightedAssociations([])
   }
 
   const onReferenceSelect = useCallback(
@@ -198,6 +199,7 @@ const TOBGenePage = () => {
         onClear: () => {
           setSelectedVariantIds(selectedVariantIds.filter((v) => v !== vid))
           setSelectedAssociations(selectedAssociations.filter((a) => a.variant_id !== vid))
+          setHighlightedAssociations(selectedAssociations.filter((a) => a.variant_id !== vid))
         },
         onMouseEnter: () =>
           setHighlightedAssociations(selectedAssociations.filter((a) => a.variant_id === vid)),
@@ -214,6 +216,7 @@ const TOBGenePage = () => {
       onClear: () => {
         setSelectedVariantIds([])
         setSelectedAssociations([])
+        setHighlightedAssociations([])
       },
     }
 
@@ -265,12 +268,12 @@ const TOBGenePage = () => {
 
   // -------- Update selected associations ----------------------------------- //
   useEffect(() => {
-    setSelectedAssociations((prev) => [
+    setSelectedAssociations((prev) =>
       prev.filter(
         (a) =>
           cellTypeCategories[a.cell_type_id] && a.fdr <= fdrFilter && a.round === condioningRound
-      ),
-    ])
+      )
+    )
   }, [condioningRound, fdrFilter, cellTypeCategories])
 
   // --------- Render begin -------------------------------------- //

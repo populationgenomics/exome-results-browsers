@@ -140,6 +140,7 @@ const TOBVariantPage = () => {
     setLdReference(null)
     setSelectedAssociations([])
     setSelectedVariantIds([])
+    setHighlightedAssociations([])
   }
 
   const onReferenceSelect = useCallback(
@@ -200,6 +201,7 @@ const TOBVariantPage = () => {
         onClear: () => {
           setSelectedVariantIds(selectedVariantIds.filter((v) => v !== vid))
           setSelectedAssociations(selectedAssociations.filter((a) => a.variant_id !== vid))
+          setHighlightedAssociations(selectedAssociations.filter((a) => a.variant_id !== vid))
         },
         onMouseEnter: () =>
           setHighlightedAssociations(selectedAssociations.filter((a) => a.variant_id === vid)),
@@ -216,6 +218,7 @@ const TOBVariantPage = () => {
       onClear: () => {
         setSelectedVariantIds([])
         setSelectedAssociations([])
+        setHighlightedAssociations([])
       },
     }
 
@@ -267,13 +270,19 @@ const TOBVariantPage = () => {
 
   // -------- Update selected associations ----------------------------------- //
   useEffect(() => {
-    setSelectedAssociations((prev) => [
+    setSelectedAssociations((prev) =>
       prev.filter(
         (a) =>
           cellTypeCategories[a.cell_type_id] && a.fdr <= fdrFilter && a.round === condioningRound
-      ),
-    ])
+      )
+    )
   }, [condioningRound, fdrFilter, cellTypeCategories])
+
+  // Keep highlighted associations in-sync with changes to selected associations
+  // useEffect(() => {
+  //   const ids = new Set(selectedAssociations.map((a) => a.association_id))
+  //   setHighlightedAssociations((prev) => prev.filter((a) => ids.has(a.association_id)))
+  // }, [selectedAssociations])
 
   // --------- Render begin -------------------------------------- //
   if (error) {
