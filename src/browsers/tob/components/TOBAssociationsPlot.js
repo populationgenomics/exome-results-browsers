@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 
 import { extent } from 'd3'
@@ -20,7 +20,7 @@ const TOBAssociationsPlot = ({
   rounds,
   ldReference,
   cellTypes,
-  highlightedAssociation,
+  highlightedAssociations,
   selectedVariantIds,
   selectedGene,
   displayRegion,
@@ -141,7 +141,8 @@ const TOBAssociationsPlot = ({
         )
       },
       isReference: (d) => d.association_id === ldReference?.association_id,
-      isHighlighted: (d) => d?.association_id === highlightedAssociation?.association_id,
+      isHighlighted: (d) =>
+        !![highlightedAssociations ?? []].flat().find((a) => a.association_id === d.association_id),
       opacity: (d) => d.ld ?? 1,
       tooltip: (d) => <AssociationTooltip association={d} />,
     }
@@ -150,39 +151,21 @@ const TOBAssociationsPlot = ({
     selectedVariantIds,
     selectedGene?.gene_id,
     ldReference?.association_id,
-    highlightedAssociation?.association_id,
+    highlightedAssociations,
   ])
 
   const _markers = useMemo(() => {
     return isVariantId(query) ? [{ label: query, value: parseVariantId(query).pos }] : []
   }, [query])
 
-  // Update selection when cell-types, FDR or rounds have change, dispatch an update to parent.
-  const updateSelection = useCallback(
-    (data_) => {
-      onClick(
-        // Filter on full data to avoid a brush selection event reseting the association selection.
-        data_.filter((d) => {
-          return (
-            selectedVariantIds.find((s) => d.variant_id === s) &&
-            d.gene_id === selectedGene?.gene_id &&
-            cellTypes[d.cell_type_id] &&
-            d.fdr <= fdr &&
-            [rounds].flat().includes(d.round)
-          )
-        }),
-        'replace'
-      )
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [cellTypes, selectedGene?.gene_id, fdr, rounds]
-  )
-
+  // Auto-select all cell types at each existing variant selection
   useEffect(() => {
-    if (data == null) return
-    updateSelection(data, selectedVariantIds)
+    const ids = new Set(_data.filter(_accessors.isSelected).map((d) => d.variant_id))
+    const selection = _data.filter((d) => ids.has(d.variant_id) && cellTypes[d.cell_type_id])
+    onClick(selection, 'replace')
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data])
+  }, [cellTypes, _data])
 
   // Render
   if (error) {
@@ -257,9 +240,11 @@ TOBAssociationsPlot.propTypes = {
   onBrush: PropTypes.func,
   onDoubleClick: PropTypes.func,
   onShiftClick: PropTypes.func,
-  highlightedAssociation: PropTypes.shape({
-    association_id: PropTypes.string.isRequired,
-  }),
+  highlightedAssociations: PropTypes.arrayOf(
+    PropTypes.shape({
+      association_id: PropTypes.string.isRequired,
+    })
+  ),
   width: PropTypes.number,
   height: PropTypes.number,
   margin: PropTypes.shape({
@@ -286,7 +271,7 @@ TOBAssociationsPlot.defaultProps = {
   ldReference: null,
   selectedVariantIds: [],
   cellTypes: {},
-  highlightedAssociation: null,
+  highlightedAssociations: [],
   onClick: () => {},
   onBrush: () => {},
   onDoubleClick: () => {},

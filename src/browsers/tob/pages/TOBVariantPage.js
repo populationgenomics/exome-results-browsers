@@ -54,7 +54,7 @@ const TOBVariantPage = () => {
   const [selectedAssociations, setSelectedAssociations] = useState([])
   const [selectedVariantIds, setSelectedVariantIds] = useState([])
   const [selectedGene, setSelectedGene] = useState(null)
-  const [highlightedAssociation, setHighlightedAssociation] = useState(null)
+  const [highlightedAssociations, setHighlightedAssociations] = useState([])
 
   // ------- QUERY: Variant Info --------------------------------------------------- //
   useEffect(() => {
@@ -166,7 +166,6 @@ const TOBVariantPage = () => {
         })
       } else if (type === 'replace') {
         selected = associations
-        vids = Array.from(new Set(associations.map((a) => a.variant_id)))
       }
 
       setSelectedAssociations(selected)
@@ -202,6 +201,9 @@ const TOBVariantPage = () => {
           setSelectedVariantIds(selectedVariantIds.filter((v) => v !== vid))
           setSelectedAssociations(selectedAssociations.filter((a) => a.variant_id !== vid))
         },
+        onMouseEnter: () =>
+          setHighlightedAssociations(selectedAssociations.filter((a) => a.variant_id === vid)),
+        onMouseLeave: () => setHighlightedAssociations([]),
       }
     })
   }, [selectedVariantIds, selectedAssociations])
@@ -227,11 +229,17 @@ const TOBVariantPage = () => {
               key: c.cell_type_id,
               help: c.cell_type_name,
               content: c.cell_type_id,
+              onMouseEnter: () => {
+                setHighlightedAssociations(
+                  selectedAssociations.filter((a) => a.cell_type_id === c.cell_type_id)
+                )
+              },
+              onMouseLeave: () => setHighlightedAssociations([]),
             }
           : null
       }),
     ].filter((c) => !!c)
-  }, [cellTypes, cellTypeSelection, excludedColumns])
+  }, [cellTypes, cellTypeSelection, excludedColumns, selectedAssociations])
 
   const effectGridData = useMemo(() => {
     return selectedAssociations
@@ -251,11 +259,21 @@ const TOBVariantPage = () => {
               margin={{ left: 30, bottom: 40, right: 0 }}
             />
           ),
-          onMouseEnter: () => setHighlightedAssociation(a),
-          onMouseLeave: () => setHighlightedAssociation(null),
+          onMouseEnter: () => setHighlightedAssociations([a]),
+          onMouseLeave: () => setHighlightedAssociations([]),
         }
       })
   }, [selectedGene, selectedAssociations, excludedColumns])
+
+  // -------- Update selected associations ----------------------------------- //
+  useEffect(() => {
+    setSelectedAssociations((prev) => [
+      prev.filter(
+        (a) =>
+          cellTypeCategories[a.cell_type_id] && a.fdr <= fdrFilter && a.round === condioningRound
+      ),
+    ])
+  }, [condioningRound, fdrFilter, cellTypeCategories])
 
   // --------- Render begin -------------------------------------- //
   if (error) {
@@ -365,7 +383,7 @@ const TOBVariantPage = () => {
             selectedGene={selectedGene}
             queryRegion={fullRegion}
             displayRegion={displayRegion}
-            highlightedAssociation={highlightedAssociation}
+            highlightedAssociations={highlightedAssociations}
             width={dimensions.boundedWidth}
             height={500}
             margin={{ top: 20, bottom: 140, right: 10, left: 100 }}
