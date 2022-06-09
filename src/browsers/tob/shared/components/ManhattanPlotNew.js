@@ -236,15 +236,19 @@ const ManhattanPlotNew = ({
   )
 
   const _data = useMemo(() => {
-    const split = { reference: [], selected: [], rest: [] }
+    const split = { reference: [], selected: [], highlighted: [], rest: [] }
 
     data.forEach((d) => {
       const isReference = _accessors.isReference(d)
-      const isSelectedOrHighlighted = _accessors.isSelected(d) || _accessors.isHighlighted(d)
+      const isSelected = _accessors.isSelected(d)
+      const isHighlighted = _accessors.isHighlighted(d)
 
+      // Checks are in order of render priority
       if (isReference) {
         split.reference.push(d)
-      } else if (isSelectedOrHighlighted) {
+      } else if (isHighlighted) {
+        split.highlighted.push(d)
+      } else if (isSelected) {
         split.selected.push(d)
       } else {
         split.rest.push(d)
@@ -256,7 +260,9 @@ const ManhattanPlotNew = ({
   }, [data, _accessors.isReference, _accessors.isHighlighted, _accessors.isSelected])
 
   const _lines = useMemo(() => {
-    return uniqBy([..._data.selected, ..._data.reference], (d) => _accessors.x(d))
+    return uniqBy([..._data.selected, ..._data.highlighted, ..._data.reference], (d) =>
+      _accessors.x(d)
+    )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [_accessors.x, _data])
 
@@ -421,6 +427,7 @@ const ManhattanPlotNew = ({
           {_lines.map((d, index) => renderLine(d, index))}
           {_data.rest.map((d, index) => renderDataPoint(d, index))}
           {_data.selected.map((d, index) => renderDataPoint(d, index))}
+          {_data.highlighted.map((d, index) => renderDataPoint(d, index))}
           {_data.reference.map((d, index) => renderDataPoint(d, index))}
         </g>
 

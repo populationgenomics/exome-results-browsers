@@ -54,12 +54,10 @@ const TOBVariantPage = () => {
   const [selectedAssociations, setSelectedAssociations] = useState([])
   const [selectedVariantIds, setSelectedVariantIds] = useState([])
   const [selectedGene, setSelectedGene] = useState(null)
-  const [highlightedAssociation, setHighlightedAssociation] = useState(null)
+  const [highlightedAssociations, setHighlightedAssociations] = useState([])
 
   // ------- QUERY: Variant Info --------------------------------------------------- //
   useEffect(() => {
-    if (variant?.variant_id) return
-
     setIsLoading(true)
     fetch(`/api/variants/${query.variant}`)
       .then((response) => {
@@ -103,7 +101,7 @@ const TOBVariantPage = () => {
         if (!response.ok) {
           response
             .json()
-            .then((e) => setError(`${e.message} (${e.type}`))
+            .then((e) => setError(`${e.message} (${e.type})`))
             .catch((e) => setError(e.toString()))
             .finally(() => setIsLoading(false))
         } else {
@@ -142,6 +140,7 @@ const TOBVariantPage = () => {
     setLdReference(null)
     setSelectedAssociations([])
     setSelectedVariantIds([])
+    setHighlightedAssociations([])
   }
 
   const onReferenceSelect = useCallback(
@@ -150,27 +149,30 @@ const TOBVariantPage = () => {
   )
 
   const onAssociationSelect = useCallback(
-    (associations, type) => {
+    (associations, type = 'toggle') => {
       let selected = [...selectedAssociations]
+      let vids = [...selectedVariantIds]
 
       // Check if each point has already been selected and de-select it if it does
-      associations.forEach((a) => {
-        const isSelected = selected.find((s) => s.association_id === a.association_id)
-        if (isSelected && type !== 'append') {
-          selected = selected.filter((s) => s.association_id !== a.association_id)
-        } else if (!isSelected) {
-          selected.push(a)
-        }
-      })
-
-      selected = selected.filter((a) => cellTypeSelection[a.cell_type_id])
-
-      const vids = Array.from(new Set(selected.map((x) => x.variant_id)))
+      if (type === 'toggle') {
+        associations.forEach((a) => {
+          const isSelected = selected.find((s) => s.association_id === a.association_id)
+          if (isSelected) {
+            selected = selected.filter((s) => s.association_id !== a.association_id)
+            vids = vids.filter((v) => v !== a.variant_id)
+          } else {
+            selected.push(a)
+            vids = Array.from(new Set([...vids, a.variant_id]))
+          }
+        })
+      } else if (type === 'replace') {
+        selected = associations
+      }
 
       setSelectedAssociations(selected)
       setSelectedVariantIds(vids)
     },
-    [selectedAssociations, cellTypeSelection]
+    [selectedAssociations, selectedVariantIds]
   )
 
   // --------- Memoized values ------------------------------------ //
@@ -199,7 +201,11 @@ const TOBVariantPage = () => {
         onClear: () => {
           setSelectedVariantIds(selectedVariantIds.filter((v) => v !== vid))
           setSelectedAssociations(selectedAssociations.filter((a) => a.variant_id !== vid))
+          setHighlightedAssociations(selectedAssociations.filter((a) => a.variant_id !== vid))
         },
+        onMouseEnter: () =>
+          setHighlightedAssociations(selectedAssociations.filter((a) => a.variant_id === vid)),
+        onMouseLeave: () => setHighlightedAssociations([]),
       }
     })
   }, [selectedVariantIds, selectedAssociations])
@@ -212,6 +218,7 @@ const TOBVariantPage = () => {
       onClear: () => {
         setSelectedVariantIds([])
         setSelectedAssociations([])
+        setHighlightedAssociations([])
       },
     }
 
@@ -225,11 +232,17 @@ const TOBVariantPage = () => {
               key: c.cell_type_id,
               help: c.cell_type_name,
               content: c.cell_type_id,
+              onMouseEnter: () => {
+                setHighlightedAssociations(
+                  selectedAssociations.filter((a) => a.cell_type_id === c.cell_type_id)
+                )
+              },
+              onMouseLeave: () => setHighlightedAssociations([]),
             }
           : null
       }),
     ].filter((c) => !!c)
-  }, [cellTypes, cellTypeSelection, excludedColumns])
+  }, [cellTypes, cellTypeSelection, excludedColumns, selectedAssociations])
 
   const effectGridData = useMemo(() => {
     return selectedAssociations
@@ -249,11 +262,27 @@ const TOBVariantPage = () => {
               margin={{ left: 30, bottom: 40, right: 0 }}
             />
           ),
-          onMouseEnter: () => setHighlightedAssociation(a),
-          onMouseLeave: () => setHighlightedAssociation(null),
+          onMouseEnter: () => setHighlightedAssociations([a]),
+          onMouseLeave: () => setHighlightedAssociations([]),
         }
       })
   }, [selectedGene, selectedAssociations, excludedColumns])
+
+  // -------- Update selected associations ----------------------------------- //
+  useEffect(() => {
+    setSelectedAssociations((prev) =>
+      prev.filter(
+        (a) =>
+          cellTypeCategories[a.cell_type_id] && a.fdr <= fdrFilter && a.round === condioningRound
+      )
+    )
+  }, [condioningRound, fdrFilter, cellTypeCategories])
+
+  // Keep highlighted associations in-sync with changes to selected associations
+  // useEffect(() => {
+  //   const ids = new Set(selectedAssociations.map((a) => a.association_id))
+  //   setHighlightedAssociations((prev) => prev.filter((a) => ids.has(a.association_id)))
+  // }, [selectedAssociations])
 
   // --------- Render begin -------------------------------------- //
   if (error) {
@@ -359,11 +388,11 @@ const TOBVariantPage = () => {
             rounds={condioningRound}
             cellTypes={cellTypeSelection}
             ldReference={ldReference}
-            selected={selectedAssociations}
+            selectedVariantIds={selectedVariantIds}
             selectedGene={selectedGene}
             queryRegion={fullRegion}
             displayRegion={displayRegion}
-            highlightedAssociation={highlightedAssociation}
+            highlightedAssociations={highlightedAssociations}
             width={dimensions.boundedWidth}
             height={500}
             margin={{ top: 20, bottom: 140, right: 10, left: 100 }}

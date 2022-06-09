@@ -20,8 +20,8 @@ const TOBAssociationsPlot = ({
   rounds,
   ldReference,
   cellTypes,
-  highlightedAssociation,
-  selected,
+  highlightedAssociations,
+  selectedVariantIds,
   selectedGene,
   displayRegion,
   queryRegion,
@@ -133,17 +133,26 @@ const TOBAssociationsPlot = ({
       x: (d) => d.bp,
       y: (d) => -Math.log10(d.p_value),
       color: (d) => defaultCellTypeColors()[d.cell_type_id],
-      isSelected: (d) => selected.find((s) => d.association_id === s.association_id),
+      isSelected: (d) => {
+        return (
+          d.gene_id === selectedGene?.gene_id &&
+          cellTypes[d.cell_type_id] &&
+          selectedVariantIds.find((s) => d.variant_id === s)
+        )
+      },
       isReference: (d) => d.association_id === ldReference?.association_id,
-      isHighlighted: (d) => d?.association_id === highlightedAssociation?.association_id,
+      isHighlighted: (d) =>
+        !![highlightedAssociations ?? []].flat().find((a) => a.association_id === d.association_id),
       opacity: (d) => d.ld ?? 1,
       tooltip: (d) => <AssociationTooltip association={d} />,
     }
-  }, [selected, ldReference?.association_id, highlightedAssociation?.association_id])
-
-  // const _thresholds = useMemo(() => {
-  //   return [{ label: `FDR = ${fdr}`, value: -Math.log10(fdr) }]
-  // }, [fdr])
+  }, [
+    cellTypes,
+    selectedVariantIds,
+    selectedGene?.gene_id,
+    ldReference?.association_id,
+    highlightedAssociations,
+  ])
 
   const _markers = useMemo(() => {
     return isVariantId(query) ? [{ label: query, value: parseVariantId(query).pos }] : []
@@ -151,9 +160,9 @@ const TOBAssociationsPlot = ({
 
   // Auto-select all cell types at each existing variant selection
   useEffect(() => {
-    const ids = _data.filter(_accessors.isSelected).map((d) => d.variant_id)
-    const selection = _data.filter((d) => ids.includes(d.variant_id) && cellTypes[d.cell_type_id])
-    onClick(selection, 'append')
+    const ids = new Set(_data.filter(_accessors.isSelected).map((d) => d.variant_id))
+    const selection = _data.filter((d) => ids.has(d.variant_id) && cellTypes[d.cell_type_id])
+    onClick(selection, 'replace')
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cellTypes, _data])
@@ -192,7 +201,10 @@ const TOBAssociationsPlot = ({
         markers={_markers}
         onClick={(a) => {
           // Select all cell-types for this locus
-          onClick(_data.filter((b) => a.variant_id === b.variant_id))
+          onClick(
+            _data.filter((b) => a.variant_id === b.variant_id),
+            'toggle'
+          )
         }}
         onBrush={({ x, y }) => {
           onBrush({ ...x })
@@ -218,7 +230,7 @@ TOBAssociationsPlot.propTypes = {
   fdr: PropTypes.number,
   rounds: PropTypes.oneOfType([PropTypes.number, PropTypes.arrayOf(PropTypes.number)]),
   ldReference: PropTypes.object, // eslint-disable-line react/forbid-prop-types
-  selected: PropTypes.arrayOf(PropTypes.object),
+  selectedVariantIds: PropTypes.arrayOf(PropTypes.string),
   selectedGene: PropTypes.shape({
     gene_id: PropTypes.string.isRequired,
     gene_symbol: PropTypes.string.isRequired,
@@ -228,9 +240,11 @@ TOBAssociationsPlot.propTypes = {
   onBrush: PropTypes.func,
   onDoubleClick: PropTypes.func,
   onShiftClick: PropTypes.func,
-  highlightedAssociation: PropTypes.shape({
-    association_id: PropTypes.string.isRequired,
-  }),
+  highlightedAssociations: PropTypes.arrayOf(
+    PropTypes.shape({
+      association_id: PropTypes.string.isRequired,
+    })
+  ),
   width: PropTypes.number,
   height: PropTypes.number,
   margin: PropTypes.shape({
@@ -255,9 +269,9 @@ TOBAssociationsPlot.defaultProps = {
   fdr: null,
   rounds: null,
   ldReference: null,
-  selected: [],
+  selectedVariantIds: [],
   cellTypes: {},
-  highlightedAssociation: null,
+  highlightedAssociations: [],
   onClick: () => {},
   onBrush: () => {},
   onDoubleClick: () => {},
