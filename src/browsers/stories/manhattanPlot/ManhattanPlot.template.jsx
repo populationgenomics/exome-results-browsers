@@ -8,43 +8,45 @@ import ManhattanPlot from '../../tob/shared/components/ManhattanPlotNew'
 
 const cellLines = Object.keys(defaultCellTypeColors())
 
-const ManhattanPlotTooltip = ({ d }) => {
-  return (
-    <table>
+const ManhattanPlotTooltip = (d) => {
+  return `<table>
       <tbody>
         <tr>
           <td>
             <b>Id: </b>
           </td>
-          <td>{d.id}</td>
+          <td>${d.id}</td>
         </tr>
         <tr>
           <td>
             <b>Cell type: </b>
           </td>
-          <td>{d.cellLine} </td>
+          <td>${d.cellLine} </td>
         </tr>
         <tr>
           <td>
             <b>P-value: </b>
           </td>
-          <td>{d.pvalue.toPrecision(2)} </td>
+          <td>${d.pvalue.toPrecision(2)} </td>
         </tr>
         <tr>
           <td>
             <b>-log10(p): </b>
           </td>
-          <td> {-1 * Math.log(d.pvalue).toFixed(2)} </td>
+          <td> ${-1 * Math.log(d.pvalue).toFixed(2)} </td>
         </tr>
         <tr>
           <td>
             <b>Functional annotation: </b>
           </td>
-          <td>{d.functional_annotation ?? '?'} </td>
+          <td>${d.functional_annotation ?? '?'} </td>
         </tr>
       </tbody>
     </table>
-  )
+    <br/>
+    <a href='#' onclick='alert("Make Reference Clicked"); event.preventDefault();'>Make LD Reference</a><br/>
+    <a href='#' onclick='alert("Condition Clicked"); event.preventDefault();'>Condition on this eQTL</a><br/>
+    <a href='#' onclick='alert("Added to eQTL Effect Grid"); event.preventDefault();'>Add to eQTL Effect Grid</a>`
 }
 
 // eslint-disable-next-line react/forbid-prop-types
@@ -59,7 +61,7 @@ const accessors = {
   isSelected: (d) => d.selected,
   isReference: (d) => d.referenced,
   opacity: (d) => d.opacity,
-  tooltip: (d) => <ManhattanPlotTooltip d={d} />,
+  tooltip: (d) => ManhattanPlotTooltip(d),
 }
 
 const ManhattanPlotTemplate = ({ numCellLines, selected, referenced }) => {

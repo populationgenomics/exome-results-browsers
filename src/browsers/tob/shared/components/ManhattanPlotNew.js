@@ -4,7 +4,8 @@ import PropTypes from 'prop-types'
 import { uniqBy } from 'lodash'
 import { scaleLinear, extent, brush, select, sort } from 'd3'
 
-import { TooltipAnchor } from '@gnomad/ui'
+// import { TooltipAnchor } from '@gnomad/ui'
+import ReactTooltip from 'react-tooltip'
 
 const renderNumber = (x) => {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
@@ -50,7 +51,7 @@ const ManhattanPlotNew = ({
   const _margin = { ...DEFAULT_MARGIN, ...margin }
   const _accessors = useMemo(() => ({ ...DEFAULT_ACCESSORS, ...accessors }), [accessors])
 
-  const innerWidth = width - _margin.left - _margin.right
+  const innerWidth = Math.max(0, width - _margin.left - _margin.right)
   const innerHeight = height - _margin.top - _margin.bottom
 
   const [fallbackRegion, setFallbackRegion] = useState({ x: xDomain, y: yDomain })
@@ -174,28 +175,30 @@ const ManhattanPlotNew = ({
       if (_accessors.isReference(d)) {
         return (
           <React.Fragment key={`${_accessors?.id(d) || index}-fragment`}>
-            <TooltipAnchor
+            {/* <TooltipAnchor
               key={`${_accessors?.id(d) || index}-tooltip`}
               tooltipComponent={renderTooltip}
               d={d}
+            > */}
+            <g
+              transform={`translate(${xScaleLocal(_accessors.x(d))}, ${yScaleLocal(
+                _accessors.y(d)
+              )}),rotate(45)`}
             >
-              <g
-                transform={`translate(${xScaleLocal(_accessors.x(d))}, ${yScaleLocal(
-                  _accessors.y(d)
-                )}),rotate(45)`}
-              >
-                <rect
-                  key={`${_accessors.id(d) || index}-reference`}
-                  width={20}
-                  height={20}
-                  fill={_accessors.color(d)}
-                  opacity={_accessors.opacity(d) || 0}
-                  stroke={strokeColor}
-                  strokeWidth={strokeWidth}
-                  onClick={(e) => (e.shiftKey ? onShiftClick(d) : onClick(d))}
-                />
-              </g>
-            </TooltipAnchor>
+              <rect
+                data-for="test"
+                data-tip={_accessors.tooltip(d)}
+                key={`${_accessors.id(d) || index}-reference`}
+                width={20}
+                height={20}
+                fill={_accessors.color(d)}
+                opacity={_accessors.opacity(d) || 0}
+                stroke={strokeColor}
+                strokeWidth={strokeWidth}
+                onClick={(e) => (e.shiftKey ? onShiftClick(d) : onClick(d))}
+              />
+            </g>
+            {/* </TooltipAnchor> */}
             <text
               x={xScaleLocal(_accessors.x(d)) + 8}
               y={_margin.top}
@@ -211,24 +214,26 @@ const ManhattanPlotNew = ({
 
       return (
         <React.Fragment key={`${_accessors?.id(d) || index}-fragment`}>
-          <TooltipAnchor
+          {/* <TooltipAnchor
             key={`${_accessors.id(d) || index}-tooltip`}
             tooltipComponent={renderTooltip}
             d={d}
-          >
-            <circle
-              key={`${_accessors.id(d) || index}-point`}
-              cx={xScaleLocal(_accessors.x(d))}
-              cy={yScaleLocal(_accessors.y(d))}
-              r={_accessors.isSelected(d) ? 12 : 3}
-              fill={_accessors.color(d)}
-              stroke={strokeColor}
-              strokeWidth={strokeWidth}
-              opacity={_accessors.opacity(d) || 0}
-              onClick={(e) => (e.shiftKey ? onShiftClick(d) : onClick(d))}
-              cursor={onClick ? 'pointer' : null}
-            />
-          </TooltipAnchor>
+          > */}
+          <circle
+            data-for="test"
+            data-tip={_accessors.tooltip(d)}
+            key={`${_accessors.id(d) || index}-point`}
+            cx={xScaleLocal(_accessors.x(d))}
+            cy={yScaleLocal(_accessors.y(d))}
+            r={_accessors.isSelected(d) ? 12 : 3}
+            fill={_accessors.color(d)}
+            stroke={strokeColor}
+            strokeWidth={strokeWidth}
+            opacity={_accessors.opacity(d) || 0}
+            onClick={(e) => (e.shiftKey ? onShiftClick(d) : onClick(d))}
+            cursor={onClick ? 'pointer' : null}
+          />
+          {/* </TooltipAnchor> */}
         </React.Fragment>
       )
     },
@@ -283,186 +288,198 @@ const ManhattanPlotNew = ({
   }
 
   return (
-    <svg id={id} width={width} height={height} onDoubleClick={onDoubleClick}>
-      {/* Title */}
-      {title && (
-        <g id={`${id}-title`} transform={`translate(${_margin.left}, 40)`}>
-          <text style={{ fontSize: 16, textAnchor: 'start' }}>{title}</text>
-        </g>
-      )}
+    <>
+      <svg id={id} width={width} height={height} onDoubleClick={onDoubleClick}>
+        {/* Title */}
+        {title && (
+          <g id={`${id}-title`} transform={`translate(${_margin.left}, 40)`}>
+            <text style={{ fontSize: 16, textAnchor: 'start' }}>{title}</text>
+          </g>
+        )}
 
-      <defs>
-        <clipPath id="clipManhattanPlot">
-          <rect width={innerWidth} height={innerHeight} fill="none" pointerEvents="all" />
-        </clipPath>
-      </defs>
+        <defs>
+          <clipPath id="clipManhattanPlot">
+            <rect width={innerWidth} height={innerHeight} fill="none" pointerEvents="all" />
+          </clipPath>
+        </defs>
 
-      {/* Main plot */}
-      <g transform={`translate(${_margin.left}, ${_margin.top})`}>
-        <rect
-          transform={`translate(0, ${innerHeight})`}
-          width={innerWidth}
-          height={_margin.bottom}
-          fill="none"
-          ref={svg}
-          pointerEvents="all"
-        />
+        {/* Main plot */}
+        <g transform={`translate(${_margin.left}, ${_margin.top})`}>
+          <rect
+            transform={`translate(0, ${innerHeight})`}
+            width={innerWidth}
+            height={_margin.bottom}
+            fill="none"
+            ref={svg}
+            pointerEvents="all"
+          />
 
-        {/* x-axis */}
-        <g id={`${id}-x-axis`} transform={`translate(0, ${innerHeight})`}>
-          <line x2={`${innerWidth}`} stroke="black" />
-          {uniqBy(xScaleLocal.ticks(6).map((t) => Math.round(t))).map((tick) => (
-            <g key={tick} transform={`translate(${xScaleLocal(tick)}, 0)`}>
-              {/* <text style={{ textAnchor: 'middle' }} dy=".71em" y={9}> */}
-              <text
-                transform="translate(0, 10)rotate(-45)"
-                y={8}
-                textAnchor="end"
-                alignmentBaseline="middle"
-                fontSize={14}
-              >
-                {renderNumber(tick)}
-              </text>
-              <line y2={6} stroke="black" />
-            </g>
-          ))}
-        </g>
-
-        {/* y-axis */}
-        <g id={`${id}-y-axis`}>
-          <line y2={`${innerHeight}`} stroke="black" />
-          {yScaleLocal.ticks(4).map((tick) => (
-            <g key={tick} transform={`translate(0, ${yScaleLocal(tick)})`}>
-              <text
-                key={tick}
-                textAnchor="end"
-                alignmentBaseline="middle"
-                fontSize={14}
-                x={-8}
-                y={3}
-              >
-                {tick}
-              </text>
-              <line x2={-3} stroke="black" />
-              <line
-                x2={innerWidth}
-                stroke={yScaleLocal(tick) === innerHeight ? 'none' : 'lightgrey'}
-              />
-            </g>
-          ))}
-        </g>
-
-        {/* Annotations for threshold lines */}
-        <g id={`${id}-thresholds`}>
-          {thresholds
-            .filter((item) => {
-              return (
-                (item?.value ?? item) >= yScaleLocal.domain()[0] &&
-                (item?.value ?? item) <= yScaleLocal.domain()[1]
-              )
-            })
-            .map((item) => (
-              <React.Fragment key={item?.label ?? item}>
+          {/* x-axis */}
+          <g id={`${id}-x-axis`} transform={`translate(0, ${innerHeight})`}>
+            <line x2={`${innerWidth}`} stroke="black" />
+            {uniqBy(xScaleLocal.ticks(6).map((t) => Math.round(t))).map((tick) => (
+              <g key={tick} transform={`translate(${xScaleLocal(tick)}, 0)`}>
+                {/* <text style={{ textAnchor: 'middle' }} dy=".71em" y={9}> */}
                 <text
-                  x={innerWidth + 8}
-                  y={yScaleLocal(item?.value ?? item) + 4}
-                  stroke={item.color ?? 'black'}
-                  opacity="0.5"
-                  fontSize={12}
+                  transform="translate(0, 10)rotate(-45)"
+                  y={8}
+                  textAnchor="end"
+                  alignmentBaseline="middle"
+                  fontSize={14}
                 >
-                  {item?.label ?? item}
+                  {renderNumber(tick)}
                 </text>
+                <line y2={6} stroke="black" />
+              </g>
+            ))}
+          </g>
+
+          {/* y-axis */}
+          <g id={`${id}-y-axis`}>
+            <line y2={`${innerHeight}`} stroke="black" />
+            {yScaleLocal.ticks(4).map((tick) => (
+              <g key={tick} transform={`translate(0, ${yScaleLocal(tick)})`}>
+                <text
+                  key={tick}
+                  textAnchor="end"
+                  alignmentBaseline="middle"
+                  fontSize={14}
+                  x={-8}
+                  y={3}
+                >
+                  {tick}
+                </text>
+                <line x2={-3} stroke="black" />
                 <line
-                  x1={0}
                   x2={innerWidth}
-                  y1={yScaleLocal(item?.value ?? item)}
-                  y2={yScaleLocal(item?.value ?? item)}
-                  strokeDasharray={12}
-                  stroke={item.color ?? 'black'}
-                  opacity="0.5"
+                  stroke={yScaleLocal(tick) === innerHeight ? 'none' : 'lightgrey'}
                 />
-              </React.Fragment>
+              </g>
             ))}
-        </g>
+          </g>
 
-        {/* Vertical marker lines */}
-        <g id={`${id}-markers`}>
-          {markers
-            .filter((item) => {
-              return (
-                (item?.value ?? item) >= xScaleLocal.domain()[0] &&
-                (item?.value ?? item) <= xScaleLocal.domain()[1]
-              )
-            })
-            .map((item) => (
-              <React.Fragment key={item?.label ?? item}>
-                <text
-                  x={xScaleLocal(item?.value ?? item) + 8}
-                  y={_margin.top}
-                  stroke={item.color ?? 'black'}
-                  opacity="0.5"
-                  fontSize={12}
-                >
-                  {item?.label ?? item}
-                </text>
-                <line
-                  x1={xScaleLocal(item?.value ?? item)}
-                  x2={xScaleLocal(item?.value ?? item)}
-                  y1={0}
-                  y2={innerHeight}
-                  strokeDasharray={12}
-                  stroke={item.color ?? 'black'}
-                  opacity="0.5"
-                />
-              </React.Fragment>
-            ))}
-        </g>
+          {/* Annotations for threshold lines */}
+          <g id={`${id}-thresholds`}>
+            {thresholds
+              .filter((item) => {
+                return (
+                  (item?.value ?? item) >= yScaleLocal.domain()[0] &&
+                  (item?.value ?? item) <= yScaleLocal.domain()[1]
+                )
+              })
+              .map((item) => (
+                <React.Fragment key={item?.label ?? item}>
+                  <text
+                    x={innerWidth + 8}
+                    y={yScaleLocal(item?.value ?? item) + 4}
+                    stroke={item.color ?? 'black'}
+                    opacity="0.5"
+                    fontSize={12}
+                  >
+                    {item?.label ?? item}
+                  </text>
+                  <line
+                    x1={0}
+                    x2={innerWidth}
+                    y1={yScaleLocal(item?.value ?? item)}
+                    y2={yScaleLocal(item?.value ?? item)}
+                    strokeDasharray={12}
+                    stroke={item.color ?? 'black'}
+                    opacity="0.5"
+                  />
+                </React.Fragment>
+              ))}
+          </g>
 
-        {/* Brush box */}
-        <g ref={brushRef} />
+          {/* Vertical marker lines */}
+          <g id={`${id}-markers`}>
+            {markers
+              .filter((item) => {
+                return (
+                  (item?.value ?? item) >= xScaleLocal.domain()[0] &&
+                  (item?.value ?? item) <= xScaleLocal.domain()[1]
+                )
+              })
+              .map((item) => (
+                <React.Fragment key={item?.label ?? item}>
+                  <text
+                    x={xScaleLocal(item?.value ?? item) + 8}
+                    y={_margin.top}
+                    stroke={item.color ?? 'black'}
+                    opacity="0.5"
+                    fontSize={12}
+                  >
+                    {item?.label ?? item}
+                  </text>
+                  <line
+                    x1={xScaleLocal(item?.value ?? item)}
+                    x2={xScaleLocal(item?.value ?? item)}
+                    y1={0}
+                    y2={innerHeight}
+                    strokeDasharray={12}
+                    stroke={item.color ?? 'black'}
+                    opacity="0.5"
+                  />
+                </React.Fragment>
+              ))}
+          </g>
 
-        {/* Data points */}
-        <g id={`${id}-data`} clipPath="url(#clipManhattanPlot)">
-          {/* z-index order. Last painted has highest z-index */}
-          {_lines.map((d, index) => renderLine(d, index))}
-          {_data.rest.map((d, index) => renderDataPoint(d, index))}
-          {_data.selected.map((d, index) => renderDataPoint(d, index))}
-          {_data.highlighted.map((d, index) => renderDataPoint(d, index))}
-          {_data.reference.map((d, index) => renderDataPoint(d, index))}
-        </g>
+          {/* Brush box */}
+          <g ref={brushRef} />
 
-        {/* x-axis label */}
-        <text
-          id={`${id}-x-axis-label`}
-          x={innerWidth / 2}
-          y={innerHeight + 100}
-          fontSize={16}
-          textAnchor="middle"
-        >
-          {xLabel}
-        </text>
+          {/* Data points */}
+          <g id={`${id}-data`} clipPath="url(#clipManhattanPlot)">
+            {/* z-index order. Last painted has highest z-index */}
+            {_lines.map((d, index) => renderLine(d, index))}
+            {_data.rest.map((d, index) => renderDataPoint(d, index))}
+            {_data.selected.map((d, index) => renderDataPoint(d, index))}
+            {_data.highlighted.map((d, index) => renderDataPoint(d, index))}
+            {_data.reference.map((d, index) => renderDataPoint(d, index))}
+          </g>
 
-        {/* y-axis label */}
-        <g id={`${id}-y-axis-label`} transform={`rotate(-90) translate(-${innerHeight / 2}, -40)`}>
-          <text fontSize={16} textAnchor="middle">
-            {yLabel}
+          {/* x-axis label */}
+          <text
+            id={`${id}-x-axis-label`}
+            x={innerWidth / 2}
+            y={innerHeight + 100}
+            fontSize={16}
+            textAnchor="middle"
+          >
+            {xLabel}
           </text>
+
+          {/* y-axis label */}
+          <g
+            id={`${id}-y-axis-label`}
+            transform={`rotate(-90) translate(-${innerHeight / 2}, -40)`}
+          >
+            <text fontSize={16} textAnchor="middle">
+              {yLabel}
+            </text>
+          </g>
         </g>
-      </g>
-    </svg>
+      </svg>
+      <ReactTooltip
+        html
+        id="test"
+        clickable
+        effect="solid"
+        delayHide={500}
+        delayShow={500}
+        delayUpdate={500}
+        place="right"
+        border
+        type="light"
+        style={{ pointerEvents: 'auto' }}
+      />
+    </>
   )
 }
 
 ManhattanPlotNew.propTypes = {
   id: PropTypes.string.isRequired,
   data: PropTypes.arrayOf(PropTypes.object).isRequired,
-  thresholds: PropTypes.arrayOf(
-    PropTypes.shape({
-      label: PropTypes.string.isRequired,
-      value: PropTypes.number.isRequired,
-      color: PropTypes.number,
-    })
-  ),
+  thresholds: PropTypes.arrayOf(PropTypes.number),
   markers: PropTypes.arrayOf(
     PropTypes.shape({
       label: PropTypes.string.isRequired,
