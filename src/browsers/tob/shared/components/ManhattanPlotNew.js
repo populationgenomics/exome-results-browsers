@@ -4,7 +4,7 @@ import PropTypes from 'prop-types'
 import { uniqBy } from 'lodash'
 import { scaleLinear, extent, brush, select, sort } from 'd3'
 
-import { TooltipAnchor } from '@gnomad/ui'
+import { TooltipAnchor } from './PinnableTooltip/TooltipAnchor'
 
 const renderNumber = (x) => {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
@@ -179,10 +179,11 @@ const ManhattanPlotNew = ({
               tooltipComponent={renderTooltip}
               d={d}
             >
+              {/* Additional translate(-10, -10) to set diamond origin to center */}
               <g
                 transform={`translate(${xScaleLocal(_accessors.x(d))}, ${yScaleLocal(
                   _accessors.y(d)
-                )}),rotate(45)`}
+                )}),rotate(45)translate(-10, -10)`}
               >
                 <rect
                   key={`${_accessors.id(d) || index}-reference`}
@@ -218,6 +219,7 @@ const ManhattanPlotNew = ({
           >
             <circle
               key={`${_accessors.id(d) || index}-point`}
+              origin="center"
               cx={xScaleLocal(_accessors.x(d))}
               cy={yScaleLocal(_accessors.y(d))}
               r={_accessors.isSelected(d) ? 12 : 3}
@@ -361,8 +363,9 @@ const ManhattanPlotNew = ({
                 (item?.value ?? item) <= yScaleLocal.domain()[1]
               )
             })
-            .map((item) => (
-              <React.Fragment key={item?.label ?? item}>
+            .map((item, index) => (
+              // eslint-disable-next-line react/no-array-index-key
+              <React.Fragment key={`${item?.label ?? item}-${index}`}>
                 <text
                   x={innerWidth + 8}
                   y={yScaleLocal(item?.value ?? item) + 4}
@@ -394,8 +397,9 @@ const ManhattanPlotNew = ({
                 (item?.value ?? item) <= xScaleLocal.domain()[1]
               )
             })
-            .map((item) => (
-              <React.Fragment key={item?.label ?? item}>
+            .map((item, index) => (
+              // eslint-disable-next-line react/no-array-index-key
+              <React.Fragment key={`${item?.label ?? item}-${index}`}>
                 <text
                   x={xScaleLocal(item?.value ?? item) + 8}
                   y={_margin.top}
