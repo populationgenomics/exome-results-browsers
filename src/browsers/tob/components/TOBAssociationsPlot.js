@@ -217,7 +217,7 @@ const TOBAssociationsPlot = ({
         onShiftClick={onShiftClick}
         margin={margin}
         accessors={_accessors}
-        xLabel={`Chromsome ${queryRegion.chrom} position (Mb)`}
+        xLabel={`Chromosome ${queryRegion.chrom} position (Mb)`}
         xDomain={displayRegion}
         yDomain={zoomedYDomain}
       />
