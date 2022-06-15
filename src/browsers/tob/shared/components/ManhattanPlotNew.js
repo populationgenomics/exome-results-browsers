@@ -193,7 +193,7 @@ const ManhattanPlotNew = ({
                   opacity={_accessors.opacity(d) || 0}
                   stroke={strokeColor}
                   strokeWidth={strokeWidth}
-                  onClick={(e) => (e.shiftKey ? onShiftClick(d) : onClick(d))}
+                  // onClick={(e) => (e.shiftKey ? onShiftClick(d) : onClick(d))}
                 />
               </g>
             </TooltipAnchor>
@@ -227,14 +227,14 @@ const ManhattanPlotNew = ({
               stroke={strokeColor}
               strokeWidth={strokeWidth}
               opacity={_accessors.opacity(d) || 0}
-              onClick={(e) => (e.shiftKey ? onShiftClick(d) : onClick(d))}
+              // onClick={(e) => (e.shiftKey ? onShiftClick(d) : onClick(d))}
               cursor={onClick ? 'pointer' : null}
             />
           </TooltipAnchor>
         </React.Fragment>
       )
     },
-    [_margin.top, onClick, onShiftClick, xScaleLocal, yScaleLocal, _accessors, renderTooltip]
+    [_margin.top, onClick, xScaleLocal, yScaleLocal, _accessors, renderTooltip]
   )
 
   const _data = useMemo(() => {

@@ -148,6 +148,7 @@ const TOBGenePage = () => {
 
   const onAssociationSelect = useCallback(
     (associations, type = 'toggle') => {
+      console.log(associations)
       let selected = [...selectedAssociations]
       let vids = [...selectedVariantIds]
 

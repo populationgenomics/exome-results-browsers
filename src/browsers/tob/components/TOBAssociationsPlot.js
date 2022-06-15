@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
+import styled from 'styled-components'
 
 import { extent } from 'd3'
 
@@ -11,6 +12,11 @@ import ManhattanPlot from '../shared/components/ManhattanPlotNew'
 import StatusMessage from '../shared/components/StatusMessage'
 import LoadingOverlay from '../shared/components/LoadingOverlay'
 import AssociationTooltip from '../shared/components/AssociationTooltip'
+
+const ManhattanPlotTooltipButton = styled.button`
+  display: block;
+  margin-top: 4px;
+`
 
 const DEFAULT_Y = { start: 0, stop: 10 }
 
@@ -144,7 +150,34 @@ const TOBAssociationsPlot = ({
       isHighlighted: (d) =>
         !![highlightedAssociations ?? []].flat().find((a) => a.association_id === d.association_id),
       opacity: (d) => d.ld ?? 1,
-      tooltip: (d) => <AssociationTooltip association={d} />,
+      tooltip: (d) => (
+        <div>
+          <AssociationTooltip association={d} />
+          <br />
+          <ManhattanPlotTooltipButton type="button" onClick={() => onShiftClick(d)}>
+            {d.association_id === ldReference?.association_id
+              ? 'Remove LD reference'
+              : 'Set LD reference'}
+          </ManhattanPlotTooltipButton>
+          <ManhattanPlotTooltipButton
+            type="button"
+            onClick={() =>
+              onClick(
+                _data.filter((b) => d.variant_id === b.variant_id),
+                'toggle'
+              )
+            }
+          >
+            {selectedVariantIds.find((x) => x === d.variant_id)
+              ? 'Remove from grid'
+              : 'Add to grid'}
+          </ManhattanPlotTooltipButton>
+          {/* eslint-disable-next-line no-alert */}
+          <ManhattanPlotTooltipButton type="button" onClick={() => alert('Conditioned')}>
+            Condition on this eQTL
+          </ManhattanPlotTooltipButton>
+        </div>
+      ),
     }
   }, [
     cellTypes,
@@ -152,6 +185,8 @@ const TOBAssociationsPlot = ({
     selectedGene?.gene_id,
     ldReference?.association_id,
     highlightedAssociations,
+    onShiftClick,
+    onClick,
   ])
 
   const _markers = useMemo(() => {
