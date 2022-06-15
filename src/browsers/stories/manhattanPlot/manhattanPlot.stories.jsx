@@ -9,37 +9,12 @@ export default {
 
 const Template = (args) => <ManhattanPlotTemplate {...args} />
 
-export const someSelected = Template.bind({})
-someSelected.args = {
-  numCellLines: 3,
-  selected: true,
-  referenced: false,
-}
-
-export const someReferenced = Template.bind({})
-someReferenced.args = {
-  numCellLines: 3,
-  selected: false,
-  referenced: true,
-}
-
-export const selectedReferenced = Template.bind({})
-selectedReferenced.args = {
-  numCellLines: 3,
-  selected: true,
-  referenced: true,
-}
-
-export const noneSelectedReferenced = Template.bind({})
-noneSelectedReferenced.args = {
-  numCellLines: 3,
-  selected: false,
-  referenced: false,
+export const randomData = Template.bind({})
+randomData.args = {
+  numCellLines: 5,
 }
 
 export const noData = Template.bind({})
 noData.args = {
   numCellLines: 0,
-  selected: false,
-  referenced: false,
 }
