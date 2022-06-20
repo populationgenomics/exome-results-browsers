@@ -19,6 +19,7 @@ export const Container = styled.div`
   border-radius: 3px;
   color: #fff;
   font-size: 13px;
+
   @media (max-width: 500px) {
     max-width: 300px;
   }
@@ -28,6 +29,7 @@ export const Arrow = styled.div`
   position: absolute;
   width: ${ARROW_WIDTH}px;
   height: ${ARROW_WIDTH}px;
+
   &::before {
     content: '';
     display: block;
@@ -36,43 +38,51 @@ export const Arrow = styled.div`
     margin: auto;
     border-style: solid;
   }
+
   &[data-placement*='bottom'] {
     top: 0;
     left: 0;
     width: ${ARROW_WIDTH}px;
     height: ${ARROW_HEIGHT}px;
     margin-top: -${ARROW_HEIGHT}px;
+
     &::before {
       border-color: transparent transparent ${BACKGROUND_COLOR} transparent;
       border-width: 0 ${ARROW_WIDTH / 2}px ${ARROW_HEIGHT}px ${ARROW_WIDTH / 2}px;
     }
   }
+
   &[data-placement*='top'] {
     bottom: 0;
     left: 0;
     width: ${ARROW_WIDTH}px;
     height: ${ARROW_HEIGHT}px;
     margin-bottom: -${ARROW_HEIGHT}px;
+
     &::before {
       border-color: ${BACKGROUND_COLOR} transparent transparent transparent;
       border-width: ${ARROW_HEIGHT}px ${ARROW_WIDTH / 2}px 0 ${ARROW_WIDTH / 2}px;
     }
   }
+
   &[data-placement*='right'] {
     left: 0;
     width: ${ARROW_HEIGHT}px;
     height: ${ARROW_WIDTH}px;
     margin-left: -${ARROW_HEIGHT}px;
+
     &::before {
       border-color: transparent ${BACKGROUND_COLOR} transparent transparent;
       border-width: ${ARROW_WIDTH / 2}px ${ARROW_HEIGHT}px ${ARROW_WIDTH / 2}px 0;
     }
   }
+
   &[data-placement*='left'] {
     right: 0;
     width: ${ARROW_HEIGHT}px;
     height: ${ARROW_WIDTH}px;
     margin-right: -${ARROW_HEIGHT}px;
+
     &::before {
       border-color: transparent transparent transparent ${BACKGROUND_COLOR};
       border-width: ${ARROW_WIDTH / 2}px 0 ${ARROW_WIDTH / 2}px ${ARROW_HEIGHT}px;
@@ -81,15 +91,21 @@ export const Arrow = styled.div`
 `
 
 export const TooltipContainer = styled.div`
-  width: 100%;
   display: flex;
   justify-content: space-between;
+  width: 100%;
 `
 
 export const CloseButton = styled.button`
+  position: relative;
+  top: 2px;
   width: fit-content;
   height: fit-content;
-  background: none;
   border: none;
-  color: #ffffff;
+  margin-left: 4px;
+  background: #ff2626;
+  color: #474747;
+  cursor: pointer;
+  border-radius: 10px;
+  text-align: center;
 `
