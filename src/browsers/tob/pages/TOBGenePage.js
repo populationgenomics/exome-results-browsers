@@ -386,7 +386,6 @@ const TOBGenePage = () => {
               type="number"
               min={1}
               max={5}
-              defaultValue={condioningRound}
               value={condioningRound}
               onChange={(e) => debounceSetConditioningRound(e.target.value)}
               style={{ width: 75 }}
