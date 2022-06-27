@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
+import styled from 'styled-components'
 
 import { extent } from 'd3'
 
@@ -11,6 +12,11 @@ import ManhattanPlot from '../shared/components/ManhattanPlotNew'
 import StatusMessage from '../shared/components/StatusMessage'
 import LoadingOverlay from '../shared/components/LoadingOverlay'
 import AssociationTooltip from '../shared/components/AssociationTooltip'
+
+const ManhattanPlotTooltipButton = styled.button`
+  display: block;
+  margin-top: 4px;
+`
 
 const DEFAULT_Y = { start: 0, stop: 10 }
 
@@ -27,10 +33,11 @@ const TOBAssociationsPlot = ({
   queryRegion,
   width,
   height,
-  onClick,
+  onZoomReset,
   onBrush,
-  onShiftClick,
-  onDoubleClick,
+  onSelect,
+  onCondition,
+  onReferenceSelect,
   margin,
 }) => {
   const [isLoading, setIsLoading] = useState(false)
@@ -144,14 +151,47 @@ const TOBAssociationsPlot = ({
       isHighlighted: (d) =>
         !![highlightedAssociations ?? []].flat().find((a) => a.association_id === d.association_id),
       opacity: (d) => d.ld ?? 1,
-      tooltip: (d) => <AssociationTooltip association={d} />,
+      tooltip: (d) => (
+        <div>
+          <AssociationTooltip association={d} />
+          <br />
+          <ManhattanPlotTooltipButton
+            type="button"
+            onClick={() =>
+              onSelect(
+                _data.filter((b) => d.variant_id === b.variant_id),
+                'toggle'
+              )
+            }
+          >
+            {selectedVariantIds.find((x) => x === d.variant_id)
+              ? 'Hide eQTL effect'
+              : 'Show eQTL effect'}
+          </ManhattanPlotTooltipButton>
+
+          <ManhattanPlotTooltipButton type="button" onClick={() => onReferenceSelect(d)}>
+            {d.association_id === ldReference?.association_id
+              ? 'Remove LD reference'
+              : 'Set LD reference'}
+          </ManhattanPlotTooltipButton>
+
+          {/* eslint-disable-next-line no-alert */}
+          <ManhattanPlotTooltipButton type="button" onClick={() => onCondition(d)}>
+            Condition on this eQTL
+          </ManhattanPlotTooltipButton>
+        </div>
+      ),
     }
   }, [
+    _data,
     cellTypes,
     selectedVariantIds,
     selectedGene?.gene_id,
     ldReference?.association_id,
     highlightedAssociations,
+    onSelect,
+    onReferenceSelect,
+    onCondition,
   ])
 
   const _markers = useMemo(() => {
@@ -162,7 +202,7 @@ const TOBAssociationsPlot = ({
   useEffect(() => {
     const ids = new Set(_data.filter(_accessors.isSelected).map((d) => d.variant_id))
     const selection = _data.filter((d) => ids.has(d.variant_id) && cellTypes[d.cell_type_id])
-    onClick(selection, 'replace')
+    onSelect(selection, 'replace')
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cellTypes, _data])
@@ -199,25 +239,17 @@ const TOBAssociationsPlot = ({
         height={height}
         thresholds={[]}
         markers={_markers}
-        onClick={(a) => {
-          // Select all cell-types for this locus
-          onClick(
-            _data.filter((b) => a.variant_id === b.variant_id),
-            'toggle'
-          )
-        }}
         onBrush={({ x, y }) => {
           onBrush({ ...x })
           setZoomedYDomain({ ...y })
         }}
         onDoubleClick={() => {
-          onDoubleClick()
+          onZoomReset()
           setZoomedYDomain(yDomain)
         }}
-        onShiftClick={onShiftClick}
         margin={margin}
         accessors={_accessors}
-        xLabel={`Chromsome ${queryRegion.chrom} position (Mb)`}
+        xLabel={`Chromosome ${queryRegion.chrom} position (Mb)`}
         xDomain={displayRegion}
         yDomain={zoomedYDomain}
       />
@@ -236,10 +268,11 @@ TOBAssociationsPlot.propTypes = {
     gene_symbol: PropTypes.string.isRequired,
   }),
   cellTypes: PropTypes.object, // eslint-disable-line react/forbid-prop-types,
-  onClick: PropTypes.func,
   onBrush: PropTypes.func,
-  onDoubleClick: PropTypes.func,
-  onShiftClick: PropTypes.func,
+  onZoomReset: PropTypes.func,
+  onCondition: PropTypes.func,
+  onSelect: PropTypes.func,
+  onReferenceSelect: PropTypes.func,
   highlightedAssociations: PropTypes.arrayOf(
     PropTypes.shape({
       association_id: PropTypes.string.isRequired,
@@ -272,10 +305,11 @@ TOBAssociationsPlot.defaultProps = {
   selectedVariantIds: [],
   cellTypes: {},
   highlightedAssociations: [],
-  onClick: () => {},
   onBrush: () => {},
-  onDoubleClick: () => {},
-  onShiftClick: () => {},
+  onZoomReset: () => {},
+  onCondition: () => {},
+  onSelect: () => {},
+  onReferenceSelect: () => {},
   height: 500,
   width: 1000,
   margin: {},

@@ -328,9 +328,13 @@ const TOBVariantPage = () => {
           <SectionHeading>eQTL associations</SectionHeading>
           <div style={{ marginBottom: '1rem' }}>
             <small style={{ display: 'block' }}>
-              Shift click an eQTL to set it as the LD reference locus. Shift click again to
-              de-select.
+              Click an eQTL to view additional actions. Click <b>See eQTL effect</b> to add a locus
+              to the eQTL effect violin plots below, or <b>Hide eQTL effect</b> to remove an already
+              selected locus. Click <b>Set/Remove LD reference</b> to set/remove a locus as the LD
+              reference. This will update the opacity of all surrounding loci relative to the chosen
+              locus. Click <b>Condition on this eQTL</b> to condition on the selected locus.
             </small>
+            <br />
             <small style={{ display: 'block' }}>
               Drag select over the Manhattan plot to zoom into a region. Double click an empty space
               in the Manhattan plot to reset zoom.
@@ -354,12 +358,12 @@ const TOBVariantPage = () => {
                 )
               }
             >
-              Select all cells types
+              Select all cell types
             </button>
           </InputWrapper>
 
           <InputWrapper>
-            <span>Show EQTLs with an FDR &le;</span>
+            <span>Show eQTLs with an FDR &le;</span>
             <input
               type="number"
               min={0}
@@ -371,12 +375,12 @@ const TOBVariantPage = () => {
             />
           </InputWrapper>
           <InputWrapper>
-            <span>Show EQTLs in conditioning round (1-5):</span>
+            <span>Show eQTLs in conditioning round (1-5):</span>
             <input
               type="number"
               min={1}
               max={5}
-              defaultValue={condioningRound}
+              value={condioningRound}
               onChange={(e) => debounceSetConditioningRound(e.target.value)}
               style={{ width: 75 }}
             />
@@ -397,9 +401,10 @@ const TOBVariantPage = () => {
             height={500}
             margin={{ top: 20, bottom: 140, right: 10, left: 100 }}
             onBrush={setDisplayRegion}
-            onDoubleClick={() => setDisplayRegion(fullRegion)}
-            onClick={onAssociationSelect}
-            onShiftClick={onReferenceSelect}
+            onZoomReset={() => setDisplayRegion(fullRegion)}
+            onSelect={onAssociationSelect}
+            onReferenceSelect={onReferenceSelect}
+            onCondition={() => setCondioningRound((prev) => prev + 1)}
           />
 
           <TOBGenesTrack
@@ -432,7 +437,7 @@ const TOBVariantPage = () => {
                           (excludedColumns.length > 1 ? ' and ' : '') +
                           excludedColumns.slice(-1)
                         } cell types `}
-                        have no EQTLs for the current selection and have been omitted.
+                        have no eQTLs for the current selection and have been omitted.
                       </i>
                     </div>
                   )}
