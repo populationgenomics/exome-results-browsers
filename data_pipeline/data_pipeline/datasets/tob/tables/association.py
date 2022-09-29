@@ -1,5 +1,6 @@
 import json
 import math
+from urllib.parse import urlparse
 
 from google.cloud import bigquery, storage
 from google.api_core import exceptions
@@ -17,11 +18,22 @@ ASSOCIATION_TABLE_SCHEMA = [
     bigquery.SchemaField("global_bp", "INTEGER", mode="REQUIRED"),
     bigquery.SchemaField("a1", "STRING", mode="REQUIRED"),
     bigquery.SchemaField("a2", "STRING", mode="REQUIRED"),
-    bigquery.SchemaField("functional_annotation", "STRING"),
+    bigquery.SchemaField(
+        "functional_annotation",
+        "RECORD",
+        mode="NULLABLE",
+        fields=[
+            bigquery.SchemaField(
+                "list",
+                "RECORD",
+                mode="REPEATED",
+                fields=[bigquery.SchemaField("item", "STRING", "REQUIRED")],
+            )
+        ],
+    ),
     bigquery.SchemaField("round", "INTEGER", mode="REQUIRED"),
     bigquery.SchemaField("cell_type_id", "STRING", mode="REQUIRED"),
     bigquery.SchemaField("fdr", "FLOAT", mode="REQUIRED"),
-    bigquery.SchemaField("is_esnp", "BOOLEAN"),
 ]
 
 VARIANT_TABLE_SCHEMA = [
@@ -33,16 +45,21 @@ VARIANT_TABLE_SCHEMA = [
 ]
 
 
-def prepare(input_dir, bucket) -> list[str]:
+def prepare(bucket_name, directory) -> list[str]:
     client = storage.Client()
-    bucket = client.get_bucket(bucket)
-    blobs = bucket.list_blobs(input_dir)
+    bucket = client.get_bucket(bucket_name)
+    blobs = bucket.list_blobs(prefix=directory.replace(f"{bucket.name}/", ""))
 
-    return [f"gs://{bucket}/{blob.name}" for blob in blobs if blob.name.endswith(".parquet")]
+    def is_eqtl_file(name):
+        return (name.endswith(".parquet")) and (("correlation_results_") in name or ("sig-snps-" in name))
+
+    return [f"gs://{bucket.name}/{blob.name}" for blob in blobs if is_eqtl_file(blob.name)]
 
 
-def ingest(input_dir, bucket, reference_genome, dataset_id, location):
-    source_files = prepare(input_dir=input_dir, bucket=bucket)
+def ingest(input_dir, reference_genome, dataset_id, location):
+    bucket = urlparse(input_dir if input_dir.startswith("gs://") else f"gs://{input_dir}").netloc
+    directory = input_dir.replace("gs://", "")
+    source_files = prepare(bucket_name=bucket, directory=directory)
 
     client = bigquery.Client(location=location)
     dataset = client.create_dataset(dataset_id, exists_ok=True)
