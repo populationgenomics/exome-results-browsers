@@ -25,12 +25,6 @@ const AssociationTooltip = ({ association }) => {
         </tr>
         <tr>
           <td>
-            <b>Cell type: </b>
-          </td>
-          <td>{association.cell_type_name} </td>
-        </tr>
-        <tr>
-          <td>
             <b>P-value: </b>
           </td>
           <td>{association.p_value.toExponential(2)} </td>
@@ -49,15 +43,9 @@ const AssociationTooltip = ({ association }) => {
         </tr>
         <tr>
           <td>
-            <b>Beta: </b>
-          </td>
-          <td>{association.beta ?? '?'} </td>
-        </tr>
-        <tr>
-          <td>
             <b>Functional annotation: </b>
           </td>
-          <td>{association.functional_annotation ?? '?'} </td>
+          <td>{association.functional_annotation?.list?.map((i) => i.item)?.join(', ') ?? '?'} </td>
         </tr>
       </tbody>
     </table>
