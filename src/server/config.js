@@ -7,7 +7,7 @@ const config = {
   iapAudience: process.env.IAP_AUDIENCE,
   maxRegionSize: process.env.MAX_REGION || 2e6,
   isDevelopment: process.env.NODE_ENV === 'development',
-  enableNewDatabase: process.env.DATASET_ID === 'test',
+  enableNewDatabase: process.env.DATASET_ID !== 'grch37',
 }
 
 module.exports = { config }
