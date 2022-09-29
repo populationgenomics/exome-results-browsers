@@ -7,7 +7,12 @@ from google.api_core import exceptions
 
 def prepare(input_file):
     table = pq.read_table(input_file)
-    table = table.rename_columns(["gene_symbol", "data", "cell_type_id", "gene_id"])
+
+    if "gene_name" in table.schema.names:
+        table = table.rename_columns(["gene_symbol" if c == "gene_name" else c for c in table.schema.names])
+
+    if "ensembl_ids" in table.schema.names:
+        table = table.rename_columns(["gene_id" if c == "ensembl_ids" else c for c in table.schema.names])
 
     output = "/tmp/gene_expression.parquet"
     pq.write_table(table, output)
