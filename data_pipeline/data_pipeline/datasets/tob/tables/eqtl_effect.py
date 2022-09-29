@@ -1,24 +1,25 @@
 import json
+from urllib.parse import urlparse
 
-import pyarrow.parquet as pq
-from google.cloud import bigquery
+from google.cloud import bigquery, storage
 from google.api_core import exceptions
 
 
-def prepare(input_file):
-    table = pq.read_table(input_file)
-    columns = ["data" if c == "struct" else c for c in table.schema.names]
-    table = table.rename_columns(columns)
+def prepare(bucket_name, directory) -> list[str]:
+    client = storage.Client()
+    bucket = client.get_bucket(bucket_name)
+    blobs = bucket.list_blobs(prefix=directory.replace(f"{bucket.name}/", ""))
 
-    output = "/tmp/eqtl_effect.parquet"
-    pq.write_table(table, output)
+    def is_effect_file(name):
+        return (name.endswith(".parquet")) and (("eqtl_effect_") in name)
 
-    print(f"Output saved to {output}")
-    return output
+    return [f"gs://{bucket.name}/{blob.name}" for blob in blobs if is_effect_file(blob.name)]
 
 
-def ingest(input_file, dataset_id, location) -> bigquery.Table:
-    source_file = prepare(input_file)
+def ingest(input_dir, dataset_id, location) -> bigquery.Table:
+    bucket = urlparse(input_dir if input_dir.startswith("gs://") else f"gs://{input_dir}").netloc
+    directory = input_dir.replace("gs://", "")
+    source_files = prepare(bucket_name=bucket, directory=directory)
 
     client = bigquery.Client(location=location)
     dataset = client.create_dataset(dataset_id, exists_ok=True)
@@ -35,8 +36,7 @@ def ingest(input_file, dataset_id, location) -> bigquery.Table:
     )
 
     job_config = bigquery.LoadJobConfig(**job_config_kwargs)
-    with open(source_file, "rb") as handle:
-        job = client.load_table_from_file(handle, destination=table_id, job_config=job_config)
+    job = client.load_table_from_uri(source_uris=source_files, destination=table_id, job_config=job_config)
 
     try:
         print(f"Starting job {job.job_id}")
