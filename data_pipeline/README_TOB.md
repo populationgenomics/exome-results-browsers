@@ -67,3 +67,7 @@ The `post-process` step should be run last, but the other steps can be run in an
 - `project-id` is only used in the `post-process` step to create BigQuery table identifiers. The rest of the commands infer the project identifier from the environment's credentials - this is currently a `FIXME`. Before running, make sure your environment is configured to use the `tob-wgs-browser` project using `glcoud config set project tob-wgs-browser`.
 
 - Make sure the same gencode annotations file is used between the analysis pipeline and this ingestion CLI to ensure consistent gene identifiers and transcripts.
+
+- It will be easier to make changes to the API code to conform to the data structures requiredf by the browser because the server is stateless, and the front-end is more complex becuase of state management.
+
+- The previous database was based on GRCh37. In GRCh38, chromomsome identifiers also include the 'chr' prefix. This will likely cause bugs so if you see any 404's that should not be happening check the SQL query to see if the `chrom` column is causing an issue in lookups.
