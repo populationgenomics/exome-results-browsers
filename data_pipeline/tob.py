@@ -72,17 +72,17 @@ def expression(ctx, input_file):
     tables.expression.ingest(input_file, dataset_id=ctx.obj["dataset_id"], location=ctx.obj["location"])
 
 
-# ----- Expression aggregate table ----- #
+# ----- eQTL gene expression effect aggregate table ----- #
 @cli.command("eqtl-effect", help="This command formats and ingests the eQTL gene expression effect aggregate data.")
 @click.option(
-    "--input-file",
-    help="Path to eQTL effect aggregate parquet file.",
+    "--input-dir",
+    help="Full path containing eQTL effect aggregate files including the URI scheme and bucket name.",
     type=str,
     required=True,
 )
 @click.pass_context
-def eqtl_effect(ctx, input_file):
-    tables.eqtl_effect.ingest(input_file, dataset_id=ctx.obj["dataset_id"], location=ctx.obj["location"])
+def eqtl_effect(ctx, input_dir):
+    tables.eqtl_effect.ingest(input_dir, dataset_id=ctx.obj["dataset_id"], location=ctx.obj["location"])
 
 
 # ----- Gene model table ----- #
@@ -117,22 +117,25 @@ def gene_model(ctx, hgnc_path, gencode_path, canonical_transcripts_path):
     )
 
 
-# ----- Association ----- #
+# ----- eQTL associations ----- #
 @cli.command(
     "eqtl-association",
     help="This command will ingest the output files from the analysis pipeline containing eQTL associations.",
 )
-@click.option("--input_dir", help="Directory containing eQTL association files.", type=str, required=True)
-@click.option("--bucket", help="Name of the bucket where the input directory is located.", type=str, required=True)
+@click.option(
+    "--input-dir",
+    help="Full path containing eQTL association files including the URI scheme and bucket name.",
+    type=str,
+    required=True,
+)
 @click.pass_context
-def ingest_eqtl_associations(ctx, input_dir, bucket):
+def ingest_eqtl_associations(ctx, input_dir):
     dataset_id = ctx.obj["dataset_id"]
     location = ctx.obj["location"]
     reference = ctx.obj["reference"]
 
     tables.association.ingest(
         input_dir=input_dir,
-        bucket=bucket,
         reference_genome=reference,
         dataset_id=dataset_id,
         location=location,
