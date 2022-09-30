@@ -32,24 +32,29 @@ Results browsers for case-control studies of psychiatric diseases done at the Br
   across the globe, which aims to increase our understanding of the disease architecture of
   bipolar disorder.
 
-# Env
+# TOB Development
+
+Set these env variables in your shell profile:
 
 ```
-# Enables the new API which is not backwards compatible with the existing API, defaults to false.
-ENABLE_NEW_API=true
-
 # Enables the SwaggerUI interface, defaults to false.
 ENABLE_SWAGGER_UI=true
 
-# Reference genome, defaults to grch37 if blank.
-REFERENCE=grch37
+# Reference genome, defaults to grch38 if blank.
+REFERENCE=grch38
 
-# BigQuery dataset id, defaults to grch37 if blank.
-DATASET_ID=test
+# BigQuery dataset id, defaults to grch38 if blank.
+DATASET_ID=test1
+
+# Google service account to use during development with bigquery access
+GOOGLE_APPLICATION_CREDENTIALS=<path to your service account>
+
+# Set node env to development
+NODE_ENV=development
 ```
 
 Example to run the new API for development:
 
 ```
-ENABLE_NEW_API=true ENABLE_SWAGGER_UI=true REFERENCE=grch37 DATASET_ID=test yarn start TOB
+ENABLE_SWAGGER_UI=true REFERENCE=grch38 DATASET_ID=test1 yarn start TOB
 ```
