@@ -14,9 +14,12 @@ const {
   sampleNormal,
 } = require('./utilities')
 
-const ASSOCIATION_ID_COLUMN = serverConfig.enableNewDatabase ? 'association_id' : 'id'
 const GENE_ID_COLUMN = serverConfig.enableNewDatabase ? 'gene_id' : 'ensembl_gene_id'
 const GENE_SYMBOL_COLUMN = serverConfig.enableNewDatabase ? 'gene_symbol' : 'gene'
+
+const SEP = '-'
+const ASSOCIATION_ID_FORMULA = `CONCAT(chrom, '${SEP}', bp, '${SEP}', a1, '${SEP}', a2, '${SEP}', gene_id, '${SEP}', cell_type_id, '${SEP}', round)`
+const VARIANT_ID_FORMULA = `CONCAT(chrom, '${SEP}', bp, '${SEP}', a1, '${SEP}', a2)`
 
 /**
  * @param {{
@@ -50,9 +53,25 @@ const fetchAssociations = async ({
   const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.association}`
 
   // TODO: Implement LD reference scores
-  let selectClause = `SELECT *, NULL ld, NULL ld_reference FROM ${table}`
+  let selectClause = `
+  SELECT 
+    *,
+    ${ASSOCIATION_ID_FORMULA} association_id,
+    ${VARIANT_ID_FORMULA} variant_id,
+    NULL ld, 
+    NULL ld_reference,
+  FROM ${table}
+  `
   if (ldReference) {
-    selectClause = `SELECT *, RAND() ld, "${ldReference}" ld_reference FROM ${table}`
+    selectClause = `
+    SELECT 
+      *, 
+      ${ASSOCIATION_ID_FORMULA} association_id,
+      ${VARIANT_ID_FORMULA} variant_id,
+      RAND() ld, 
+      "${ldReference}" ld_reference 
+    FROM ${table}
+    `
   }
 
   const queryParams = {}
@@ -76,7 +95,7 @@ const fetchAssociations = async ({
 
   // Add filter for matching gene ids
   if (genes?.length && Array.isArray(genes)) {
-    // FIXME: circular dependency with gene.js queries
+    // FIXME: circular dependency with gene.js queries... something, something bad.
     // eslint-disable-next-line global-require
     const { fetchGenesById } = require('./gene')
 
@@ -122,7 +141,7 @@ const fetchAssociations = async ({
 
   // Add filter for conditioning round
   if (rounds?.length && Array.isArray(rounds)) {
-    queryParams.rounds = rounds.map(parseInt)
+    queryParams.rounds = rounds.map((x) => x.toString()) // FIXME: rounds.map(parseInt)
     filters.push('round IN UNNEST(@rounds)')
   }
 
@@ -138,7 +157,7 @@ const fetchAssociations = async ({
   // Filter for variant ids
   if (variantIds?.length) {
     queryParams.variantIds = variantIds.map((id) => id.toString().toUpperCase())
-    filters.push('UPPER(variant_id) IN UNNEST(@variantIds)')
+    filters.push(`UPPER(${VARIANT_ID_FORMULA}) IN UNNEST(@variantIds)`)
   }
 
   // Add filter for FDR
@@ -193,12 +212,18 @@ const fetchAssociationById = async (id, { config = {} } = {}) => {
   })
 
   const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.association}`
-  const selectClause = `SELECT * FROM ${table}`
+  const selectClause = `
+  SELECT 
+    *, 
+    ${ASSOCIATION_ID_FORMULA} association_id,
+    ${VARIANT_ID_FORMULA} variant_id
+  FROM ${table}
+  `
   const filters = [
     'global_bp = @pos',
     `(UPPER(${GENE_ID_COLUMN}) = UPPER(@gene) OR UPPER(${GENE_SYMBOL_COLUMN}) = UPPER(@gene))`,
     'UPPER(cell_type_id) = UPPER(@cell)',
-    `UPPER(${ASSOCIATION_ID_COLUMN}) = UPPER(@id)`,
+    `UPPER(${ASSOCIATION_ID_FORMULA}) = UPPER(@id)`,
   ]
 
   const queryParams = {
@@ -226,6 +251,8 @@ const fetchAssociationById = async (id, { config = {} } = {}) => {
  * @returns {Promise<object|null>}
  */
 const fetchAssociationEffect = async (id, { config = {} } = {}) => {
+  // TODO: This is fake data, implement the real McCoy!
+
   if (!id) throw new Error("Parameter 'id' is required.")
 
   const association = parseAssociationId(id)
