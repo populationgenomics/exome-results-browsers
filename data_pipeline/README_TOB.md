@@ -70,4 +70,14 @@ The `post-process` step should be run last, but the other steps can be run in an
 
 - It will be easier to make changes to the API code to conform to the data structures requiredf by the browser because the server is stateless, and the front-end is more complex becuase of state management.
 
-- The previous database was based on GRCh37. In GRCh38, chromomsome identifiers also include the 'chr' prefix. This will likely cause bugs so if you see any 404's that should not be happening check the SQL query to see if the `chrom` column is causing an issue in lookups.
+- The previous database was based on GRCh37. In GRCh38, chromomsome identifiers also include the 'chr' prefix. This will likely cause bugs so if you see any 404's that should not be happening check the SQL query to see if the `chrom` column is causing an issue in lookups. These should be mostly fixed, but one or two issues might remain.
+
+# Known Issues
+
+- The coordinates of associations don't seem to line up with their related gene. See `variant/22-25180036-TCTGAAAGAGGCAAGACCTGGTGCTCTGGAGCCCTTGGGCTACCCGAGGAA-T` and set `cell type` to `b_intermediate` and `fdr` to `0.9`. The associations are to the right of the gene.
+
+- Misc. rendering and performance issues for edge cases.
+
+- Gene expression and eQTL effect plots appear to be bi-modal and make the overlayed box plots an awkward visualisation.
+
+- Cell type expression and eQTL effect violin plot components will not render x-axis ticks with missing data.
