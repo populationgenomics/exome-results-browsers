@@ -251,62 +251,74 @@ const fetchAssociationById = async (id, { config = {} } = {}) => {
  * @returns {Promise<object|null>}
  */
 const fetchAssociationEffect = async (id, { config = {} } = {}) => {
-  // TODO: This is fake data, implement the real McCoy!
-
   if (!id) throw new Error("Parameter 'id' is required.")
 
+  const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
+
   const association = parseAssociationId(id)
+  const region = convertPositionToGlobalPosition({
+    chrom: association.chrom,
+    start: association.pos,
+    stop: association.pos,
+    reference: queryOptions.reference,
+  })
+
   const genotypes = [
     `${association.ref}${association.ref}`,
     `${association.ref}${association.alt}`,
     `${association.alt}${association.alt}`,
   ]
 
-  const min = 5
-  const max = 15
+  const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.effect}`
+  const sqlQuery = `
+  SELECT *
+  FROM ${table}
+  WHERE
+    global_bp = @global_bp AND
+    chrom = @chrom AND
+    a1 = @ref AND
+    a2 = @alt AND
+    (UPPER(${GENE_ID_COLUMN}) = UPPER(@gene) OR UPPER(${GENE_SYMBOL_COLUMN}) = UPPER(@gene)) AND
+    LOWER(cell_type_id) = LOWER(@cell_type_id)
+  `
 
-  // compute distributions
-  const distributions = genotypes.map((g) => {
-    const skew = sampleNormal({ min: 0, max: 5, skew: 2 })
-    return {
-      id: g.toUpperCase(),
-      data: new Array(10000).fill(0).map(() => sampleNormal({ min, max, skew })),
-    }
-  })
-
-  // Compute bin widths
-  const nBins = 40
-  const step = (max - min) / nBins
-  const bins = new Array(nBins).fill(0).map((_, i) => {
-    return { min: min + step * i, max: min + step * (i + 1) }
-  })
-
-  // Compute bin counts and distribution statistics
-  const histograms = distributions.map((d) => {
-    const [q1, median, q3] = quantileSeq(d.data, [0.25, 0.5, 0.75])
-    const iqr = q3 - q1
-
-    return {
-      id: d.id,
-      counts: bins.map((b) => {
-        return d.data.filter((n) => n >= b.min && n < b.max).length
-      }),
-      min: Math.min(...d.data),
-      max: Math.max(...d.data),
-      mean: lodash.mean(d.data),
-      median,
-      q1,
-      q3,
-      iqr,
-      iqr_min: q1 - 1.5 * iqr,
-      iqr_max: q3 + 1.5 * iqr,
-    }
-  })
-
-  return {
-    histograms,
-    bins,
+  const queryParams = {
+    global_bp: region.start,
+    chrom: region.chrom,
+    ref: association.ref,
+    alt: association.alt,
+    gene: association.gene,
+    cell_type_id: association.cell,
   }
+
+  const results = await submitQuery({
+    query: sqlQuery,
+    options: { ...queryOptions, params: queryParams },
+  })
+
+  const records = results.map((r) => {
+    const flatBins = r.struct.bin_edges.list.map((i) => i.item)
+
+    const bins = []
+    for (let i = 0; i < flatBins.length - 1; i += 1) {
+      bins.push({ min: flatBins[i], max: flatBins[i + 1] })
+    }
+
+    const record = {
+      ...r.struct,
+      id: r.genotype,
+      gene_id: r.gene_id,
+      gene_symbol: r.gene_symbol,
+      bins,
+      counts: r.struct.bin_counts.list.map((i) => i.item),
+    }
+
+    delete record.bin_edges // remove original unformatted data
+    delete record.bin_counts // remove original unformatted data
+    return record
+  })
+
+  return records.sort((a, b) => a.id - b.id)
 }
 
 module.exports = {

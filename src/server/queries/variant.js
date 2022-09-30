@@ -1,4 +1,6 @@
 /* eslint-disable no-unused-vars */
+const { uniqBy } = require('lodash')
+
 const { parseVariantId, normalizeVariantId } = require('@gnomad/identifiers')
 const { fetchAssociations } = require('./association')
 
@@ -156,8 +158,6 @@ const fetchVariantAssociations = async (
  * @returns {Promise<object|null>}
  */
 const fetchVariantAssociationAggregate = async (id, { config = {} } = {}) => {
-  // TODO: This is fake data, implement the real McCoy!
-
   if (!id) throw new Error("Parameter 'id' is required.")
 
   const cellTypes = await fetchCellTypes({ config })
@@ -169,29 +169,71 @@ const fetchVariantAssociationAggregate = async (id, { config = {} } = {}) => {
     stop: variant.pos,
   })
 
-  const genes = await fetchGenes({
-    range: {
-      chrom: globalCoordinates.chrom,
-      start: globalCoordinates.start - 1e6,
-      stop: globalCoordinates.stop + 1e6,
-    },
-    limit: null,
-    expand: false,
+  const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
+
+  const query = `
+  SELECT 
+    t1.gene_id, 
+    t1.gene_symbol, 
+    t1.cell_type_id, 
+    t1.data.mean AS mean_log_cpm, 
+    min_p_value
+  FROM ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.expression} AS t1
+  JOIN (
+    SELECT 
+      gene_id,
+      cell_type_id,
+      MIN(p_value) AS min_p_value 
+    FROM (
+      SELECT *
+      FROM ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.association}
+      WHERE
+        global_bp = @global_bp AND
+        chrom = @chrom AND
+        a1 = @ref AND
+        a2 = @alt
+    )
+    GROUP BY gene_id, cell_type_id
+  ) AS t2
+  ON (t1.gene_id = t2.gene_id AND t1.cell_type_id = t2.cell_type_id)
+  `
+
+  const queryParams = {
+    global_bp: globalCoordinates.start,
+    chrom: globalCoordinates.chrom,
+    ref: variant.ref,
+    alt: variant.alt,
+  }
+
+  const results = await submitQuery({
+    query,
+    options: { ...queryOptions, params: queryParams },
   })
 
-  return cellTypes.flatMap((c) => {
-    return genes.map((g) => {
-      const skew = sampleNormal({ min: 1, max: 4, skew: 1 })
-      const pval = sampleNormal({ min: 0, max: 1e4, skew: 6 }) / 1e4
-      return {
-        gene_id: g.gene_id,
-        gene_symbol: g.symbol,
-        cell_type_id: c.cell_type_id || c.id,
-        min_p_value: pval,
-        log10_min_p_value: -Math.log10(pval),
-        mean_log_cpm: sampleNormal({ min: 0, max: 15, skew }),
+  const genes = uniqBy(
+    results.map((r) => ({ gene_id: r.gene_id, gene_symbol: r.gene_symbol })),
+    'gene_id'
+  )
+
+  genes.forEach((g) => {
+    cellTypes.forEach((c) => {
+      if (!results.find((r) => r.gene_id === g.gene_id && r.cell_type_id === c.cell_type_id)) {
+        results.push({
+          gene_id: g.gene_id,
+          gene_symbol: g.gene_symbol,
+          cell_type_id: c.cell_type_id,
+          min_p_value: null,
+          mean_log_cpm: null,
+        })
       }
     })
+  })
+
+  return results.map((r) => {
+    return {
+      ...r,
+      max_log10_p_value: Number.isFinite(r.min_p_value) ? -Math.log10(r.min_p_value) : null,
+    }
   })
 }
 

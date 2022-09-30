@@ -1,7 +1,6 @@
 /* eslint-disable no-unused-vars */
 
-const { mean } = require('lodash')
-const { quantileSeq } = require('mathjs')
+const { uniqBy } = require('lodash')
 
 const { tableIds, defaultQueryOptions, submitQuery, sampleNormal } = require('./utilities')
 const { fetchCellTypes } = require('./cellType')
@@ -187,53 +186,39 @@ const fetchGeneExpression = async (id, { config = {} } = {}) => {
   const gene = await resolveGene(id, { config })
   if (!gene) return null
 
-  // compute distributions
-  const cellTypes = await fetchCellTypes({ config })
+  const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
+  const table = `${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.expression}`
+  const select = `SELECT * FROM ${table}`
+  const filter = 'WHERE UPPER(gene_id) = UPPER(@id)'
 
-  const min = 5
-  const max = 15
+  const results = await submitQuery({
+    query: [select, filter].join('\n'),
+    options: { ...queryOptions, params: { id } },
+  })
 
-  const distributions = cellTypes.map((c) => {
-    const skew = sampleNormal({ min: 0, max: 5, skew: 2 })
-    return {
-      id: c.cell_type_id,
-      data: new Array(10000).fill(0).map(() => sampleNormal({ min, max, skew })),
+  const records = results.map((r) => {
+    const flatBins = r.data.bin_edges.list.map((i) => i.item)
+
+    const bins = []
+    for (let i = 0; i < flatBins.length - 1; i += 1) {
+      bins.push({ min: flatBins[i], max: flatBins[i + 1] })
     }
-  })
 
-  // Compute bin widths
-  const nBins = 40
-  const step = (max - min) / nBins
-  const bins = new Array(nBins).fill(0).map((_, i) => {
-    return { min: min + step * i, max: min + step * (i + 1) }
-  })
-
-  // Compute bin counts and distribution statistics
-  const histograms = distributions.map((d) => {
-    const [q1, median, q3] = quantileSeq(d.data, [0.25, 0.5, 0.75])
-    const iqr = q3 - q1
-
-    return {
-      id: d.id,
-      counts: bins.map((b) => {
-        return d.data.filter((n) => n >= b.min && n < b.max).length
-      }),
-      min: Math.min(...d.data),
-      max: Math.max(...d.data),
-      mean: mean(d.data),
-      median,
-      q1,
-      q3,
-      iqr,
-      iqr_min: q1 - 1.5 * iqr,
-      iqr_max: q3 + 1.5 * iqr,
+    const record = {
+      ...r.data,
+      id: r.cell_type_id,
+      gene_id: r.gene_id,
+      gene_symbol: r.gene_symbol,
+      bins,
+      counts: r.data.bin_counts.list.map((i) => i.item),
     }
+
+    delete record.bin_edges // remove original unformatted data
+    delete record.bin_counts // remove original unformatted data
+    return record
   })
 
-  return {
-    histograms,
-    bins,
-  }
+  return records
 }
 
 /**
@@ -247,21 +232,73 @@ const fetchGeneAssociationAggregate = async (id, { config = {} } = {}) => {
 
   // Gene was not studied, which is different from no associations from being found which instead
   // will return an empty array
-  const gene = await resolveGene(id, { config })
+  const gene = await fetchGeneById(id, { config })
   if (!gene) return null
 
   const cellTypes = await fetchCellTypes({ config })
 
-  return cellTypes.map((c) => {
-    const skew = sampleNormal({ min: 1, max: 4, skew: 1 })
-    const pval = sampleNormal({ min: 0, max: 1e4, skew: 6 }) / 1e4
+  const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
+
+  const query = `
+  SELECT 
+    t1.gene_id, 
+    t1.gene_symbol, 
+    t1.cell_type_id, 
+    t1.data.mean AS mean_log_cpm, 
+    min_p_value
+  FROM ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.expression} AS t1
+  JOIN (
+    SELECT 
+      gene_id,
+      cell_type_id,
+      MIN(p_value) AS min_p_value 
+    FROM (
+      SELECT *
+      FROM ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.association}
+      WHERE
+        global_bp >= @start AND
+        global_bp <= @stop AND
+        gene_id = @id
+    )
+    GROUP BY gene_id, cell_type_id
+  ) AS t2
+  ON (t1.gene_id = t2.gene_id AND t1.cell_type_id = t2.cell_type_id)
+  `
+
+  const queryParams = {
+    start: gene.global_start,
+    stop: gene.global_stop,
+    id: gene.gene_id,
+  }
+
+  const results = await submitQuery({
+    query,
+    options: { ...queryOptions, params: queryParams },
+  })
+
+  const genes = uniqBy(
+    results.map((r) => ({ gene_id: r.gene_id, gene_symbol: r.gene_symbol })),
+    'gene_id'
+  )
+
+  genes.forEach((g) => {
+    cellTypes.forEach((c) => {
+      if (!results.find((r) => r.gene_id === g.gene_id && r.cell_type_id === c.cell_type_id)) {
+        results.push({
+          gene_id: g.gene_id,
+          gene_symbol: g.gene_symbol,
+          cell_type_id: c.cell_type_id,
+          min_p_value: null,
+          mean_log_cpm: null,
+        })
+      }
+    })
+  })
+
+  return results.map((r) => {
     return {
-      gene_id: gene.id,
-      gene_symbol: gene.symbol,
-      cell_type_id: c.cell_type_id || c.id,
-      min_p_value: pval,
-      log10_min_p_value: -Math.log10(pval),
-      mean_log_cpm: sampleNormal({ min: 0, max: 15, skew }),
+      ...r,
+      max_log10_p_value: Number.isFinite(r.min_p_value) ? -Math.log10(r.min_p_value) : null,
     }
   })
 }
