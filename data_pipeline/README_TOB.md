@@ -58,7 +58,7 @@ python tob.py \
     post-process
 ```
 
-The `post-process` step should be run last, but the other steps can be run in any order. You will need to run this with the `tob-wgs-browser` project set in your environment and using a service account that has read access to `tob-wgs` cloud storage buckets.
+The `post-process` step should be run last, but the other steps can be run in any order. You will need to run this with the `tob-wgs-browser` project set in your environment and using a service account that has read access to `tob-wgs` cloud storage buckets. If running the command `gene-model` ingesting files located on Google's Cloud Storage, you will need to [install the GCS connector](https://github.com/populationgenomics/team-docs/blob/main/notebooks.md#hail)
 
 # Debugging tips
 
