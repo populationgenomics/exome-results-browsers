@@ -4,14 +4,14 @@ import PropTypes from 'prop-types'
 const BoxplotTooltip = ({ statistics }) => (
   <table>
     <tbody>
-      {['median', 'mean', 'min', 'max', 'q1', 'q3', 'iqr'].map((key, i) => {
+      {['median', 'mean', 'min', 'max', 'q1', 'q3', 'iqr', 'n_samples'].map((key, i) => {
         return (
           // eslint-disable-next-line react/no-array-index-key
           <tr key={`${i}-${key}`}>
             <td>
               <b>{key}: </b>
             </td>
-            <td>{statistics[key].toPrecision(4)} </td>
+            <td>{key === 'n_samples' ? statistics[key] : statistics[key].toPrecision(4)}</td>
           </tr>
         )
       })}
