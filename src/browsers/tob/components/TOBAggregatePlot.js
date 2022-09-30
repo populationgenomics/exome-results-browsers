@@ -57,10 +57,10 @@ const TOBAggregatePlot = ({
 
   const accessors = useMemo(() => {
     return {
-      id: (d) => `${d.gene_symbol}-${d.cell_type_id}`,
+      id: (d) => `${d.gene_id}-${d.cell_type_id}`,
       x: (d) => d.cell_type_id,
       y: (d) => d.gene_symbol,
-      size: (d) => -Math.log10(d.min_p_value),
+      size: (d) => d.max_log10_p_value,
       color: (d) => d.mean_log_cpm,
       tooltip: (d) => <AggregateTooltip data={d} />,
       isSelected: (d) => {

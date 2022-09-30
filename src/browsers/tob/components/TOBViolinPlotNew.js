@@ -29,6 +29,7 @@ const TOBViolinPlot = ({ query, margin, height, yLabel, fontSize, cellTypes }) =
       id: (d) => d.id,
       x: (d) => d.id,
       y: (d) => d.counts,
+      bins: (d) => d.bins,
       q1: (d) => d.q1,
       median: (d) => d.median,
       mean: (d) => d.mean,
@@ -65,12 +66,7 @@ const TOBViolinPlot = ({ query, margin, height, yLabel, fontSize, cellTypes }) =
         if (r.ok) {
           r.json()
             .then((d) => {
-              if (!query.includes(':') && !query.includes('-')) {
-                // Gene query, sort historgrams by cell type id
-                setData({ histograms: sortBy(d.histograms, 'id'), bins: d.bins })
-              } else {
-                setData(d)
-              }
+              setData(sortBy(d, 'id'))
               setError(null)
             })
             .catch((e) => setError(e))
