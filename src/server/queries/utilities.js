@@ -28,8 +28,8 @@ const projectIds = {
 const defaultQueryOptions = () => {
   return {
     verbose: process.env.NODE_ENV === 'development',
-    reference: process.env.REFERENCE_GENOME || datasetIds.grch37,
-    datasetId: process.env.DATASET_ID || datasetIds.grch37,
+    reference: process.env.REFERENCE_GENOME || datasetIds.grch38,
+    datasetId: process.env.DATASET_ID || datasetIds.grch38,
     projectId: process.env.PROJECT_ID || projectIds.tobWgsBrowser,
   }
 }
