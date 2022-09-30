@@ -26,7 +26,8 @@ def normalize_data(project_id, dataset_id, location):
     queries.append(
         f"""
     UPDATE {project_id}.{dataset_id}.cell_type
-    SET cell_type_id = LOWER(cell_type_id)
+    SET
+        cell_type_id = LOWER(cell_type_id)
     WHERE 1=1
     """
     )
@@ -34,7 +35,9 @@ def normalize_data(project_id, dataset_id, location):
     queries.append(
         f"""
     UPDATE {project_id}.{dataset_id}.expression
-    SET cell_type_id = LOWER(cell_type_id), gene_id = SPLIT(gene_id, '.')[OFFSET(0)]
+    SET
+        cell_type_id = LOWER(cell_type_id),
+        gene_id = SPLIT(gene_id, '.')[OFFSET(0)]
     WHERE 1=1
     """
     )
@@ -53,7 +56,8 @@ def normalize_data(project_id, dataset_id, location):
     queries.append(
         f"""
     UPDATE {project_id}.{dataset_id}.gene_model
-    SET chrom = REPLACE(chrom, 'chr', '')
+    SET
+        chrom = REPLACE(chrom, 'chr', '')
     WHERE 1=1
     """
     )
