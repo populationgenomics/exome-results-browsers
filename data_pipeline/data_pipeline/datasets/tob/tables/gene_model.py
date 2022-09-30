@@ -297,6 +297,9 @@ def prepare(reference_genome, hgnc_path, gencode_path, canonical_transcripts_pat
 
 
 def row_to_dict(record):
+    if record is None:
+        return record
+
     if record["transcript_id"] is None and record["features"] is None:
         return None
 
