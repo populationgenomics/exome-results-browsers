@@ -307,7 +307,7 @@ const TOBGenePage = () => {
           <TOBViolinPlot
             query={query.gene}
             height={500}
-            margin={{ left: 100, bottom: 75 }}
+            margin={{ left: 100, bottom: 125 }}
             cellTypes={cellTypes}
           />
         </section>
@@ -322,7 +322,7 @@ const TOBGenePage = () => {
             query={query.gene}
             selected={selectedGene}
             width={dimensions.boundedWidth}
-            margin={{ top: 20, right: 250, bottom: 125, left: 100 }}
+            margin={{ top: 20, right: 250, bottom: 125, left: 125 }}
             onClick={onSelectAggregate}
             onRowClick={onSelectAggregate}
             cellTypes={cellTypes}
