@@ -8,9 +8,9 @@ const { ReferenceGenome } = require('./genome')
 
 const tableIds = {
   association: 'association',
-  expression: 'log_residual',
+  expression: 'expression',
+  effect: 'eqtl_effect',
   variant: 'variant',
-  genotype: 'genotype',
   cellType: 'cell_type',
   geneModel: 'gene_model',
   geneLookup: 'gene_lookup',
