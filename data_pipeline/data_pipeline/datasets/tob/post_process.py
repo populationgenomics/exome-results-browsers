@@ -6,6 +6,7 @@ from google.api_core import exceptions
 # NOTE: Add SQL query to add search indices to improve lookup performance. Only available in US and EU locations
 #       as of Sep-2022
 
+
 def normalize_data(project_id, dataset_id, location):
     """
     Run this first before other post processing steps since it will affect joins
@@ -13,8 +14,11 @@ def normalize_data(project_id, dataset_id, location):
     queries = []
     queries.append(
         f"""
-    UPDATE {project_id}.{dataset_id}.associations
-    SET cell_type_id = LOWER(cell_type_id), gene_id = SUBSTRING_INDEX(gene_id, '.', 1)
+    UPDATE {project_id}.{dataset_id}.association
+    SET
+        cell_type_id = LOWER(cell_type_id),
+        gene_id = SPLIT(gene_id, '.')[OFFSET(0)],
+        chrom = REPLACE(chrom, 'chr', '')
     WHERE 1=1
     """
     )
@@ -38,7 +42,18 @@ def normalize_data(project_id, dataset_id, location):
     queries.append(
         f"""
     UPDATE {project_id}.{dataset_id}.eqtl_effect
-    SET cell_type_id = LOWER(cell_type_id), gene_id = SPLIT(gene_id, '.')[OFFSET(0)]
+    SET
+        cell_type_id = LOWER(cell_type_id),
+        gene_id = SPLIT(gene_id, '.')[OFFSET(0)],
+        chrom = REPLACE(chrom, 'chr', '')
+    WHERE 1=1
+    """
+    )
+
+    queries.append(
+        f"""
+    UPDATE {project_id}.{dataset_id}.gene_model
+    SET chrom = REPLACE(chrom, 'chr', '')
     WHERE 1=1
     """
     )
