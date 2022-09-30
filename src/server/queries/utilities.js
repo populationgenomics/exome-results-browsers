@@ -105,8 +105,12 @@ const parseAssociationId = (value) => {
   // if (!idRe.test(value.toString())) {
   //   throw new Error(`Association id '${value}' is not a valid identifier.`)
   // }
+  let sep = ':'
+  if (value.includes('-')) {
+    sep = '-'
+  }
 
-  const [chrom, pos, ref, alt, gene, cell, round] = value.split(':')
+  const [chrom, pos, ref, alt, gene, cell, round] = value.split(sep)
   return {
     chrom,
     pos: Number.parseInt(pos, 10),
