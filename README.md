@@ -41,7 +41,7 @@ Set these env variables in your shell profile:
 ENABLE_SWAGGER_UI=true
 
 # Reference genome, defaults to grch38 if blank.
-REFERENCE=grch38
+REFERENCE_GENOME=grch38
 
 # BigQuery dataset id, defaults to grch38 if blank.
 DATASET_ID=test1
@@ -56,5 +56,7 @@ NODE_ENV=development
 Example to run the new API for development:
 
 ```
-ENABLE_SWAGGER_UI=true REFERENCE=grch38 DATASET_ID=test1 yarn start TOB
+ENABLE_SWAGGER_UI=true REFERENCE_GENOME=grch38 DATASET_ID=test1 yarn start TOB
 ```
+
+If deploying a new branch which uses a new dataset or reference, make sure to edit and update the `DATASET_ID` and `REFERENCE_GENOME` workflow secrets on github. See `.github/workflows/gcp-deploy.yml` for other env variables that you can modify.
