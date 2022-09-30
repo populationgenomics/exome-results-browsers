@@ -19,14 +19,14 @@ const AggregateTooltip = ({ data }) => {
       render: (v) => v,
     },
     {
-      label: 'Expression (log CPM)',
+      label: 'Mean Expression (log CPM)',
       attr: 'mean_log_cpm',
       render: (v) => v.toPrecision(2),
     },
     {
-      label: 'Association strength (-log10p)',
-      attr: 'min_p_value',
-      render: (v) => -1 * Math.log10(v).toPrecision(2),
+      label: 'Max Association strength (-log10p)',
+      attr: 'max_log10_p_value',
+      render: (v) => v.toPrecision(2),
     },
   ]
 
