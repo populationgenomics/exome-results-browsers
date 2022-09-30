@@ -256,8 +256,9 @@ const fetchGeneAssociationAggregate = async (id, { config = {} } = {}) => {
       SELECT *
       FROM ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.association}
       WHERE
-        global_bp >= @start AND
-        global_bp <= @stop AND
+        -- FIXME: variant coordinates and gene coordinates are not aligned?
+        -- global_bp >= @start AND
+        -- global_bp <= @stop AND
         gene_id = @id
     )
     GROUP BY gene_id, cell_type_id
