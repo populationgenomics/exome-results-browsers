@@ -7,6 +7,9 @@ const { fetchGenes } = require('./gene')
 const { convertPositionToGlobalPosition } = require('./genome')
 const { defaultQueryOptions, tableIds, submitQuery, sampleNormal } = require('./utilities')
 
+const SEP = '-'
+const VARIANT_ID_FORMULA = `CONCAT(chrom, '${SEP}', bp, '${SEP}', a1, '${SEP}', a2)`
+
 /**
  * Fetch variant rows using an optional query to match variant ids or rsids. Provide a
  * range object with global base coordinates for efficient range based filtering.
@@ -36,13 +39,7 @@ const fetchVariants = async ({
 
   if (query) {
     queryParams.query = query
-    filters.push(
-      [
-        "UPPER(variant_id) LIKE CONCAT('%', UPPER(@query), '%')",
-        "UPPER(snp_id) LIKE CONCAT('%', UPPER(@query), '%')",
-        "UPPER(rsid) LIKE CONCAT('%', UPPER(@query), '%')",
-      ].join(' OR ')
-    )
+    filters.push([`UPPER(${VARIANT_ID_FORMULA}) LIKE CONCAT('%', UPPER(@query), '%')`].join(' OR '))
   }
 
   if (range && range.chrom) {
@@ -56,7 +53,7 @@ const fetchVariants = async ({
     limitClause = `LIMIT @limit`
   }
 
-  const selectClause = 'SELECT *'
+  const selectClause = `SELECT *, ${VARIANT_ID_FORMULA} varaint_id`
   const fromClause = `FROM ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.variant}`
 
   const sqlQuery = [
@@ -87,9 +84,9 @@ const fetchVariantById = async (id, { config = {} } = {}) => {
 
   const queryOptions = { ...defaultQueryOptions(), ...(config || {}) }
 
-  const selectClause = 'SELECT *'
+  const selectClause = `SELECT *, ${VARIANT_ID_FORMULA} variant_id`
   const fromClause = `FROM ${queryOptions.projectId}.${queryOptions.datasetId}.${tableIds.variant}`
-  const filters = ['UPPER(variant_id) = UPPER(@id)']
+  const filters = [`UPPER(${VARIANT_ID_FORMULA}) = UPPER(@id)`]
 
   const queryParams = { id }
   const sqlQuery = [
@@ -159,6 +156,8 @@ const fetchVariantAssociations = async (
  * @returns {Promise<object|null>}
  */
 const fetchVariantAssociationAggregate = async (id, { config = {} } = {}) => {
+  // TODO: This is fake data, implement the real McCoy!
+
   if (!id) throw new Error("Parameter 'id' is required.")
 
   const cellTypes = await fetchCellTypes({ config })
