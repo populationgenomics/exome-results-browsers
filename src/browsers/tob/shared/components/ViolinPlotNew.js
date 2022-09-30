@@ -220,6 +220,7 @@ const ViolinPlot = ({
                 onMouseLeave={(e) => {
                   select(e.target.parentNode).selectChildren().attr('stroke-width', 1)
                 }}
+                opacity={0} // hide box-plot but keep tooltip
               >
                 <line
                   x1={xScaleLocal.bandwidth() / 2}
