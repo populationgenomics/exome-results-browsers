@@ -37,26 +37,26 @@ Results browsers for case-control studies of psychiatric diseases done at the Br
 Set these env variables in your shell profile:
 
 ```
-# Enables the SwaggerUI interface, defaults to false.
+# Enables the SwaggerUI interface, defaults to false. You can turn this off in a production environment.
 ENABLE_SWAGGER_UI=true
 
-# Reference genome, defaults to grch38 if blank.
+# Reference genome, defaults to grch38 if blank. This should be the same value as the --reference option using the ingestion CLI
 REFERENCE_GENOME=grch38
 
-# BigQuery dataset id, defaults to grch38 if blank.
+# BigQuery dataset id, defaults to grch38 if blank. This should be the same value as the --dataset-id option using the ingestion CLI
 DATASET_ID=test1
 
-# Google service account to use during development with bigquery access
+# Google service account to use during development with BigQuery access.
 GOOGLE_APPLICATION_CREDENTIALS=<path to your service account>
 
-# Set node env to development
+# Set node env to development. Set as 'production' for a prod environment
 NODE_ENV=development
 ```
 
 Example to run the new API for development:
 
 ```
-ENABLE_SWAGGER_UI=true REFERENCE_GENOME=grch38 DATASET_ID=test1 yarn start TOB
+ENABLE_SWAGGER_UI=true REFERENCE_GENOME=grch38 DATASET_ID=grch38 yarn start TOB
 ```
 
 If deploying a new branch which uses a new dataset or reference, make sure to edit and update the `DATASET_ID` and `REFERENCE_GENOME` workflow secrets on github. See `.github/workflows/gcp-deploy.yml` for other env variables that you can modify.
