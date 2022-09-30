@@ -10,6 +10,7 @@ const DEFAULT_ACCESSORS = {
   id: (d) => d.id,
   x: (d) => d.x,
   y: (d) => d.y,
+  bins: (d) => d.bins,
   q1: (d) => d.q1,
   median: (d) => d.median,
   mean: (d) => d.mean,
@@ -43,9 +44,11 @@ const ViolinPlot = ({
   const innerWidth = Math.max(0, width - _margin.left - _margin.right)
   const innerHeight = height - _margin.top - _margin.bottom
 
-  const bins = useMemo(() => data?.bins ?? [], [data])
-  const max = useMemo(() => Math.max(...bins.map((item) => item.max)), [bins])
-  const histograms = useMemo(() => data?.histograms ?? [], [data])
+  // const bins = useMemo(() => data?.bins ?? [], [data])
+  const histograms = useMemo(() => data, [data])
+
+  const min = useMemo(() => Math.min(...data.map((d) => d.min)) - 1, [data]) // Add a mad pad
+  const max = useMemo(() => Math.max(...data.map((d) => d.max)) + 1, [data]) // Add a mad pad
 
   // Compute plot scales and render
   const xScaleLocal = useMemo(
@@ -56,8 +59,8 @@ const ViolinPlot = ({
   )
 
   const yScaleLocal = useMemo(
-    () => yScale || scaleLinear().domain([0, max]).range([innerHeight, 0]).nice(),
-    [yScale, innerHeight, max]
+    () => yScale || scaleLinear().domain([min, max]).range([innerHeight, 0]).nice(),
+    [yScale, innerHeight, min, max]
   )
 
   const maxCount = useMemo(() => Math.max(...histograms.flatMap(_accessors.y)), [
@@ -156,7 +159,7 @@ const ViolinPlot = ({
                   cursor="help"
                 >
                   {tick}
-                  <title>{_accessors.xTickHelp(tick)}</title>
+                  <title>{_accessors.xTickHelp(tick) ?? tick}</title>
                 </text>
                 <line y2={6} stroke="black" />
               </g>
@@ -196,7 +199,9 @@ const ViolinPlot = ({
                   transform={`translate(${xScaleLocal(_accessors.id(d))}, 0)`}
                 >
                   <path
-                    d={linesGenerator(bins.map((b, i) => ({ ...b, count: _accessors.y(d)[i] })))}
+                    d={linesGenerator(
+                      _accessors.bins(d).map((b, i) => ({ ...b, count: _accessors.y(d)[i] }))
+                    )}
                     style={{
                       fill: _accessors.color(d),
                       fillOpacity: 0.5,
@@ -258,6 +263,20 @@ const ViolinPlot = ({
                   y2={yScaleLocal(_accessors.q3(d))}
                   stroke="#333333"
                 />
+                <line
+                  x1={(xScaleLocal.bandwidth() * 7) / 16}
+                  x2={(xScaleLocal.bandwidth() * 9) / 16}
+                  y1={yScaleLocal(_accessors.min(d))}
+                  y2={yScaleLocal(_accessors.min(d))}
+                  stroke="#333333"
+                />
+                <line
+                  x1={(xScaleLocal.bandwidth() * 7) / 16}
+                  x2={(xScaleLocal.bandwidth() * 9) / 16}
+                  y1={yScaleLocal(_accessors.max(d))}
+                  y2={yScaleLocal(_accessors.max(d))}
+                  stroke="#333333"
+                />
               </g>
             ))}
           </g>
@@ -284,15 +303,18 @@ const ViolinPlot = ({
 
 ViolinPlot.propTypes = {
   id: PropTypes.string.isRequired,
-  data: PropTypes.shape({
-    histograms: PropTypes.arrayOf(PropTypes.object),
-    bins: PropTypes.arrayOf(
-      PropTypes.shape({
-        min: PropTypes.number.isRequired,
-        max: PropTypes.number.isRequired,
-      })
-    ),
-  }).isRequired,
+  data: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string,
+      counts: PropTypes.arrayOf(PropTypes.number),
+      bins: PropTypes.arrayOf(
+        PropTypes.shape({
+          min: PropTypes.number.isRequired,
+          max: PropTypes.number.isRequired,
+        })
+      ),
+    }).isRequired
+  ).isRequired,
   title: PropTypes.string,
   xLabel: PropTypes.string,
   yLabel: PropTypes.string,

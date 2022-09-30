@@ -71,15 +71,30 @@ const DotplotHeatmap = ({
       colorScale ||
       scaleSequential()
         .interpolator(interpolateRgb('#FFFFFF', '#CC0000'))
-        .domain(extent(data, _accessors.color))
+        .domain(
+          extent(
+            data.filter((d) => !!_accessors.color(d)),
+            _accessors.color
+          )
+        )
         .range(['#FFFFFF', '#CC0000'])
         .nice(),
-    [colorScale, data, _accessors.color]
+    [colorScale, data, _accessors]
   )
 
   const sizeScaleLocal = useMemo(
-    () => sizeScale || scaleLinear().domain(extent(data, _accessors.size)).range([0, 20]).nice(),
-    [sizeScale, data, _accessors.size]
+    () =>
+      sizeScale ||
+      scaleLinear()
+        .domain(
+          extent(
+            data.filter((d) => !!_accessors.size(d)),
+            _accessors.size
+          )
+        )
+        .range([0, 20])
+        .nice(),
+    [sizeScale, data, _accessors]
   )
 
   const renderTooltip = useCallback(
@@ -168,7 +183,7 @@ const DotplotHeatmap = ({
                 cursor="help"
               >
                 {tick}
-                <title>{_accessors.xTickHelp(tick)}</title>
+                <title>{_accessors.xTickHelp(tick) ?? tick}</title>
               </text>
               <line y2={6} stroke="black" />
               <line y2={`-${innerHeight}`} stroke="lightgrey" />
@@ -212,29 +227,31 @@ const DotplotHeatmap = ({
 
         {/* Dots */}
         <g id={`${id}-data`}>
-          {data.map((item) => (
-            <TooltipAnchor
-              key={`${_accessors.id(item)}-tooltip`}
-              tooltipComponent={renderTooltip}
-              d={item}
-            >
-              <circle
-                key={`${_accessors.id(item)}`}
-                r={sizeScaleLocal(_accessors.size(item))}
-                cx={xScaleLocal(_accessors.x(item)) + xScaleLocal.bandwidth() / 2}
-                cy={yScaleLocal(_accessors.y(item)) + yScaleLocal.bandwidth() / 2}
-                stroke="black"
-                strokeWidth={_accessors.isSelected(item) ? 1.5 : 1}
-                onMouseOver={(e) => select(e.target).attr('stroke-width', 1.5)}
-                onMouseOut={(e) =>
-                  select(e.target).attr('stroke-width', _accessors.isSelected(item) ? 1.5 : 1)
-                }
-                fill={`${colorScaleLocal(_accessors.color(item))}`}
-                onClick={() => onClick(item)}
-                cursor={onClick ? 'pointer' : null}
-              />
-            </TooltipAnchor>
-          ))}
+          {data.map((item) => {
+            return (
+              <TooltipAnchor
+                key={`${_accessors.id(item)}-tooltip`}
+                tooltipComponent={renderTooltip}
+                d={item}
+              >
+                <circle
+                  key={`${_accessors.id(item)}`}
+                  r={sizeScaleLocal(_accessors.size(item))}
+                  cx={xScaleLocal(_accessors.x(item)) + xScaleLocal.bandwidth() / 2}
+                  cy={yScaleLocal(_accessors.y(item)) + yScaleLocal.bandwidth() / 2}
+                  stroke="black"
+                  strokeWidth={_accessors.isSelected(item) ? 1.5 : 1}
+                  onMouseOver={(e) => select(e.target).attr('stroke-width', 1.5)}
+                  onMouseOut={(e) =>
+                    select(e.target).attr('stroke-width', _accessors.isSelected(item) ? 1.5 : 1)
+                  }
+                  fill={`${colorScaleLocal(_accessors.color(item))}`}
+                  onClick={() => onClick(item)}
+                  cursor={onClick ? 'pointer' : null}
+                />
+              </TooltipAnchor>
+            )
+          })}
         </g>
       </g>
 
