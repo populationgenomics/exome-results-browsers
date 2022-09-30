@@ -19,7 +19,10 @@ const TOBViolinPlot = ({ query, margin, height, yLabel, fontSize, cellTypes }) =
   const [data, setData] = useState(null)
   const [ref, dimensions] = useChartDimensions()
 
-  const isEqtl = useMemo(() => query?.toString()?.includes(':'), [query])
+  const isEqtl = useMemo(
+    () => query?.toString()?.includes(':') || query?.toString()?.includes('-'),
+    [query]
+  )
 
   const accessors = useMemo(() => {
     return {
@@ -34,7 +37,13 @@ const TOBViolinPlot = ({ query, margin, height, yLabel, fontSize, cellTypes }) =
       min: (d) => d.min,
       max: (d) => d.max,
       color: (d) => {
-        const key = query.includes(':') ? query.split(':').at(-2) : d.id
+        let key = d.id
+        if (query.includes('-')) {
+          key = query.split('-').at(-2)
+        } else if (query.includes(':')) {
+          key = query.split(':').at(-2)
+        }
+
         return CELL_COLORS[key]
       },
       tooltip: (d) => <BoxplotTooltip statistics={d} />,
@@ -56,7 +65,7 @@ const TOBViolinPlot = ({ query, margin, height, yLabel, fontSize, cellTypes }) =
         if (r.ok) {
           r.json()
             .then((d) => {
-              if (!query.includes(':')) {
+              if (!query.includes(':') && !query.includes('-')) {
                 // Gene query, sort historgrams by cell type id
                 setData({ histograms: sortBy(d.histograms, 'id'), bins: d.bins })
               } else {
